@@ -4,85 +4,91 @@
 It is the version that is inspired by the token saving algorithm of Caveman plugin for Claude, but it was conceived without doing any porting from the original, it is a code born from scratch
 
 
-**Caveman** è una libreria C# basata su **Catalyst** che riduce drasticamente il numero di token nei tuoi prompt per LLM (come Gemma 3, Llama o GPT-4). Utilizza tecniche di Natural Language Processing (NLP) per rimuovere il "rumore" grammaticale (articoli, preposizioni, congiunzioni) mantenendo intatto il valore semantico.
+**Caveman** is a C# library built on **Catalyst** that drastically reduces the number of tokens in your LLM prompts (such as Gemma 3, Llama, or GPT-4). It utilizes Natural Language Processing (NLP) techniques to remove grammatical "noise" (articles, prepositions, conjunctions) while keeping the semantic value intact.
 
-> "Perché usare molti token quando pochi token fanno lavoro uguale?" — Un uomo delle caverne (e il tuo portafoglio).
+> "Why use many tokens when few tokens do trick?" — A caveman (and your wallet).
 
-## 🚀 Caratteristiche
-- **Riduzione Token fino al 70%**: Abbatti i costi delle API e velocizza l'inferenza locale.
-- **Multilingua**: Supporto per oltre 50 lingue (Italiano, Inglese, Francese, ecc.) tramite i modelli Catalyst.
-- **Livelli di Compressione**: Scegli tra `Light`, `Semantic` o `Aggressive` (Lemmatizzazione).
-- **Integrazione LLM con Semantic Kernel**: Ottimizzato per modelli di nuova generazione che comprendono perfettamente il linguaggio contratto.
+## 🚀 Features
+- **Up to 70% Token Reduction**: Slash API costs and speed up local inference.
+- **Multilingual**: Support for over 50 languages (English, Italian, French, etc.) via Catalyst models.
+- **Compression Levels**: Choose between `Light`, `Semantic`, or `Aggressive` (Lemmatization).
+- **LLM Integration with Semantic Kernel**: Optimized for next-gen models that perfectly understand contracted language.
 
 ---
 
-## 🛠️ Installazione
+## 🛠️ Installation
 
-### 1. Pacchetto Base
-Installa la libreria core e il gestore dei modelli:
+### 1. Base Package
+Install the core library and the model manager:
 
 dotnet add package Catalyst
 dotnet add package Mosaik.Core
 
-### 2. Modelli Linguistici
-Installa i pacchetti per le lingue che intendi supportare:
-dotnet add package Catalyst.Models.Italian
-dotnet add package Catalyst.Models.English
-O meglio lancia lo script powershell Install-CatalystModels.ps1 (vengono aggiornati in automatico al project tutte le librerie)
 
-### 3. Utilizzo rapido
+### 2. Language Models
+Install the packages for the languages you intend to support:
+dotnet add package Catalyst.Models.English
+dotnet add package Catalyst.Models.Italian
+
+Alternatively, run the PowerShell script Install-CatalystModels.ps1 (it automatically updates all libraries in the project).
+
+### 3. Quick Start
 var compressor = new CavemanCompressionService();
 
 string input = "Buongiorno, vorrei sapere se fosse possibile ricevere informazioni sui ristoranti a Roma.";
 
-// Comprime il testo rimuovendo stopwords e mantenendo il senso
+// Compresses the text by removing stopwords while maintaining meaning
 string compressed = await compressor.CompressAsync(input, Language.Italian, CompressionLevel.Semantic);
 
 Console.WriteLine(compressed); 
 // Output: "Buongiorno sapere possibile ricevere informazioni ristoranti Roma"
 
-### 5. Livelli di Compressione
-### 📊 Livelli di Compressione NLP
+### 5. 📊 NLP Compression Levels
 
-| Livello | Logica Applicata | Tag POS Rimossi (Filtri) | Risparmio |
+| Level | Applied Logic | Removed POS Tags (Filters) | Savings |
 | :--- | :--- | :--- | :--- |
 | **Light** | *Stopword Removal* | `DET`, `ADP`, `CCONJ`, `SCONJ`, `PRON`, `PUNCT` | **~25-30%** |
-| **Semantic** | *Key Content Selection* | Mantiene solo `NOUN`, `VERB`, `ADJ`, `PROPN`, `ADV` | **~50%** |
-| **Aggressive** | *Lemmatization* | Mantiene solo `NOUN`, `VERB`, `PROPN` (forma base) | **~70%** |
+| **Semantic** | *Key Content Selection* | Keeps only `NOUN`, `VERB`, `ADJ`, `PROPN`, `ADV` | **~50%** |
+| **Aggressive** | *Lemmatization* | Keeps only `NOUN`, `VERB`, `PROPN` (base form) | **~70%** |
 
-### 🔍 Dettaglio Tecnico dei Tag (Mapping Catalyst)
+### 🔍 Technical Tag Detail (Catalyst Mapping)
 
-| Tag POS | Categoria | Esempi (ITA/ENG) | Trattamento |
+| POS Tag | Category | Examples (ENG/ITA) | Treatment |
 | :--- | :--- | :--- | :--- |
-| **DET** | Articoli | il, lo, la, un / the, a | **Rimosso** (da Light) |
-| **ADP** | Preposizioni | di, a, da, in / of, at, from | **Rimosso** (da Light) |
-| **CCONJ** | Cong. Coordinanti | e, o, ma / and, or, but | **Rimosso** (da Light) |
-| **SCONJ** | Cong. Subordinanti | che, se, perché / that, if | **Rimosso** (da Light) |
-| **PRON** | Pronomi | io, tu, mi, lo / I, you, it | **Rimosso** (da Light) |
-| **NOUN** | Sostantivi | casa, pizza / house, pizza | **Mantenuto Sempre** |
-| **VERB** | Verbi | mangiare, corre / eat, runs | **Mantenuto Sempre** |
-| **ADV** | Avverbi | non, molto / not, quickly | **Mantenuto in Semantic** |
+| **DET** | Determiners | the, a / il, lo | **Removed** (from Light) |
+| **ADP** | Prepositions | of, at / di, a | **Removed** (from Light) |
+| **CCONJ** | Coord. Conjunctions | and, or / e, o | **Removed** (from Light) |
+| **SCONJ** | Subord. Conjunctions | that, if / che, se | **Removed** (from Light) |
+| **PRON** | Pronouns | I, you / io, tu | **Removed** (from Light) |
+| **NOUN** | Nouns | house, pizza / casa, pizza | **Always Kept** |
+| **VERB** | Verbs | eat, runs / mangiare, corre | **Always Kept** |
+| **ADV** | Adverbs | not, quickly / non, molto | **Kept in Semantic** |
 
-### 💡 Esempio di Trasformazione
+### 💡 Transformation Example
 
-| Stato | Testo del Prompt | Token / Caratteri |
+| State | Prompt Text | Tokens / Characters |
 | :--- | :--- | :--- |
-| **Originale** | "Vorrei sapere se è possibile avere una pizza margherita subito." | 100% (62 ch) |
-| **Light** | "Vorrei sapere possibile avere pizza margherita subito" | ~75% (48 ch) |
-| **Semantic** | "sapere possibile avere pizza margherita subito" | ~55% (42 ch) |
-| **Aggressive**| "sapere possibile avere pizza margherita" | **~40% (36 ch)** |
+| **Original** | "I would like to know if it is possible to have a margherita pizza immediately." | 100% (78 ch) |
+| **Light** | "like know possible have margherita pizza immediately" | ~70% (54 ch) |
+| **Semantic** | "know possible have margherita pizza immediately" | ~55% (48 ch) |
+| **Aggressive**| "know possible have margherita pizza" | **~40% (38 ch)** |
 
 
-🤝 Contribuire
-Le pull request sono benvenute! Per modifiche importanti, apri prima un'issue per discutere cosa vorresti cambiare.
-
+🤝 Contributing
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
 Caveman License Agreement v1.0
 Copyright (c) 2026 Francesco Paolo Passaro
-Con la presente si concede il permesso di utilizzare, copiare e modificare questo software ("Caveman") esclusivamente per scopi Open Source e NON Commerciali, alle seguenti condizioni:
-Attribuzione: Il nome dell'autore originale, Francesco Paolo Passaro, e i riferimenti al progetto "Caveman Compression" devono essere mantenuti in ogni copia o parte sostanziale del software.
-Uso Non Commerciale: È severamente vietato l'uso del software, dei suoi derivati o dei risultati da esso prodotti per fini di lucro, vendita, o integrazione in prodotti commerciali a pagamento senza previo accordo scritto.
-Divieto di Ridistribuzione Pubblica: Il software non può essere caricato su repository pubblici, specchi (mirror) o distribuito a terzi al di fuori del contesto originale senza l'espresso consenso scritto dell'autore.
-Open Source "As-Is": Il software è fornito "così com'è", senza garanzie di alcun tipo. L'autore non è responsabile per eventuali danni derivanti dall'uso del software.
-Qualsiasi violazione dei punti sopra indicati comporterà la revoca immediata della licenza d'uso.
-Per richieste di autorizzazione alla divulgazione o usi commerciali, contattare: passaroweb@gmail.com
+
+Permission is hereby granted to use, copy, and modify this software ("Caveman") exclusively for Open Source and NON-Commercial purposes, under the following conditions:
+
+Attribution: The original author's name, Francesco Paolo Passaro, and references to the "Caveman Compression" project must be retained in every copy or substantial portion of the software.
+
+Non-Commercial Use: Use of the software, its derivatives, or the results produced by it for profit, sale, or integration into paid commercial products is strictly prohibited without prior written agreement.
+
+Prohibition of Public Redistribution: The software may not be uploaded to public repositories, mirrors, or distributed to third parties outside the original context without the express written consent of the author.
+
+Open Source "As-Is": The software is provided "as is", without warranty of any kind. The author is not responsible for any damages arising from the use of the software.
+
+Any violation of the points above will result in the immediate revocation of the license to use.
+For authorization requests regarding disclosure or commercial use, contact: passaroweb@gmail.com
