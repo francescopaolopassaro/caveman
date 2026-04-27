@@ -1,8 +1,29 @@
-﻿using Microsoft.SemanticKernel;
+﻿/*---------------------------------------------------------------------------------------
+ * PROJECT: Caveman (NLP Prompt Compressor)
+ * * DESCRIPTION:
+ * This system implements NLP-based "Prompt Contraction" logic.
+ * The core objective is to drastically reduce the token count sent to LLMs 
+ * (such as Gemma 3, Llama 3, or GPT-4) by selectively stripping low-semantic 
+ * value grammatical elements (Stopwords, Determiners, Conjunctions).
+ * * THE "CAVEMAN" PRINCIPLE:
+ * The guiding philosophy is to transform complex natural language into an essential, 
+ * high-density format that preserves the original intent. 
+ * (e.g., "I would like to order a pepperoni pizza" -> "Order pepperoni pizza").
+ * * BENEFITS:
+ * 1. Reduced Inference Latency: Faster response times from local or cloud models.
+ * 2. API Cost Optimization: Significant savings for token-based billing.
+ * 3. Context Window Efficiency: Allows more information to fit within the model's memory.
+ * * TECHNOLOGY STACK:
+ * - Core: Catalyst NLP (Universal Dependencies Standard)
+ * - Methodology: POS (Part-of-Speech) filtering and Lemmatization.
+ * * AUTHOR: [Francesco Paolo Passaro]
+ * DATE: April 2026
+ *---------------------------------------------------------------------------------------*/
+using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.IO.Compression;
 
-namespace caveman.SemanticKernel.Plugin
+namespace caveman.core.SemanticKernel.Plugin
 {
 
     public class TokenOptimizerPlugin

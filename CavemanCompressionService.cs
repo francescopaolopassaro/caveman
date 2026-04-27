@@ -1,4 +1,24 @@
-﻿
+﻿/*---------------------------------------------------------------------------------------
+ * PROJECT: Caveman (NLP Prompt Compressor)
+ * * DESCRIPTION:
+ * This system implements NLP-based "Prompt Contraction" logic.
+ * The core objective is to drastically reduce the token count sent to LLMs 
+ * (such as Gemma 3, Llama 3, or GPT-4) by selectively stripping low-semantic 
+ * value grammatical elements (Stopwords, Determiners, Conjunctions).
+ * * THE "CAVEMAN" PRINCIPLE:
+ * The guiding philosophy is to transform complex natural language into an essential, 
+ * high-density format that preserves the original intent. 
+ * (e.g., "I would like to order a pepperoni pizza" -> "Order pepperoni pizza").
+ * * BENEFITS:
+ * 1. Reduced Inference Latency: Faster response times from local or cloud models.
+ * 2. API Cost Optimization: Significant savings for token-based billing.
+ * 3. Context Window Efficiency: Allows more information to fit within the model's memory.
+ * * TECHNOLOGY STACK:
+ * - Core: Catalyst NLP (Universal Dependencies Standard)
+ * - Methodology: POS (Part-of-Speech) filtering and Lemmatization.
+ * * AUTHOR: [Francesco Paolo Passaro]
+ * DATE: April 2026
+ *---------------------------------------------------------------------------------------*/
 using Catalyst;
 using LanguageDetection;
 using Mosaik.Core;
@@ -8,16 +28,17 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace caveman
+namespace caveman.core
 {
 
+    using Catalyst;
+    using LanguageDetection;
+    using Mosaik.Core;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Catalyst;
-    using Mosaik.Core;
-    using LanguageDetection;
+    using static System.Net.Mime.MediaTypeNames;
 
     // 1. Definizione livelli di compressione
 
@@ -45,18 +66,20 @@ namespace caveman
             if (level == CavemanCompressionLevel.None || string.IsNullOrWhiteSpace(input))
                 return input;
 
-            // 1. Rilevamento lingua (restituisce es. "it")
-            string langCode = _detector.Detect(input);
+            // 1. Rilevamento lingua (restituisce es. "ita")
 
-            // CORREZIONE per la tua versione di Mosaik.Core:
-            // Usiamo CodeToEnum invece di EnumParse
-            Language language = Languages.CodeToEnum(langCode);
+            var detector = new LanguageDetector();
+            detector.AddAllLanguages();
+
+            string detectedCode = detector.Detect(input); // Restituisce es. "ita"
+            Language catalystLang = LanguageMapper.GetCatalystLanguage(detectedCode);
 
             // 2. Elaborazione tramite NLP (Catalyst)
-            return await ApplyNlpLogic(input, language, level);
+            return await ApplyNlpLogic(input, catalystLang, level);
+
         }
 
-        private async Task<string> ApplyNlpLogic(string input, Language lang, CavemanCompressionLevel level)
+        public async Task<string> ApplyNlpLogic(string input, Language lang, CavemanCompressionLevel level)
         {
             // Forza la configurazione dello storage PRIMA di ogni operazione
             if (Storage.Current == null)

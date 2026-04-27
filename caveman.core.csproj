@@ -7,9 +7,25 @@
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction.</Description>
   <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3;Catalyst</PackageTags>
-  <PackageLicenseExpression>BCL</PackageLicenseExpression>
+  <PackageLicenseExpression>MIT</PackageLicenseExpression>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
- 
+  
+  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Title>Caveman</Title>
+    <Copyright>Passaro Francesco Paolo</Copyright>
+    <PackageProjectUrl>https://github.com/francescopaolopassaro/caveman/</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <EmbeddedResource Remove="tests\**" />
+    <None Remove="tests\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Catalyst" Version="26.3.60" />
@@ -63,9 +79,16 @@
     <PackageReference Include="Catalyst.Models.Ukrainian" Version="1.0.30952" />
     <PackageReference Include="Catalyst.Models.Urdu" Version="1.0.30952" />
     <PackageReference Include="Catalyst.Models.Vietnamese" Version="1.0.30952" />
-    <PackageReference Include="LanguageDetection" Version="1.2.0" />
+    <PackageReference Include="LanguageDetection.NETStandard" Version="1.3.1" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.74.0" />
     <PackageReference Include="Mosaik.Core" Version="25.10.62118" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

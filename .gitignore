@@ -5,3 +5,9 @@
 /.vs/caveman/CopilotIndices/17.14.1091.29919
 /.vs/caveman/FileContentIndex
 /.vs
+/bin
+/console/caveman.console/bin/Release/net8.0
+/console/caveman.console/obj
+/obj
+/tests/caveman.tests/bin
+/tests/caveman.tests/obj
