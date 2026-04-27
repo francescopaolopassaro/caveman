@@ -12,7 +12,7 @@ It is the version that is inspired by the token saving algorithm of Caveman plug
 - **Riduzione Token fino al 70%**: Abbatti i costi delle API e velocizza l'inferenza locale.
 - **Multilingua**: Supporto per oltre 50 lingue (Italiano, Inglese, Francese, ecc.) tramite i modelli Catalyst.
 - **Livelli di Compressione**: Scegli tra `Light`, `Semantic` o `Aggressive` (Lemmatizzazione).
-- **Integrazione Gemma 3**: Ottimizzato per modelli di nuova generazione che comprendono perfettamente il linguaggio contratto.
+- **Integrazione LLM con Semantic Kernel**: Ottimizzato per modelli di nuova generazione che comprendono perfettamente il linguaggio contratto.
 
 ---
 
