@@ -67,5 +67,7 @@
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.74.0" />
     <PackageReference Include="Mosaik.Core" Version="25.10.62118" />
   </ItemGroup>
-
+<PropertyGroup>
+  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+</PropertyGroup>
 </Project>
