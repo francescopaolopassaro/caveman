@@ -1,8 +1,8 @@
-# caveman
+#🦴 Caveman: Prompt Compressor for LLMs
 
+<img width="1197" height="766" alt="caveman_splash" src="https://github.com/user-attachments/assets/4b534140-c519-423f-b918-e705565a039f" />
 It is the version that is inspired by the token saving algorithm of Caveman plugin for Claude, but it was conceived without doing any porting from the original, it is a code born from scratch
 
-# 🦴 Caveman: Prompt Compressor for LLMs
 
 **Caveman** è una libreria C# basata su **Catalyst** che riduce drasticamente il numero di token nei tuoi prompt per LLM (come Gemma 3, Llama o GPT-4). Utilizza tecniche di Natural Language Processing (NLP) per rimuovere il "rumore" grammaticale (articoli, preposizioni, congiunzioni) mantenendo intatto il valore semantico.
 
