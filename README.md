@@ -25,7 +25,7 @@ dotnet add package Catalyst
 dotnet add package Mosaik.Core
 Caveman License Agreement v1.0
 Copyright (c) 2026 Francesco Paolo Passaro
-Con la presente si concede il permesso di utilizzare, copiare e modificare questo software ("CavemanNLP") esclusivamente per scopi Open Source e NON Commerciali, alle seguenti condizioni:
+Con la presente si concede il permesso di utilizzare, copiare e modificare questo software ("Caveman") esclusivamente per scopi Open Source e NON Commerciali, alle seguenti condizioni:
 Attribuzione: Il nome dell'autore originale, Francesco Paolo Passaro, e i riferimenti al progetto "Caveman Compression" devono essere mantenuti in ogni copia o parte sostanziale del software.
 Uso Non Commerciale: È severamente vietato l'uso del software, dei suoi derivati o dei risultati da esso prodotti per fini di lucro, vendita, o integrazione in prodotti commerciali a pagamento senza previo accordo scritto.
 Divieto di Ridistribuzione Pubblica: Il software non può essere caricato su repository pubblici, specchi (mirror) o distribuito a terzi al di fuori del contesto originale senza l'espresso consenso scritto dell'autore.
