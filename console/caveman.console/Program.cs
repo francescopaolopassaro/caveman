@@ -16,7 +16,7 @@
  * * TECHNOLOGY STACK:
  * - Core: Catalyst NLP (Universal Dependencies Standard)
  * - Methodology: POS (Part-of-Speech) filtering and Lemmatization.
- * * AUTHOR: [Francesco Paolo Passaro]
+ * * AUTHOR: [Passaro Francesco Paolo]
  * DATE: April 2026
  *---------------------------------------------------------------------------------------*/
 using System;
@@ -117,5 +117,6 @@ namespace caveman
 
 
 
-
+   
+  
 }
