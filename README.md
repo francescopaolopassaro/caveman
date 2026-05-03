@@ -17,20 +17,7 @@ It is the version that is inspired by the token saving algorithm of Caveman plug
 ---
 
 ## 🛠️ Installation
-
-###  Base Package
-Install the core library and the model manager:
-
-dotnet add package Catalyst
-dotnet add package Mosaik.Core
-
-
-### Language Models
-Install the packages for the languages you intend to support:
-dotnet add package Catalyst.Models.English
-dotnet add package Catalyst.Models.Italian
-
-Alternatively, run the PowerShell script Install-CatalystModels.ps1 (it automatically updates all libraries in the project).
+dotnet add package Caveman --version 1.0.2
 
 ###  Quick Start
 var compressor = new CavemanCompressionService();
