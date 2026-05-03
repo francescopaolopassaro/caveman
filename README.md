@@ -18,32 +18,41 @@ It is the version that is inspired by the token saving algorithm of Caveman plug
 
 ## 🛠️ Installation
 
-### 1. Base Package
+###  Base Package
 Install the core library and the model manager:
 
 dotnet add package Catalyst
 dotnet add package Mosaik.Core
 
 
-### 2. Language Models
+### Language Models
 Install the packages for the languages you intend to support:
 dotnet add package Catalyst.Models.English
 dotnet add package Catalyst.Models.Italian
 
 Alternatively, run the PowerShell script Install-CatalystModels.ps1 (it automatically updates all libraries in the project).
 
-### 3. Quick Start
+###  Quick Start
 var compressor = new CavemanCompressionService();
+string input = "I would like to know if it is possible to receive information about cheap restaurants in Rome.";
 
-string input = "Buongiorno, vorrei sapere se fosse possibile ricevere informazioni sui ristoranti a Roma.";
+// Compresses the text and calculates energy savings
+var result = await compressor.CompressAsync(input, CavemanCompressionLevel.Semantic);
 
-// Compresses the text by removing stopwords while maintaining meaning
-string compressed = await compressor.CompressAsync(input, Language.Italian, CompressionLevel.Semantic);
+Console.WriteLine($"Compressed: {result.CompressedText}");
+Console.WriteLine($"Efficiency: {result.EfficiencyPercentage:F1}%");
+Console.WriteLine($"🌿 Energy Saved: {result.EstimatedEnergySavedMWh:F3} mWh");
 
-Console.WriteLine(compressed); 
-// Output: "Buongiorno sapere possibile ricevere informazioni ristoranti Roma"
+### 🌿 Sustainability: Why it matters
+Every token generated or processed by an LLM has an environmental cost. Caveman v1.1 introduces a built-in estimator based on industry averages:
 
-### 5. 📊 NLP Compression Levels
+Energy Consumption: Estimated at 5 mWh per token.
+
+Carbon Footprint: Estimated at 0.4 mg of CO2 per mWh.
+
+By compressing a prompt from 1000 to 400 tokens, you save approximately 3 mWh of energy. On a scale of millions of requests, Caveman helps build a more sustainable AI ecosystem.
+
+### 📊 NLP Compression Levels
 
 | Level | Applied Logic | Removed POS Tags (Filters) | Savings |
 | :--- | :--- | :--- | :--- |
@@ -73,22 +82,61 @@ Console.WriteLine(compressed);
 | **Semantic** | "know possible have margherita pizza immediately" | ~55% (48 ch) |
 | **Aggressive**| "know possible have margherita pizza" | **~40% (38 ch)** |
 
+### 💡 This is a new feature introduced in version 1.0.2 : Caveman.Wiki
 
+## Purpose
+Automatically generate AI-friendly markdown documentation for any software project, 
+semantically compressing content to optimize context for LLM prompts.
+
+## How It Works
+1. **Project Analysis**: Automatically detects project type (C#, Python, Node.js, etc.) 
+   by scanning configuration files (.csproj, requirements.txt, package.json, etc.)
+
+2. **File Scanning**: Recursively traverses the folder, applying intelligent filters 
+   to exclude binary files, build folders, and external dependencies.
+
+3. **Dependency Extraction**: Parses project files to extract packages and versions, 
+   organizing them by source (NuGet, PyPI, npm, etc.)
+
+4. **Content Compression**: For files >2KB, uses `CavemanCompressionService` with 
+   `Semantic` level to reduce token count while preserving meaning.
+
+5. **Markdown Output**: Generates a structured document with:
+   - Project metadata in YAML format
+   - Organized dependency list
+   - Tree view of file structure
+   - File contents with syntax highlighting
+   - Statistical summary
+
+## Benefits for AI
+✅ Complete context in readable format  
+✅ Token-optimized via semantic compression  
+✅ Predictable structure for automatic parsing  
+✅ Machine-readable metadata for RAG systems  
+
+## Example Usage
+// Basic usage
+var wiki = new CavemanWiki();
+string context = await wiki.GenerateAsync(@"C:\Users\Dev\MyAwesomeProject");
+await File.WriteAllTextAsync("AI_CONTEXT.md", context);
+
+// Advanced usage with custom parameters
+string context = await wiki.GenerateAsync(
+    projectFolderPath: @"..\MyProject",
+    maxFileSizeBytes: 50 * 1024,  // 50KB max per file
+    compressionLevel: CavemanCompressionLevel.Aggressive  // More aggressive compression
+);
+
+// Integration with AI prompt system
+var prompt = $@"
+You are an expert assistant for the project described below.
+
+<project_context>
+{context}
+</project_context>
+
+Answer questions based SOLELY on this context.
+";
 🤝 Contributing
+
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
-
-Caveman License Agreement v1.0
-Copyright (c) 2026 Francesco Paolo Passaro
-
-Permission is hereby granted to use, copy, and modify this software ("Caveman") exclusively for Open Source and NON-Commercial purposes, under the following conditions:
-
-Attribution: The original author's name, Francesco Paolo Passaro, and references to the "Caveman Compression" project must be retained in every copy or substantial portion of the software.
-
-Non-Commercial Use: Use of the software, its derivatives, or the results produced by it for profit, sale, or integration into paid commercial products is strictly prohibited without prior written agreement.
-
-Prohibition of Public Redistribution: The software may not be uploaded to public repositories, mirrors, or distributed to third parties outside the original context without the express written consent of the author.
-
-Open Source "As-Is": The software is provided "as is", without warranty of any kind. The author is not responsible for any damages arising from the use of the software.
-
-Any violation of the points above will result in the immediate revocation of the license to use.
-For authorization requests regarding disclosure or commercial use, contact: passaroweb@gmail.com

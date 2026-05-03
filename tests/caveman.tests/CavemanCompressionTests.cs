@@ -19,7 +19,6 @@
  * * AUTHOR: [Francesco Paolo Passaro]
  * DATE: April 2026
  *---------------------------------------------------------------------------------------*/
-using Catalyst;
 using caveman.core;
 using Mosaik.Core;
 using NUnit.Framework;
@@ -40,15 +39,21 @@ namespace caveman.tests
         }
 
         [Test]
-        public async Task Test_LightCompression_ReducesLength()
+        public async Task Test_LightCompression_ReducesLength_And_SavesEnergy()
         {
-            // Nota: Usa il nome esatto del tuo metodo (ApplyNlpLogic o CompressAsync)
             var result = await _compressor.ApplyNlpLogic(SampleInput, Language.Italian, CavemanCompressionLevel.Light);
 
-            Assert.That(result.Length, Is.LessThan(SampleInput.Length));
-            // Sostituzione IsFalse -> Assert.That(..., Is.False)
-            Assert.That(result.Contains(" se "), Is.False);
-            Assert.That(result.Contains(" sui "), Is.False);
+            // Verify the text
+            Assert.That(result.CompressedText.Length, Is.LessThan(SampleInput.Length));
+            Assert.That(result.CompressedText.Contains(" se "), Is.False);
+            Assert.That(result.CompressedText.Contains(" sui "), Is.False);
+
+            // Verify the new Green metrics
+            Assert.That(result.OriginalTokens, Is.GreaterThan(result.CompressedTokens), "The number of compressed tokens must be lower.");
+            Assert.That(result.EstimatedEnergySavedMWh, Is.GreaterThan(0), "The energy savings must be greater than zero.");
+            Assert.That(result.EstimatedCO2SavedMg, Is.GreaterThan(0), "The CO2 savings must be calculated.");
+
+            TestContext.WriteLine($"Savings: {result.EstimatedEnergySavedMWh} mWh | Avoided CO2: {result.EstimatedCO2SavedMg} mg");
         }
 
         [Test]
@@ -56,10 +61,13 @@ namespace caveman.tests
         {
             var result = await _compressor.ApplyNlpLogic(SampleInput, Language.Italian, CavemanCompressionLevel.Semantic);
 
-            // Correzione errore NUnit2024: usa Does.Contain per le stringhe
-            Assert.That(result.ToLower(), Does.Contain("voli"));
-            Assert.That(result.ToLower(), Does.Contain("roma"));
-            Assert.That(result.ToLower(), Does.Contain("domani"));
+            string text = result.CompressedText.ToLower();
+            Assert.That(text, Does.Contain("voli"));
+            Assert.That(text, Does.Contain("roma"));
+            Assert.That(text, Does.Contain("domani"));
+
+            // Semantic should save more tokens than Light
+            Assert.That(result.EfficiencyPercentage, Is.GreaterThan(0));
         }
 
         [Test]
@@ -69,8 +77,8 @@ namespace caveman.tests
 
             var result = await _compressor.ApplyNlpLogic(input, Language.Italian, CavemanCompressionLevel.Aggressive);
 
-            // IsTrue -> Assert.That(..., Is.True)
-            Assert.That(result.Contains("gatto") || result.Contains("correre"), Is.True);
+            string text = result.CompressedText;
+            Assert.That(text.Contains("gatto") || text.Contains("correre"), Is.True);
         }
 
         [TestCase("", Language.Italian)]
@@ -78,8 +86,9 @@ namespace caveman.tests
         {
             var result = await _compressor.ApplyNlpLogic(input, lang, CavemanCompressionLevel.Light);
 
-            // AreEqual -> Assert.That(..., Is.EqualTo(...))
-            Assert.That(result, Is.EqualTo(string.Empty));
+            Assert.That(result.CompressedText, Is.EqualTo(string.Empty));
+            Assert.That(result.OriginalTokens, Is.EqualTo(0));
+            Assert.That(result.EstimatedEnergySavedMWh, Is.EqualTo(0));
         }
     }
 }

@@ -1,0 +1,31 @@
+// 1. Setup
+var compressionService = new CavemanCompressionService();
+var builder = Kernel.CreateBuilder();
+
+// Add your preferred AI service (e.g., Ollama/Gemma3)
+builder.AddOpenAIChatCompletion("gemma3", "http://localhost:11434/v1", "ollama");
+
+// Register the Caveman plugin
+builder.Plugins.AddFromObject(new TokenOptimizerPlugin(compressionService));
+
+var kernel = builder.Build();
+
+// 2. FLOW EXAMPLE
+string userPrompt = "I would like to know if you could kindly find some cheap restaurants in Milan near the station.";
+
+// Invoke the plugin
+// Note: We now receive a CompressionResult object
+var result = await kernel.InvokeAsync<CompressionResult>(
+    "TokenOptimizerPlugin", 
+    "OptimizePrompt",
+    new() { ["input"] = userPrompt, ["level"] = 2 }
+);
+
+// 3. LOG METRICS (The "Green" advantage)
+Console.WriteLine($"[Green Report] Energy Saved: {result.EstimatedEnergySavedMWh:F4} mWh");
+Console.WriteLine($"[Green Report] CO2 Avoided: {result.EstimatedCO2SavedMg:F3} mg");
+
+// 4. SEND TO LLM
+// We pass only the compressed text to the next prompt
+var aiResponse = await kernel.InvokePromptAsync(result.CompressedText);
+Console.WriteLine($"AI Response: {aiResponse}");

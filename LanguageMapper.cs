@@ -17,12 +17,9 @@
  * - Core: Catalyst NLP (Universal Dependencies Standard)
  * - Methodology: POS (Part-of-Speech) filtering and Lemmatization.
  * * AUTHOR: [Francesco Paolo Passaro]
- * DATE: April 2026
+ * DATE: May 2026
  *---------------------------------------------------------------------------------------*/
-using Catalyst;
 using Mosaik.Core;
-using System.Collections.Generic;
-
 public static class LanguageMapper
 {
     private static readonly Dictionary<string, Language> Iso3ToCatalyst = new Dictionary<string, Language>
@@ -91,6 +88,6 @@ public static class LanguageMapper
 
         return Iso3ToCatalyst.TryGetValue(iso3Code.ToLower(), out var lang)
                ? lang
-               : Language.Any; // Ritorna Any o English come fallback
+               : Language.Any; //fallback to 'Any' if not found
     }
 }

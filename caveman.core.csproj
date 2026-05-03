@@ -2,7 +2,7 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.0.1</Version>
+  <Version>1.0.2</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction.</Description>
@@ -19,16 +19,21 @@
     <Copyright>Passaro Francesco Paolo</Copyright>
     <PackageProjectUrl>https://github.com/francescopaolopassaro/caveman/</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <AssemblyVersion>1.0.0.1</AssemblyVersion>
-    <FileVersion>1.0.0.1</FileVersion>
+    <AssemblyVersion>1.0.0.2</AssemblyVersion>
+    <FileVersion>1.0.0.2</FileVersion>
   </PropertyGroup>
 <PropertyGroup>
   <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   <PackageIcon>caveman-icon.png</PackageIcon>
+  <PackageLicenseFile></PackageLicenseFile>
+  <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="console\**" />
     <Compile Remove="tests\**" />
+    <EmbeddedResource Remove="console\**" />
     <EmbeddedResource Remove="tests\**" />
+    <None Remove="console\**" />
     <None Remove="tests\**" />
   </ItemGroup>
 
@@ -91,6 +96,10 @@
 
   <ItemGroup>
     <None Update="caveman-icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="LICENSE">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

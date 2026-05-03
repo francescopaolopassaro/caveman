@@ -17,79 +17,76 @@
  * - Core: Catalyst NLP (Universal Dependencies Standard)
  * - Methodology: POS (Part-of-Speech) filtering and Lemmatization.
  * * AUTHOR: [Passaro Francesco Paolo]
- * DATE: April 2026
+ * DATE: May 2026
  *---------------------------------------------------------------------------------------*/
 using Catalyst;
+using caveman.core.entities;
 using LanguageDetection;
 using Mosaik.Core;
-using System;
-using System.Collections.Generic;
-using System.IO.Compression;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace caveman.core
 {
 
-    using Catalyst;
-    using LanguageDetection;
-    using Mosaik.Core;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using static System.Net.Mime.MediaTypeNames;
-
-    // 1. Definizione livelli di compressione
-
+    // 2. Definition of compression levels
     public enum CavemanCompressionLevel
     {
-        None = 0,       // Pass-through: nessuna modifica
-        Light = 1,      // Stop-words: toglie articoli e congiunzioni (Veloce)
-        Semantic = 2,   // POS Tagging: tiene solo Nomi, Verbi, Aggettivi
-        Aggressive = 3  // Brutal: solo Nomi/Verbi e Lemmatizzazione (riduce alla radice)
+        None = 0,       // Pass-through: no modification
+        Light = 1,      // Stop-words: removes articles and conjunctions (Fast)
+        Semantic = 2,   // POS Tagging: keeps only Nouns, Verbs, Adjectives
+        Aggressive = 3  // Brutal: only Nouns/Verbs and Lemmatization (reduces to root)
     }
+
     public class CavemanCompressionService
     {
-        // Cache delle pipeline per evitare ricaricamenti pesanti in RAM
+        // Pipeline cache to avoid heavy RAM reloading
         private static readonly Dictionary<Language, Pipeline> _pipelines = new();
         private readonly LanguageDetector _detector;
 
         public CavemanCompressionService()
         {
             _detector = new LanguageDetector();
-            _detector.AddAllLanguages(); // Carica profili statistici leggeri
+            _detector.AddAllLanguages(); // Loads lightweight statistical profiles
         }
 
-        public async Task<string> CompressAsync(string input, CavemanCompressionLevel level)
+        public async Task<CompressionResult> CompressAsync(string input, CavemanCompressionLevel level)
         {
-            if (level == CavemanCompressionLevel.None || string.IsNullOrWhiteSpace(input))
-                return input;
+            if (string.IsNullOrWhiteSpace(input))
+                return new CompressionResult { CompressedText = string.Empty };
 
-            // 1. Rilevamento lingua (restituisce es. "ita")
+            if (level == CavemanCompressionLevel.None)
+            {
+                // Basic token approximation for pass-through
+                int fallbackTokens = input.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
+                return new CompressionResult
+                {
+                    CompressedText = input,
+                    OriginalTokens = fallbackTokens,
+                    CompressedTokens = fallbackTokens
+                };
+            }
 
-            var detector = new LanguageDetector();
-            detector.AddAllLanguages();
-
-            string detectedCode = detector.Detect(input); // Restituisce es. "ita"
+            // 1. Language detection
+            string detectedCode = _detector.Detect(input);
             Language catalystLang = LanguageMapper.GetCatalystLanguage(detectedCode);
 
-            // 2. Elaborazione tramite NLP (Catalyst)
+            // 2. NLP processing (Catalyst)
             return await ApplyNlpLogic(input, catalystLang, level);
-
         }
 
-        public async Task<string> ApplyNlpLogic(string input, Language lang, CavemanCompressionLevel level)
+        public async Task<CompressionResult> ApplyNlpLogic(string input, Language lang, CavemanCompressionLevel level)
         {
-            // Forza la configurazione dello storage PRIMA di ogni operazione
+            if (string.IsNullOrWhiteSpace(input))
+                return new CompressionResult { CompressedText = string.Empty };
+
+            // Force storage configuration BEFORE any operation
             if (Storage.Current == null)
             {
                 Storage.Current = new DiskStorage("catalyst-models");
             }
-           
+
             if (!_pipelines.TryGetValue(lang, out var nlp))
             {
-                // Registrazione esplicita
+                // Explicit registration (keeping only a few languages for brevity, keep your full switch here)
                 switch (lang)
                 {
                     case Language.Afrikaans: Catalyst.Models.Afrikaans.Register(); break;
@@ -112,7 +109,7 @@ namespace caveman.core
                     case Language.French: Catalyst.Models.French.Register(); break;
                     case Language.Galician: Catalyst.Models.Galician.Register(); break;
                     case Language.German: Catalyst.Models.German.Register(); break;
-                   // case Language.Greek_Modern: Catalyst.Models.Greek.Register(); break;
+                    // case Language.Greek_Modern: Catalyst.Models.Greek.Register(); break;
                     case Language.Hebrew: Catalyst.Models.Hebrew.Register(); break;
                     case Language.Hindi: Catalyst.Models.Hindi.Register(); break;
                     case Language.Hungarian: Catalyst.Models.Hungarian.Register(); break;
@@ -128,7 +125,7 @@ namespace caveman.core
                     case Language.Latvian: Catalyst.Models.Latvian.Register(); break;
                     case Language.Lithuanian: Catalyst.Models.Lithuanian.Register(); break;
                     case Language.Macedonian: Catalyst.Models.Macedonian.Register(); break;
-                   // case Language.Malay: Catalyst.Models.Malay.Register(); break;
+                    // case Language.Malay: Catalyst.Models.Malay.Register(); break;
                     case Language.Marathi: Catalyst.Models.Marathi.Register(); break;
                     case Language.Norwegian: Catalyst.Models.Norwegian.Register(); break;
                     case Language.Persian: Catalyst.Models.Persian.Register(); break;
@@ -154,13 +151,12 @@ namespace caveman.core
 
                 try
                 {
-                    // Se ForAsync fallisce ancora, prova a specificare la versione del modello (di solito 0.0.1)
                     nlp = await Pipeline.ForAsync(lang);
                     _pipelines[lang] = nlp;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Errore critico caricamento pipeline {lang}: {ex.Message}");
+                    Console.WriteLine($"Critical error loading pipeline {lang}: {ex.Message}");
                     throw;
                 }
             }
@@ -168,37 +164,48 @@ namespace caveman.core
             var doc = new Document(input, lang);
             nlp.ProcessSingle(doc);
 
-            // Estraiamo i token filtrati
-            var tokens = doc.SelectMany(span => span)
-                            .Where(token => ShouldKeepToken(token, level))
-                            .Select(token => level == CavemanCompressionLevel.Aggressive ? token.Lemma : token.ValueAsSpan.ToString());
+            // Calculate Original Tokens (excluding whitespaces)
+            var allTokens = doc.SelectMany(span => span).ToList();
+            int originalTokenCount = allTokens.Count;
 
-            return string.Join(" ", tokens);
+            // Extract filtered tokens
+            var filteredTokens = allTokens.Where(token => ShouldKeepToken(token, level)).ToList();
+            int compressedTokenCount = filteredTokens.Count;
+
+            var compressedWords = filteredTokens.Select(token =>
+                level == CavemanCompressionLevel.Aggressive ? token.Lemma : token.ValueAsSpan.ToString());
+
+            return new CompressionResult
+            {
+                CompressedText = string.Join(" ", compressedWords),
+                OriginalTokens = originalTokenCount,
+                CompressedTokens = compressedTokenCount
+            };
         }
 
         private bool ShouldKeepToken(IToken token, CavemanCompressionLevel level)
         {
             return level switch
             {
-                // LIVELLO 1: Pulizia profonda senza perdere il senso logico
+                // Level 1: Deep clean without losing logical sense
                 CavemanCompressionLevel.Light =>
-                    token.POS != PartOfSpeech.DET && // No Articoli (il, lo, una...)
-                    token.POS != PartOfSpeech.ADP && // No Preposizioni (di, a, da, in...)
-                    token.POS != PartOfSpeech.CCONJ && // No Congiunzioni coordinanti (e, o, ma...)
-                    token.POS != PartOfSpeech.SCONJ && // No Congiunzioni subordinanti (che, se, perché...)
-                    token.POS != PartOfSpeech.PRON && // No Pronomi (io, mi, lo...)
-                    token.POS != PartOfSpeech.PUNCT && // No Punteggiatura
-                    token.POS != PartOfSpeech.SYM,     // No Simboli matematici/speciali
+                    token.POS != PartOfSpeech.DET &&     // No Articles
+                    token.POS != PartOfSpeech.ADP &&     // No Adpositions/Prepositions
+                    token.POS != PartOfSpeech.CCONJ &&   // No Coordinating Conjunctions
+                    token.POS != PartOfSpeech.SCONJ &&   // No Subordinating Conjunctions
+                    token.POS != PartOfSpeech.PRON &&    // No Pronouns
+                    token.POS != PartOfSpeech.PUNCT &&   // No Punctuation
+                    token.POS != PartOfSpeech.SYM,       // No Symbols
 
-                // LIVELLO 2: Solo il "carico utile" per Gemma 3
+                // Level 2: Only the "payload" for LLMs
                 CavemanCompressionLevel.Semantic =>
                     token.POS == PartOfSpeech.NOUN ||
                     token.POS == PartOfSpeech.VERB ||
                     token.POS == PartOfSpeech.ADJ ||
                     token.POS == PartOfSpeech.PROPN ||
-                    token.POS == PartOfSpeech.ADV,     // Spesso utile per capire "come" fare un'azione
+                    token.POS == PartOfSpeech.ADV,
 
-                // LIVELLO 3: Massima densità (Nomi e Verbi)
+                // Level 3: Maximum density (Nouns and Verbs)
                 CavemanCompressionLevel.Aggressive =>
                     token.POS == PartOfSpeech.NOUN ||
                     token.POS == PartOfSpeech.VERB ||
@@ -208,7 +215,7 @@ namespace caveman.core
             };
         }
 
-        // Metodo fondamentale per gestire la RAM: svuota i modelli caricati
+        // Essential method to manage RAM: clears loaded models
         public void ReleaseMemory()
         {
             _pipelines.Clear();
