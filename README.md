@@ -140,3 +140,9 @@ Answer questions based SOLELY on this context.
 🤝 Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+Answer questions based SOLELY on this context.
+";
+🤝 Contributing
+
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
