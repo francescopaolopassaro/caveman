@@ -40,8 +40,8 @@ namespace caveman
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("**********************************************************");
-            Console.WriteLine("*  Caveman v.1.0.2 - Eco-Friendly Prompt Optimizer        *");
-            Console.WriteLine("*  Porting by Francesco Paolo Passaro                    *");
+            Console.WriteLine("*  Caveman v.1.0.2 - Eco-Friendly NLP Prompt Optimizer    *");
+            Console.WriteLine("*  C# - Version by Francesco Paolo Passaro                *");
             Console.WriteLine("**********************************************************");
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.WriteLine("License: Open Source (Non-Commercial). Green Metrics Enabled.");

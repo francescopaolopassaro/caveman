@@ -1,0 +1,150 @@
+﻿🔧 How to Register the Plugin with Semantic Kernel
+
+using Microsoft.SemanticKernel;
+using caveman.core;
+using caveman.core.SemanticKernel.Plugin;
+
+// 1. Build your kernel
+var builder = Kernel.CreateBuilder();
+
+// 2. Add your AI services (example: Azure OpenAI)
+builder.AddAzureOpenAIChatCompletion(
+    deploymentName: "gpt-4",
+    endpoint: "https://your-resource.openai.azure.com/",
+    apiKey: "your-api-key");
+
+// 3. Option A: Register with default internal instances
+builder.Plugins.AddFromType<CavemanWikiPlugin>("CavemanWiki");
+
+// 4. Option B: Register with custom/pre-configured instances (recommended for dependency injection)
+var compressionService = new CavemanCompressionService();
+var wiki = new CavemanWiki(); // Optionally configure wiki settings here
+builder.Plugins.AddFromObject(new CavemanWikiPlugin(wiki, compressionService), "CavemanWiki");
+
+// 5. Build the kernel
+Kernel kernel = builder.Build();
+
+🤖 How AI Can Invoke the Plugin
+Example 1: Full Wiki Generation
+csharp
+
+var result = await kernel.InvokeAsync<string>(
+    pluginName: "CavemanWiki",
+    functionName: "generate_project_wiki",
+    new KernelArguments
+    {
+        ["projectPath"] = "C:\\Users\\Dev\\MyApi",
+        ["compressionLevel"] = 2,
+        ["maxFileSizeKB"] = 100,
+        ["includeContents"] = true
+    });
+
+// result now contains the markdown string
+Console.WriteLine(result);
+
+Example 2: Lightweight Summary
+
+var summary = await kernel.InvokeAsync<string>(
+    pluginName: "CavemanWiki", 
+    functionName: "get_project_summary",
+    new KernelArguments { ["projectPath"] = "./backend" });
+
+// Use summary for quick context injection
+var prompt = $@"
+You are helping with this project:
+
+<project_summary>
+{summary}
+</project_summary>
+
+Answer the user's question based on this context.
+";
+
+Example 3: Validate Path First
+
+var detection = await kernel.InvokeAsync<string>(
+    pluginName: "CavemanWiki",
+    functionName: "detect_project_type", 
+    new KernelArguments { ["projectPath"] = userInputPath });
+
+// Parse the JSON-like response
+if (detection.Contains("\"isValid\": true"))
+{
+    // Safe to proceed with full wiki generation
+    var wiki = await kernel.InvokeAsync<string>(/* ... */);
+}
+else
+{
+    // Inform user about invalid path
+    return "That doesn't appear to be a valid project folder.";
+}
+
+'''csv
+Function,Purpose,Returns,Best For
+generate_project_wiki,Full project documentation with file contents,Markdown string (full),"Deep codebase analysis, answering detailed questions"
+get_project_summary,Metadata + dependencies only (no file contents),Markdown string (lightweight),"Quick project assessment, token-efficient context"
+detect_project_type,Validates path and detects project type,JSON-like string,Path validation before heavier operations
+
+🎯 AI Prompt Engineering Tips
+Inject Wiki Output as Context
+
+
+// After getting wiki markdown, inject into system prompt
+var systemPrompt = $@"
+You are an expert software architect assistant.
+
+<project_context>
+{wikiMarkdown}
+</project_context>
+
+Guidelines:
+1. Answer questions using ONLY the information in <project_context>
+2. If information is missing, say so explicitly
+3. Reference specific files/paths when relevant
+4. Use the dependency list to suggest compatible libraries
+";
+
+
+Chain Multiple Calls for Complex Tasks
+
+User: "How do I add authentication to my Python project?"
+
+AI Workflow:
+1. [detect_project_type] → Confirm it's Python ✅
+2. [get_project_summary] → Get dependencies (check for Flask/Django) ✅  
+3. [generate_project_wiki] with includeContents=true → Get file structure ✅
+4. Synthesize answer using: project type + existing deps + file locations
+
+
+Handle Errors Gracefully
+
+var result = await kernel.InvokeAsync<string>(/* ... */);
+
+if (result.StartsWith("[ERROR]"))
+{
+    // Extract clean error message for user
+    var errorMsg = result.Replace("[ERROR] ", "");
+    return $"I couldn't access that project: {errorMsg}";
+}
+
+// Proceed with normal processing
+
+
+⚙️ Configuration Options
+Via Constructor (Advanced)
+
+// Customize CavemanWiki behavior before plugin registration
+var wiki = new CavemanWiki();
+// Note: CavemanWiki uses static properties for configuration
+// Example: CavemanWiki.IncludeExtensions = new[] { ".cs", ".py", ".md" };
+
+var plugin = new CavemanWikiPlugin(wiki, compressionService);
+builder.Plugins.AddFromObject(plugin, "CavemanWiki");
+
+
+Via Function Parameters (Runtime)
+All main parameters are exposed to the AI:
+projectPath: Which folder to scan
+maxFileSizeKB: Control token budget (10-1000 KB)
+compressionLevel: Balance detail vs. conciseness (0-3)
+includeContents: Toggle heavy file content inclusion
