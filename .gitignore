@@ -1,13 +1,17 @@
-﻿################################################################################
-# Il file gitignore è stato creato automaticamente da Microsoft(R) Visual Studio.
+################################################################################
+# Caveman .gitignore
 ################################################################################
 
-/.vs/caveman/CopilotIndices/17.14.1091.29919
-/.vs/caveman/FileContentIndex
-/.vs
-/bin
-/console/caveman.console/bin/Release/net8.0
-/console/caveman.console/obj
-/obj
-/tests/caveman.tests/bin
-/tests/caveman.tests/obj
+# Visual Studio / IDE
+/.vs/
+*.user
+
+# Build output (all projects, including scripts/*)
+[Bb]in/
+[Oo]bj/
+
+# NuGet packages produced locally
+*.nupkg
+
+# Notes / scratch
+debug.csx

@@ -1,4 +1,14 @@
-﻿/*---------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// <copyright file="TokenOptimizerPlugin.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Semantic Kernel plugin exposing prompt compression as a kernel function.</summary>
+// -----------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------
  * PROJECT: Caveman (NLP Prompt Compressor) - Semantic Kernel Plugin
  * DESCRIPTION:
  * Plugin per Semantic Kernel che espone la logica di compressione Caveman come funzione 

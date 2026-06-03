@@ -1,6 +1,14 @@
-MIT License
+Caveman License
 
-Copyright (c) 2026 Passaro Francesco Paolo
+Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it
+
+This license is based on the MIT License, with one additional condition:
+a mandatory attribution requirement (Section 1, clause b).
+
+
+================================================================================
+1. SOFTWARE LICENSE  (MIT + attribution)
+================================================================================
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -9,8 +17,23 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  (a) The above copyright notice and this permission notice shall be included
+      in all copies or substantial portions of the Software.
+
+  (b) ATTRIBUTION REQUIREMENT.
+      Any use of the Software, in whole or in part — whether in source or
+      binary form, as a dependency, or embedded into a larger product or
+      service, commercial or not — must clearly and visibly disclose that it
+      makes use of the "Caveman" library by Passaro Francesco Paolo
+      (Digitalsolutions.it).
+
+      This disclosure must appear in at least one user- or developer-facing
+      location, such as the product documentation, an "About"/credits screen,
+      or the public source repository, using wording substantially equivalent
+      to:
+
+          "Powered by Caveman — © Passaro Francesco Paolo, Digitalsolutions.it
+           (https://digitalsolutions.it)"
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -19,3 +42,25 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+================================================================================
+2. BUNDLED LANGUAGE DATA  (worddata/*.yaml)
+================================================================================
+
+The language-data files under the `worddata/` directory — specifically the
+`lemmas:` and `verbs:` sections, and part of the `function_words:` entries —
+are DERIVED FROM the Universal Dependencies treebanks
+(https://universaldependencies.org/).
+
+These data files are NOT covered by the Caveman software license in Section 1.
+They are made available under the licenses of their respective Universal
+Dependencies treebanks, which are predominantly Creative Commons
+Attribution-ShareAlike (CC BY-SA) or Creative Commons Attribution (CC BY).
+
+If you redistribute the data files (or derivatives of them), you must comply
+with the applicable CC BY-SA / CC BY terms, including attribution and, where
+ShareAlike applies, distribution of derivatives under the same terms.
+
+See the accompanying NOTICE file for the Universal Dependencies attribution and
+the list of source treebanks per language.

@@ -1,93 +1,60 @@
-﻿/*---------------------------------------------------------------------------------------
- * PROJECT: Caveman (NLP Prompt Compressor)
- * * DESCRIPTION:
- * This system implements NLP-based "Prompt Contraction" logic.
- * The core objective is to drastically reduce the token count sent to LLMs 
- * (such as Gemma 3, Llama 3, or GPT-4) by selectively stripping low-semantic 
- * value grammatical elements (Stopwords, Determiners, Conjunctions).
- * * THE "CAVEMAN" PRINCIPLE:
- * The guiding philosophy is to transform complex natural language into an essential, 
- * high-density format that preserves the original intent. 
- * (e.g., "I would like to order a pepperoni pizza" -> "Order pepperoni pizza").
- * * BENEFITS:
- * 1. Reduced Inference Latency: Faster response times from local or cloud models.
- * 2. API Cost Optimization: Significant savings for token-based billing.
- * 3. Context Window Efficiency: Allows more information to fit within the model's memory.
- * * TECHNOLOGY STACK:
- * - Core: Catalyst NLP (Universal Dependencies Standard)
- * - Methodology: POS (Part-of-Speech) filtering and Lemmatization.
- * * AUTHOR: [Francesco Paolo Passaro]
- * DATE: May 2026
- *---------------------------------------------------------------------------------------*/
-using Mosaik.Core;
+// -----------------------------------------------------------------------------
+// <copyright file="LanguageMapper.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Maps language codes between ISO 639-1 and ISO 639-3.</summary>
+// -----------------------------------------------------------------------------
+namespace caveman.core;
+
 public static class LanguageMapper
 {
-    private static readonly Dictionary<string, Language> Iso3ToCatalyst = new Dictionary<string, Language>
+    private static readonly Dictionary<string, string> Iso1ToIso3 = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "afr", Language.Afrikaans },
-        { "sqi", Language.Albanian },
-        { "ara", Language.Arabic },
-        { "hye", Language.Armenian },
-        { "eus", Language.Basque },
-        { "bel", Language.Belarusian },
-        { "ben", Language.Bengali },
-        { "bul", Language.Bulgarian },
-        { "cat", Language.Catalan },
-        { "zho", Language.Chinese },
-        { "hrv", Language.Croatian },
-        { "ces", Language.Czech },
-        { "dan", Language.Danish },
-        { "nld", Language.Dutch },
-        { "eng", Language.English },
-        { "est", Language.Estonian },
-        { "fin", Language.Finnish },
-        { "fra", Language.French },
-        { "glg", Language.Galician },
-        { "deu", Language.German },
-        { "ell", Language.Greek_Modern },
-        { "heb", Language.Hebrew },
-        { "hin", Language.Hindi },
-        { "hun", Language.Hungarian },
-        { "isl", Language.Icelandic },
-        { "ind", Language.Indonesian },
-        { "gle", Language.Irish },
-        { "ita", Language.Italian },
-        { "jpn", Language.Japanese },
-        { "kan", Language.Kannada },
-        { "kaz", Language.Kazakh },
-        { "kor", Language.Korean },
-        { "lat", Language.Latin },
-        { "lav", Language.Latvian },
-        { "lit", Language.Lithuanian },
-        { "mkd", Language.Macedonian },
-        { "msa", Language.Malay },
-        { "mar", Language.Marathi },
-        { "nor", Language.Norwegian },
-        { "fas", Language.Persian },
-        { "pol", Language.Polish },
-        { "por", Language.Portuguese },
-        { "ron", Language.Romanian },
-        { "rus", Language.Russian },
-        { "srp", Language.Serbian },
-        { "slk", Language.Slovak },
-        { "slv", Language.Slovenian },
-        { "spa", Language.Spanish },
-        { "swe", Language.Swedish },
-        { "tam", Language.Tamil },
-        { "tel", Language.Telugu },
-        { "tha", Language.Thai },
-        { "tur", Language.Turkish },
-        { "ukr", Language.Ukrainian },
-        { "urd", Language.Urdu },
-        { "vie", Language.Vietnamese }
+        { "af", "afr" }, { "sq", "sqi" }, { "ar", "ara" }, { "hy", "hye" },
+        { "eu", "eus" }, { "be", "bel" }, { "bn", "ben" }, { "bg", "bul" },
+        { "ca", "cat" }, { "zh", "zho" }, { "hr", "hrv" }, { "cs", "ces" },
+        { "da", "dan" }, { "nl", "nld" }, { "en", "eng" }, { "et", "est" },
+        { "fi", "fin" }, { "fr", "fra" }, { "gl", "glg" }, { "de", "deu" },
+        { "el", "ell" }, { "he", "heb" }, { "hi", "hin" }, { "hu", "hun" },
+        { "is", "isl" }, { "id", "ind" }, { "ga", "gle" }, { "it", "ita" },
+        { "ja", "jpn" }, { "kn", "kan" }, { "kk", "kaz" }, { "ko", "kor" },
+        { "la", "lat" }, { "lv", "lav" }, { "lt", "lit" }, { "mk", "mkd" },
+        { "ms", "msa" }, { "mr", "mar" }, { "nb", "nor" }, { "no", "nor" },
+        { "fa", "fas" }, { "pl", "pol" }, { "pt", "por" }, { "ro", "ron" },
+        { "ru", "rus" }, { "sr", "srp" }, { "sk", "slk" }, { "sl", "slv" },
+        { "es", "spa" }, { "sv", "swe" }, { "ta", "tam" }, { "te", "tel" },
+        { "th", "tha" }, { "tr", "tur" }, { "uk", "ukr" }, { "ur", "urd" },
+        { "vi", "vie" }
     };
 
-    public static Language GetCatalystLanguage(string iso3Code)
+    public static string GetIso3(string code)
     {
-        if (string.IsNullOrEmpty(iso3Code)) return Language.Any;
+        if (string.IsNullOrEmpty(code))
+            return string.Empty;
 
-        return Iso3ToCatalyst.TryGetValue(iso3Code.ToLower(), out var lang)
-               ? lang
-               : Language.Any; //fallback to 'Any' if not found
+        code = code.ToLowerInvariant();
+
+        if (code.Length == 3 && Iso1ToIso3.ContainsValue(code))
+            return code;
+
+        return Iso1ToIso3.TryGetValue(code, out var iso3)
+            ? iso3
+            : string.Empty;
     }
+
+    public static bool IsSupported(string code)
+    {
+        if (string.IsNullOrEmpty(code))
+            return false;
+
+        code = code.ToLowerInvariant();
+        return code.Length == 3 ? Iso1ToIso3.ContainsValue(code) : Iso1ToIso3.ContainsKey(code);
+    }
+
+    public static IEnumerable<string> AllIso1Codes => Iso1ToIso3.Keys;
+    public static IEnumerable<string> AllIso3Codes => Iso1ToIso3.Values;
 }

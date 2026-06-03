@@ -1,4 +1,14 @@
-﻿/*---------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// <copyright file="Program.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Console demo / entry point for exercising Caveman compression and services.</summary>
+// -----------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------
  * PROJECT: Caveman (NLP Prompt Compressor)
  * DESCRIPTION:
  * This system implements NLP-based "Prompt Contraction" logic.
@@ -17,8 +27,9 @@
  * 3. Context Window Efficiency: Allows more information to fit within the model's memory.
  * 
  * TECHNOLOGY STACK:
- * - Core: Catalyst NLP (Universal Dependencies Standard)
- * - Methodology: POS (Part-of-Speech) filtering and Lemmatization.
+ * - Core: self-contained lookup engine over embedded per-language word data
+ *   (function words, lemmas and verbs derived from Universal Dependencies).
+ * - Methodology: stop-word removal, heuristic content selection and lemmatization.
  * 
  * AUTHOR: [Passaro Francesco Paolo]
  * DATE: May 2026
@@ -26,9 +37,11 @@
 
 using caveman.core;
 using caveman.core.entities;
+using caveman.core.services;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -120,60 +133,225 @@ namespace caveman
                 Console.WriteLine(new string('=', 65) + "\n");
             }
 
-            // ==================== WIKI FEATURE TEST PROMPT ====================
+            // ==================== CAVEMAN COMMAND SHELL ====================
+
+            var stats = new CavemanStatsTracker();
+            var contextCompressor = new CavemanContextCompressor(compressor);
+            var commitGen = new CavemanCommitGenerator();
+            var reviewer = new CavemanReviewService();
+            var cavecrew = new CavecrewService();
+            var safety = new CavemanSafetyGuard();
 
             Console.ResetColor();
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("=== 🪨 CAVEMAN.WIKI - PROJECT DOCUMENTATION GENERATOR ===");
+            Console.WriteLine("=== 🦴 CAVEMAN COMMAND SHELL ===");
             Console.ResetColor();
-            Console.WriteLine("Do you want to test the Wiki functionality? (Y/N): ");
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write("> ");
+            Console.WriteLine("Available commands:");
+            Console.WriteLine("  /caveman-compress <dir>     - Compress context files (CLAUDE.md, TODO)");
+            Console.WriteLine("  /caveman-commit [diff|EOF]  - Generate compact conventional commit");
+            Console.WriteLine("  /caveman-review [diff|EOF]  - Single-line code review on diff");
+            Console.WriteLine("  /caveman-stats               - Show token/dollar savings (use: reset)");
+            Console.WriteLine("  /caveman-wiki <dir>          - Generate project wiki");
+            Console.WriteLine("  /caveman-investigate <dir>   - Map directory symbols & structure");
+            Console.WriteLine("  /caveman-build <desc> | <files> - Plan surgical changes");
+            Console.WriteLine("  /caveman-crew-review [diff|EOF] - Cavecrew diff analysis");
+            Console.WriteLine("  /caveman-safety <msg>        - Check security/destructive patterns");
+            Console.WriteLine("  /help                        - Show this menu");
+            Console.WriteLine("  /exit                        - Exit");
+            Console.WriteLine();
 
-            var wikiChoice = Console.ReadLine()?.Trim().ToUpperInvariant();
-
-            if (wikiChoice == "Y" || wikiChoice == "YES")
+            while (true)
             {
-                await RunWikiTestAsync(compressor);
-            }
-            else if (wikiChoice == "N" || wikiChoice == "NO")
-            {
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine("Wiki test skipped. Continuing to exit...");
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.Write("caveman> ");
                 Console.ResetColor();
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Invalid input. Wiki test skipped.");
-                Console.ResetColor();
-            }
+                var raw = Console.ReadLine()?.Trim();
+                if (raw == null) break;
+                var cmd = raw.ToLowerInvariant();
 
-            // ==================== END WIKI FEATURE ====================
+                switch (cmd)
+                {
+                    case "/exit":
+                    case "/quit":
+                        Console.WriteLine("Goodbye.");
+                        return;
 
-            Console.ResetColor();
-            Console.WriteLine("\nPress any key to exit...");
-            Console.ReadKey();
+                    case "/help":
+                        Console.WriteLine("Commands:");
+                        Console.WriteLine("  /caveman-compress <dir>     - Compress context files in directory");
+                        Console.WriteLine("  /caveman-commit [diff|EOF]  - Generate commit (paste diff then EOF)");
+                        Console.WriteLine("  /caveman-review [diff|EOF]  - Review diff (paste diff then EOF)");
+                        Console.WriteLine("  /caveman-stats               - Show compression statistics");
+                        Console.WriteLine("  /caveman-stats reset         - Reset session statistics");
+                        Console.WriteLine("  /caveman-wiki <dir>          - Generate project wiki");
+                        Console.WriteLine("  /caveman-investigate <dir>   - Investigate files & symbols");
+                        Console.WriteLine("  /caveman-build <desc> | <files> - Plan surgical changes");
+                        Console.WriteLine("  /caveman-crew-review [diff|EOF] - Cavecrew diff analysis");
+                        Console.WriteLine("  /caveman-safety <msg>       - Check message safety level");
+                        Console.WriteLine("  /help                       - Show this menu");
+                        Console.WriteLine("  /exit                       - Exit");
+                        Console.WriteLine();
+                        Console.WriteLine("Tips:");
+                        Console.WriteLine("  - For multiline input (diffs), omit the argument and type EOF on its own line to finish");
+                        Console.WriteLine("  - Enclose paths with spaces in double quotes");
+                        Console.WriteLine("  - Use /caveman-stats reset to clear session counters");
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-compress "):
+                        {
+                            var dir = raw.Substring("/caveman-compress ".Length).Trim().Trim('"');
+                            await RunCompressCommandAsync(contextCompressor, dir, stats);
+                            break;
+                        }
+
+                    case "/caveman-compress":
+                        Console.WriteLine("Usage: /caveman-compress <directory_path>");
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-commit "):
+                        {
+                            var diff = raw.Substring("/caveman-commit ".Length);
+                            RunCommitCommand(commitGen, diff);
+                            break;
+                        }
+
+                    case "/caveman-commit":
+                        Console.WriteLine("Paste diff (end with EOF on new line):");
+                        var diffLines = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(diffLines))
+                            RunCommitCommand(commitGen, diffLines);
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-review "):
+                        {
+                            var diff = raw.Substring("/caveman-review ".Length);
+                            RunReviewCommand(reviewer, diff);
+                            break;
+                        }
+
+                    case "/caveman-review":
+                        Console.WriteLine("Paste diff (end with EOF on new line):");
+                        var reviewDiff = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(reviewDiff))
+                            RunReviewCommand(reviewer, reviewDiff);
+                        break;
+
+                    case "/caveman-stats":
+                        Console.WriteLine(stats.FormatFullReport());
+                        break;
+
+                    case "/caveman-stats reset":
+                        stats.ResetSession();
+                        Console.WriteLine("Session stats reset.");
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-wiki "):
+                        {
+                            var wikiDir = raw.Substring("/caveman-wiki ".Length).Trim().Trim('"');
+                            await RunWikiTestAsync(compressor, wikiDir);
+                            break;
+                        }
+
+                    case "/caveman-wiki":
+                        Console.WriteLine("Usage: /caveman-wiki <directory_path>");
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-investigate "):
+                        {
+                            var invDir = raw.Substring("/caveman-investigate ".Length).Trim().Trim('"');
+                            var invResult = await cavecrew.InvestigateAsync(invDir);
+                            Console.WriteLine($"[{invResult.Agent}] {invResult.Summary}");
+                            foreach (var d in invResult.Details)
+                                Console.WriteLine(d);
+                            break;
+                        }
+
+                    case "/caveman-investigate":
+                        Console.WriteLine("Usage: /caveman-investigate <directory_path>");
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-build "):
+                        {
+                            var rest = raw.Substring("/caveman-build ".Length);
+                            var parts = rest.Split('|');
+                            var desc = parts[0].Trim();
+                            var files = parts.Length > 1
+                                ? parts[1].Split(',').Select(f => f.Trim().Trim('"')).ToList()
+                                : new List<string>();
+                            if (files.Count == 0) { Console.WriteLine("Usage: /caveman-build <description> | <file1.cs,file2.cs>"); break; }
+                            var buildResult = await cavecrew.BuildAsync(desc, files);
+                            Console.WriteLine($"[{buildResult.Agent}] {buildResult.Summary}");
+                            foreach (var d in buildResult.Details) Console.WriteLine(d);
+                            break;
+                        }
+
+                    case "/caveman-build":
+                        Console.WriteLine("Usage: /caveman-build <description> | <file1.cs,file2.cs>");
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-crew-review "):
+                        {
+                            var diffText = raw.Substring("/caveman-crew-review ".Length);
+                            var crewReview = cavecrew.Review(diffText);
+                            Console.WriteLine($"[{crewReview.Agent}] {crewReview.Summary}");
+                            foreach (var d in crewReview.Details) Console.WriteLine(d);
+                            break;
+                        }
+
+                    case "/caveman-crew-review":
+                        Console.WriteLine("Paste diff (end with EOF):");
+                        var crewDiff = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(crewDiff))
+                        {
+                            var crewReview = cavecrew.Review(crewDiff);
+                            Console.WriteLine($"[{crewReview.Agent}] {crewReview.Summary}");
+                            foreach (var d in crewReview.Details) Console.WriteLine(d);
+                        }
+                        break;
+
+                    case string c when c != null && c.StartsWith("/caveman-safety "):
+                        {
+                            var msg = raw.Substring("/caveman-safety ".Length);
+                            var verdict = safety.Check(msg);
+                            Console.ForegroundColor = verdict.Level switch
+                            {
+                                SafetyLevel.Critical => ConsoleColor.Red,
+                                SafetyLevel.Warning => ConsoleColor.Yellow,
+                                _ => ConsoleColor.Green
+                            };
+                            Console.WriteLine($"Safety: {verdict.Level} | {verdict.Reason}");
+                            Console.WriteLine($"Compress: {(verdict.ShouldCompress ? "YES" : "NO")}");
+                            Console.ResetColor();
+                            break;
+                        }
+
+                    case null:
+                        break;
+
+                    default:
+                        Console.WriteLine($"Unknown command: {cmd}. Type /help for commands.");
+                        break;
+                }
+
+                Console.WriteLine();
+            }
         }
 
         /// <summary>
         /// Interactive test runner for the CavemanWiki functionality.
         /// </summary>
-        /// <summary>
-        /// Interactive test runner for the CavemanWiki functionality.
-        /// FIXED: Added path validation, directory/file checks, and permission handling.
-        /// </summary>
-        static async Task RunWikiTestAsync(CavemanCompressionService compressor)
+        static async Task RunWikiTestAsync(CavemanCompressionService compressor, string? inputPath = null)
         {
             Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.White;
-
-            // ==================== STEP 1: Get input project path ====================
-            Console.WriteLine("📁 Enter the path to the project folder you want to scan:");
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write("> ");
-            string inputPath = Console.ReadLine()?.Trim();
-            Console.ResetColor();
+            if (string.IsNullOrEmpty(inputPath))
+            {
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("📁 Enter the path to the project folder you want to scan:");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write("> ");
+                inputPath = Console.ReadLine()?.Trim();
+                Console.ResetColor();
+            }
 
             if (string.IsNullOrEmpty(inputPath))
             {
@@ -432,5 +610,92 @@ namespace caveman
             CavemanCompressionLevel.Aggressive => ConsoleColor.Red,
             _ => ConsoleColor.Gray
         };
+
+        static string ReadMultilineInput()
+        {
+            var lines = new List<string>();
+            while (true)
+            {
+                var line = Console.ReadLine();
+                if (line?.Trim().Equals("EOF", StringComparison.OrdinalIgnoreCase) == true)
+                    break;
+                lines.Add(line ?? "");
+            }
+            return string.Join("\n", lines);
+        }
+
+        static async Task RunCompressCommandAsync(CavemanContextCompressor compressor, string dir, CavemanStatsTracker stats)
+        {
+            Console.WriteLine($"Compressing context files in: {dir}");
+            var results = await compressor.CompressDirectoryAsync(dir);
+
+            if (results.Count == 0)
+            {
+                Console.WriteLine("No context files found (CLAUDE.md, TODO, README.md, etc).");
+                return;
+            }
+
+            foreach (var r in results)
+            {
+                stats.TrackResult(new CompressionResult
+                {
+                    CompressedText = r.CompressedContent,
+                    OriginalTokens = r.OriginalTokens,
+                    CompressedTokens = r.CompressedTokens,
+                    ErrorMessage = r.ErrorMessage
+                });
+
+                Console.ForegroundColor = r.HasError ? ConsoleColor.Red : ConsoleColor.Green;
+                Console.WriteLine($"{Path.GetFileName(r.FilePath)}: {r.OriginalTokens} → {r.CompressedTokens} tokens ({r.SavingsPercent:F1}%)");
+                Console.ResetColor();
+                if (!r.HasError)
+                {
+                    Console.WriteLine($"  Compressed: {r.CompressedContent[..Math.Min(r.CompressedContent.Length, 120)]}");
+                    Console.WriteLine();
+                }
+            }
+
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine(stats.FormatSessionReport());
+            Console.ResetColor();
+        }
+
+        static void RunCommitCommand(CavemanCommitGenerator generator, string diff)
+        {
+            var commit = generator.GenerateFromDiff(diff);
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Commit ({commit.SubjectLength} chars):");
+            Console.ResetColor();
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"  {commit.FullMessage}");
+            Console.ResetColor();
+            Console.WriteLine($"  Type: {commit.Type} | Scope: {commit.Scope ?? "(none)"}");
+        }
+
+        static void RunReviewCommand(CavemanReviewService reviewer, string diff)
+        {
+            var review = reviewer.ReviewDiff(diff);
+            Console.WriteLine($"Files: {review.ChangedFiles} | +{review.Additions} / -{review.Deletions} | Issues: {review.TotalIssues}");
+            Console.WriteLine();
+
+            foreach (var comment in review.Comments)
+            {
+                var color = comment.Severity switch
+                {
+                    "critical" => ConsoleColor.Red,
+                    "bug" => ConsoleColor.Red,
+                    "warning" => ConsoleColor.Yellow,
+                    "perf" => ConsoleColor.Magenta,
+                    _ => ConsoleColor.Cyan
+                };
+                Console.ForegroundColor = color;
+                Console.WriteLine($"  {comment}");
+                Console.ResetColor();
+            }
+
+            if (review.TotalIssues == 0)
+                Console.WriteLine("  ✅ No issues found.");
+        }
     }
 }

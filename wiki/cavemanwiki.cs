@@ -1,4 +1,14 @@
-﻿using caveman.core.entities;
+// -----------------------------------------------------------------------------
+// <copyright file="cavemanwiki.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Generates AI-friendly, semantically compressed project documentation.</summary>
+// -----------------------------------------------------------------------------
+using caveman.core.entities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -72,11 +82,13 @@ namespace caveman.core
         /// <param name="projectFolderPath">Path to the project folder to scan.</param>
         /// <param name="maxFileSizeBytes">Maximum file size to include (default: 100KB).</param>
         /// <param name="compressionLevel">Compression level for file contents.</param>
+        /// <param name="includeContents">Whether to include actual file contents in the output. If false, returns only metadata, structure, and dependencies.</param>
         /// <returns>Markdown string containing complete project documentation.</returns>
         public async Task<string> GenerateAsync(
             string projectFolderPath,
             long maxFileSizeBytes = 100 * 1024,
-            CavemanCompressionLevel compressionLevel = CavemanCompressionLevel.Semantic)
+            CavemanCompressionLevel compressionLevel = CavemanCompressionLevel.Semantic,
+            bool includeContents = true)
         {
             if (!Directory.Exists(projectFolderPath))
                 throw new DirectoryNotFoundException($"Directory not found: {projectFolderPath}");
@@ -89,7 +101,7 @@ namespace caveman.core
 
             WriteHeader(projectFolderPath, projectInfo);
             WriteDependencies(projectInfo.Dependencies);
-            WriteStructure(await ScanFilesAsync(projectFolderPath, maxFileSizeBytes, compressionLevel));
+            WriteStructure(await ScanFilesAsync(projectFolderPath, maxFileSizeBytes, compressionLevel), includeContents);
             WriteSummary();
 
             return _output.ToString();
@@ -287,19 +299,20 @@ namespace caveman.core
         /// <summary>
         /// Writes the file structure with compressed contents.
         /// </summary>
-        private void WriteStructure(List<FileEntry> files)
+        private void WriteStructure(List<FileEntry> files, bool includeContents = true)
         {
             _output.AppendLine("## 📁 File Structure");
             _output.AppendLine();
 
-            // Tree view of structure
             var tree = BuildTree(files);
             _output.AppendLine("```");
             _output.AppendLine(tree);
             _output.AppendLine("```");
             _output.AppendLine();
 
-            // File contents
+            if (!includeContents)
+                return;
+
             _output.AppendLine("## 📄 File Contents");
             _output.AppendLine();
 
@@ -308,9 +321,8 @@ namespace caveman.core
                 _output.AppendLine($"### `{file.RelativePath}`");
                 _output.AppendLine($"*Extension:* `{file.Extension}` | *Size:* {FormatSize(file.Size)} | *Lines:* {file.LineCount}");
                 _output.AppendLine();
-                _output.AppendLine("```" + GetLanguageHint(file.Extension));
+                _output.AppendLine("```" + GetLanguageHint(file.Extension ?? ""));
 
-                // Truncate very long contents in markdown
                 var content = file.CompressedContent;
                 if (content != null && content.Length > 5000)
                 {
@@ -349,7 +361,7 @@ namespace caveman.core
 
             foreach (var file in files)
             {
-                var parts = file.RelativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                var parts = (file.RelativePath ?? "unknown").Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 var current = root;
 
                 for (int i = 0; i < parts.Length; i++)
@@ -612,28 +624,28 @@ namespace caveman.core
         private class ProjectInfo
         {
             public string Name { get; set; } = "Unknown";
-            public string RootPath { get; set; }
+            public string? RootPath { get; set; }
             public ProjectType Type { get; set; } = ProjectType.Unknown;
-            public string Description { get; set; }
-            public string Version { get; set; }
-            public string SolutionFile { get; set; }
+            public string? Description { get; set; }
+            public string? Version { get; set; }
+            public string? SolutionFile { get; set; }
             public List<string> Projects { get; } = new();
             public List<Dependency> Dependencies { get; } = new();
         }
 
         private class Dependency
         {
-            public string Name { get; set; }
-            public string Version { get; set; }
-            public string Source { get; set; } // NuGet, PyPI, npm, ProjectReference, etc.
+            public string? Name { get; set; }
+            public string? Version { get; set; }
+            public string? Source { get; set; }
         }
 
         private class FileEntry
         {
-            public string RelativePath { get; set; }
+            public string? RelativePath { get; set; }
             public long Size { get; set; }
-            public string Extension { get; set; }
-            public string CompressedContent { get; set; }
+            public string? Extension { get; set; }
+            public string? CompressedContent { get; set; }
             public int LineCount { get; set; }
         }
 

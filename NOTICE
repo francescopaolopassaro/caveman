@@ -1,0 +1,88 @@
+Caveman — NOTICE
+================================================================================
+
+Caveman
+Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it
+Licensed under the Caveman License (MIT + attribution). See LICENSE.
+
+Any use of this library must disclose that it uses "Caveman" by
+Passaro Francesco Paolo (Digitalsolutions.it). See LICENSE, Section 1(b).
+
+
+--------------------------------------------------------------------------------
+Bundled language data — Universal Dependencies
+--------------------------------------------------------------------------------
+
+The `lemmas:` and `verbs:` data (and part of `function_words:`) in the files
+under `worddata/` are derived from the Universal Dependencies (UD) treebanks,
+https://universaldependencies.org/.
+
+This data is provided under the licenses of the respective UD treebanks
+(predominantly CC BY-SA or CC BY), NOT under the Caveman software license.
+See LICENSE, Section 2.
+
+Please cite Universal Dependencies:
+
+  Marie-Catherine de Marneffe, Christopher D. Manning, Joakim Nivre,
+  Daniel Zeman. "Universal Dependencies." Computational Linguistics (2021).
+
+Source treebanks per language (cloned from github.com/UniversalDependencies):
+
+  afr  Afrikaans   UD_Afrikaans-AfriBooms
+  ara  Arabic      UD_Arabic-NYUAD, UD_Arabic-PADT, UD_Arabic-PUD
+  bel  Belarusian  UD_Belarusian-HSE
+  ben  Bengali     UD_Bengali-BRU, UD_Bengali-CMUPAN, UD_Bengali-PUD, UD_Bengali-Sabdakosh
+  bul  Bulgarian   UD_Bulgarian-BTB
+  cat  Catalan     UD_Catalan-AnCora
+  ces  Czech       UD_Czech-CAC, UD_Czech-CLTT, UD_Czech-FicTree, UD_Czech-PCEDT, UD_Czech-PDTC, UD_Czech-PUD, UD_Czech-Poetry
+  dan  Danish      UD_Danish-DDT
+  deu  German      UD_German-GSD, UD_German-HDT, UD_German-LIT, UD_German-PUD
+  ell  Greek       UD_Greek-Cretan, UD_Greek-Cypriot, UD_Greek-GDT, UD_Greek-GLCII, UD_Greek-GUD, UD_Greek-Griko, UD_Greek-Lesbian, UD_Greek-Messinian
+  eng  English     UD_English-Atis, UD_English-CHILDES, UD_English-CTeTex, UD_English-ESL, UD_English-ESLSpok, UD_English-EWT, UD_English-GENTLE, UD_English-GUM, UD_English-GUMReddit, UD_English-LinES, UD_English-LittlePrince, UD_English-PCEDT, UD_English-PUD, UD_English-ParTUT, UD_English-Pronouns, UD_English-UniDive
+  est  Estonian    UD_Estonian-EDT, UD_Estonian-EWT
+  eus  Basque      UD_Basque-BDT
+  fas  Persian     UD_Persian-HPT, UD_Persian-IPerUDT, UD_Persian-PUD, UD_Persian-PerDT, UD_Persian-Seraji
+  fin  Finnish     UD_Finnish-FTB, UD_Finnish-OOD, UD_Finnish-PUD, UD_Finnish-TDT
+  fra  French      UD_French-ALTS, UD_French-FQB, UD_French-FTB, UD_French-GSD, UD_French-PUD, UD_French-ParTUT, UD_French-ParisStories, UD_French-ParolesDeNormands, UD_French-PoitevinDIVITAL, UD_French-Rhapsodie, UD_French-Sequoia
+  gle  Irish       UD_Irish-Cadhan, UD_Irish-IDT, UD_Irish-TwittIrish
+  glg  Galician    UD_Galician-CTG, UD_Galician-PUD, UD_Galician-TreeGal
+  heb  Hebrew      UD_Hebrew-HTB, UD_Hebrew-IAHLTknesset, UD_Hebrew-IAHLTwiki, UD_Hebrew-PostRab
+  hin  Hindi       UD_Hindi-Convers, UD_Hindi-HDTB, UD_Hindi-PUD
+  hrv  Croatian    UD_Croatian-SET
+  hun  Hungarian   UD_Hungarian-Szeged
+  hye  Armenian    UD_Armenian-ArmTDP, UD_Armenian-BSUT
+  ind  Indonesian  UD_Indonesian-CSUI, UD_Indonesian-GSD, UD_Indonesian-PUD
+  isl  Icelandic   UD_Icelandic-GC, UD_Icelandic-IcePaHC, UD_Icelandic-Modern, UD_Icelandic-PUD
+  ita  Italian     UD_Italian-ISDT, UD_Italian-KIParlaForest, UD_Italian-MarkIT, UD_Italian-Old, UD_Italian-PUD, UD_Italian-ParTUT, UD_Italian-ParlaMint, UD_Italian-PoSTWITA, UD_Italian-TWITTIRO, UD_Italian-TrIttok, UD_Italian-VIT, UD_Italian-Valico
+  jpn  Japanese    UD_Japanese-BCCWJ, UD_Japanese-BCCWJLUW, UD_Japanese-GSD, UD_Japanese-GSDLUW, UD_Japanese-JDD, UD_Japanese-JDDLUW, UD_Japanese-KTC, UD_Japanese-Modern, UD_Japanese-PUD, UD_Japanese-PUDLUW
+  kaz  Kazakh      UD_Kazakh-KTB
+  kor  Korean      UD_Korean-GSD, UD_Korean-KSL, UD_Korean-Kaist, UD_Korean-LittlePrince, UD_Korean-PUD
+  lat  Latin       UD_Latin-CIRCSE, UD_Latin-ITTB, UD_Latin-LLCT, UD_Latin-PROIEL, UD_Latin-Perseus, UD_Latin-UDante
+  lav  Latvian     UD_Latvian-Cairo, UD_Latvian-LVTB
+  lit  Lithuanian  UD_Lithuanian-ALKSNIS, UD_Lithuanian-HSE
+  mar  Marathi     UD_Marathi-CMUPAN, UD_Marathi-UFAL
+  mkd  Macedonian  UD_Macedonian-MTB
+  nld  Dutch       UD_Dutch-Alpino, UD_Dutch-LassySmall
+  nor  Norwegian   UD_Norwegian-Bokmaal, UD_Norwegian-Nynorsk, UD_Norwegian-NynorskLIA
+  pol  Polish      UD_Polish-LFG, UD_Polish-MPDT, UD_Polish-PDB, UD_Polish-PUD
+  por  Portuguese  UD_Portuguese-Bosque, UD_Portuguese-CINTIL, UD_Portuguese-DANTEStocks, UD_Portuguese-DHBB, UD_Portuguese-GSD, UD_Portuguese-PUD, UD_Portuguese-PetroGold, UD_Portuguese-PortJur, UD_Portuguese-Porttinari
+  ron  Romanian    UD_Romanian-ArT, UD_Romanian-MolDoRo, UD_Romanian-Nonstandard, UD_Romanian-RRT, UD_Romanian-SiMoNERo, UD_Romanian-TueCL
+  rus  Russian     UD_Russian-GSD, UD_Russian-PUD, UD_Russian-Poetry, UD_Russian-SynTagRus, UD_Russian-Taiga
+  slk  Slovak      UD_Slovak-SNK
+  slv  Slovenian   UD_Slovenian-SSJ, UD_Slovenian-SST
+  spa  Spanish     UD_Spanish-AnCora, UD_Spanish-COSER, UD_Spanish-GSD, UD_Spanish-PUD, UD_Spanish-SVarT
+  sqi  Albanian    UD_Albanian-STAF, UD_Albanian-TSA
+  srp  Serbian     UD_Serbian-ParCoLab, UD_Serbian-SET
+  swe  Swedish     UD_Swedish-Eukalyptus, UD_Swedish-LinES, UD_Swedish-Old, UD_Swedish-PUD, UD_Swedish-SweLL, UD_Swedish-Talbanken
+  tam  Tamil       UD_Tamil-MWTT, UD_Tamil-TTB
+  tha  Thai        UD_Thai-Autogramm, UD_Thai-PUD, UD_Thai-TUD
+  tur  Turkish     UD_Turkish-Atis, UD_Turkish-BOUN, UD_Turkish-FrameNet, UD_Turkish-GB, UD_Turkish-IMST, UD_Turkish-Kenet, UD_Turkish-PUD, UD_Turkish-Penn, UD_Turkish-Tourism, UD_Turkish-TueCL, UD_Turkish-ULU
+  ukr  Ukrainian   UD_Ukrainian-IU, UD_Ukrainian-ParlaMint
+  urd  Urdu        UD_Urdu-UDTB
+  vie  Vietnamese  UD_Vietnamese-TueCL, UD_Vietnamese-VTB
+  zho  Chinese     UD_Chinese-Beginner, UD_Chinese-CFL, UD_Chinese-GSD, UD_Chinese-GSDSimp, UD_Chinese-HK, UD_Chinese-PUD, UD_Chinese-PatentChar
+
+(kan Kannada, tel Telugu and msa Malay contain no UD-derived lemma data.)
+
+For the exact license of each treebank, see its repository under
+https://github.com/UniversalDependencies and the LICENSE.txt it contains.

@@ -2,13 +2,13 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.0.2</Version>
+  <Version>1.0.3</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
-  <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction.</Description>
-  <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3;Catalyst</PackageTags>
-  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction across 50+ languages. Licensed under the Caveman License (MIT + mandatory attribution to Passaro Francesco Paolo - Digitalsolutions.it). Bundled language data derived from Universal Dependencies (see NOTICE).</Description>
+  <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3</PackageTags>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
+  <PackageReleaseNotes>1.0.3: Self-contained engine (no Catalyst/YamlDotNet at runtime). Lemmas, verb forms and a proper-noun gazetteer for 50+ languages imported from Universal Dependencies; verbs drive compression and names are kept verbatim. Language data compiled to brotli artifacts (~13 MB assembly vs ~68 MB) with a compact detection index. Licensed under the Caveman License (MIT + mandatory attribution); bundled data under Universal Dependencies terms (see NOTICE).</PackageReleaseNotes>
   
   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <OutputType>Library</OutputType>
@@ -16,82 +16,40 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Title>Caveman</Title>
-    <Copyright>Passaro Francesco Paolo</Copyright>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Primary public API is documented; suppress "missing XML comment" for the rest. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <Copyright>Copyright (c) 2026 Passaro Francesco Paolo - Digitalsolutions.it</Copyright>
     <PackageProjectUrl>https://github.com/francescopaolopassaro/caveman/</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <AssemblyVersion>1.0.0.2</AssemblyVersion>
-    <FileVersion>1.0.0.2</FileVersion>
   </PropertyGroup>
 <PropertyGroup>
-  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   <PackageIcon>caveman-icon.png</PackageIcon>
-  <PackageLicenseFile></PackageLicenseFile>
+  <PackageLicenseFile>LICENSE</PackageLicenseFile>
   <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
 </PropertyGroup>
   <ItemGroup>
     <Compile Remove="console\**" />
     <Compile Remove="tests\**" />
+    <Compile Remove="scripts\**" />
     <EmbeddedResource Remove="console\**" />
     <EmbeddedResource Remove="tests\**" />
+    <EmbeddedResource Remove="scripts\**" />
     <None Remove="console\**" />
     <None Remove="tests\**" />
+    <None Remove="scripts\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Catalyst" Version="26.3.60" />
-    <PackageReference Include="Catalyst.Models.Afrikaans" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Arabic" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Armenian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Basque" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Belarusian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Bulgarian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Catalan" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Chinese" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Croatian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Czech" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Danish" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Dutch" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.English" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Estonian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Finnish" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.French" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Galician" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.German" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Hebrew" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Hindi" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Hungarian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Icelandic" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Indonesian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Irish" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Italian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Japanese" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Kazakh" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Korean" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Latin" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Latvian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Lithuanian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Macedonian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Marathi" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Norwegian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Persian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Polish" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Portuguese" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Romanian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Russian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Serbian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Slovak" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Slovenian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Spanish" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Swedish" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Tamil" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Telugu" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Turkish" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Ukrainian" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Urdu" Version="1.0.30952" />
-    <PackageReference Include="Catalyst.Models.Vietnamese" Version="1.0.30952" />
-    <PackageReference Include="LanguageDetection.NETStandard" Version="1.3.1" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.74.0" />
-    <PackageReference Include="Mosaik.Core" Version="25.10.62118" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Runtime artifacts produced by scripts/compile-worddata from worddata\*.yaml.
+         The .yaml sources stay in the repo but are NOT embedded or packed. -->
+    <EmbeddedResource Include="worddata\*.yaml.br" />
+    <EmbeddedResource Include="worddata\_index.br" />
   </ItemGroup>
 
   <ItemGroup>
@@ -100,6 +58,10 @@
       <PackagePath>\</PackagePath>
     </None>
     <None Update="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="NOTICE">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

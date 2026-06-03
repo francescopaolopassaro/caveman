@@ -1,4 +1,14 @@
-﻿/*---------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// <copyright file="cavemanPluginWikiTest.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Unit tests for the Caveman wiki Semantic Kernel plugin.</summary>
+// -----------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------
  * PROJECT: Caveman (NLP Prompt Compressor) - Semantic Kernel Plugin Tests
  * DESCRIPTION:
  * NUnit test suite for CavemanWikiPlugin class.
@@ -205,7 +215,7 @@ namespace caveman.tests
                 functionName: "generate_project_wiki",
                 new KernelArguments { ["projectPath"] = _testProjectPath });
 
-            Assert.That(result.Length, Is.LessThan(fullWiki.Length),
+            Assert.That(result.Length, Is.LessThan(fullWiki!.Length),
                 "Summary should be shorter than full wiki");
         }
 

@@ -1,4 +1,14 @@
-﻿/*---------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// <copyright file="CavemanWikiPlugin.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Semantic Kernel plugin exposing on-demand project documentation generation.</summary>
+// -----------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------
  * PROJECT: Caveman (NLP Prompt Compressor) - Semantic Kernel Plugin
  * DESCRIPTION:
  * Semantic Kernel plugin exposing CavemanWiki functionality as an AI-callable function.
@@ -149,20 +159,13 @@ namespace caveman.core.SemanticKernel.Plugin
                 // If contents not requested, use None compression for speed
                 var effectiveLevel = includeContents ? level : CavemanCompressionLevel.None;
 
-                // Generate the wiki markdown
                 string markdown = await _wiki.GenerateAsync(
                     projectFolderPath: fullPath,
                     maxFileSizeBytes: maxFileSizeKB * 1024L,
-                    compressionLevel: effectiveLevel
+                    compressionLevel: effectiveLevel,
+                    includeContents: includeContents
                 );
 
-                // If contents excluded, strip the File Contents section
-                if (!includeContents)
-                {
-                    markdown = RemoveFileContentsSection(markdown);
-                }
-
-                // Return the markdown as a string (ready for AI context injection)
                 return markdown;
             }
             catch (UnauthorizedAccessException ex)
@@ -222,21 +225,18 @@ namespace caveman.core.SemanticKernel.Plugin
         /// </returns>
         [KernelFunction("detect_project_type")]
         [Description("Checks if a path contains a recognizable software project and returns its type. Use to validate paths before generating full documentation.")]
-        public async Task<string> DetectProjectType(
+        public Task<string> DetectProjectType(
             [Description("The path to check for a software project")]
             string projectPath)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(projectPath) || !Directory.Exists(projectPath))
-                {
-                    return "{\"isValid\": false, \"reason\": \"Invalid or inaccessible path\"}";
-                }
+                    return Task.FromResult("{\"isValid\": false, \"reason\": \"Invalid or inaccessible path\"}");
 
                 string fullPath = Path.GetFullPath(projectPath.Trim());
 
-                // Quick scan for project indicators
-                var indicators = new System.Collections.Generic.Dictionary<string, string>
+                var indicators = new Dictionary<string, string>
                 {
                     { "*.csproj", "CSharp" },
                     { "*.sln", "VisualStudio" },
@@ -254,11 +254,10 @@ namespace caveman.core.SemanticKernel.Plugin
                     if (files.Any())
                     {
                         var projectName = Path.GetFileName(fullPath) ?? "Unknown";
-                        return $"{{\"isValid\": true, \"type\": \"{indicator.Value}\", \"name\": \"{projectName}\"}}";
+                        return Task.FromResult($"{{\"isValid\": true, \"type\": \"{indicator.Value}\", \"name\": \"{projectName}\"}}");
                     }
                 }
 
-                // Fallback: check for common source files
                 var sourceFiles = Directory.EnumerateFiles(fullPath, "*.*", SearchOption.TopDirectoryOnly)
                     .Where(f => new[] { ".cs", ".py", ".js", ".ts", ".java", ".rs" }
                         .Contains(Path.GetExtension(f).ToLowerInvariant()))
@@ -278,50 +277,15 @@ namespace caveman.core.SemanticKernel.Plugin
                         _ => "Generic"
                     };
                     var projectName = Path.GetFileName(fullPath) ?? "Unknown";
-                    return $"{{\"isValid\": true, \"type\": \"{type}\", \"name\": \"{projectName}\"}}";
+                    return Task.FromResult($"{{\"isValid\": true, \"type\": \"{type}\", \"name\": \"{projectName}\"}}");
                 }
 
-                return "{\"isValid\": false, \"reason\": \"No recognizable project files found\"}";
+                return Task.FromResult("{\"isValid\": false, \"reason\": \"No recognizable project files found\"}");
             }
             catch (Exception)
             {
-                return "{\"isValid\": false, \"reason\": \"Error during detection\"}";
+                return Task.FromResult("{\"isValid\": false, \"reason\": \"Error during detection\"}");
             }
-        }
-
-        /// <summary>
-        /// Helper method to remove the File Contents section from markdown 
-        /// when includeContents=false.
-        /// </summary>
-        private string RemoveFileContentsSection(string markdown)
-        {
-            // Find the "## 📄 File Contents" section and remove everything from there
-            // until the next top-level header (##) or end of string
-            var lines = markdown.Split('\n');
-            var result = new System.Collections.Generic.List<string>();
-            bool skipSection = false;
-
-            foreach (var line in lines)
-            {
-                if (line.StartsWith("## 📄 File Contents"))
-                {
-                    skipSection = true;
-                    continue;
-                }
-
-                if (skipSection && line.StartsWith("## ") && !line.StartsWith("## 📄"))
-                {
-                    // Reached next section, stop skipping
-                    skipSection = false;
-                }
-
-                if (!skipSection)
-                {
-                    result.Add(line);
-                }
-            }
-
-            return string.Join('\n', result);
         }
     }
 }

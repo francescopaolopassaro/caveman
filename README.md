@@ -1,142 +1,242 @@
-#🦴 Caveman: Prompt Compressor for LLMs
+# 🦴 Caveman — Prompt Compressor for LLMs
 
 <img width="1197" height="766" alt="caveman_splash" src="https://github.com/user-attachments/assets/4b534140-c519-423f-b918-e705565a039f" />
-It is the version that is inspired by the token saving algorithm of Caveman plugin for Claude, but it was conceived without doing any porting from the original, it is a code born from scratch
 
-
-**Caveman** is a C# library built on **Catalyst** that drastically reduces the number of tokens in your LLM prompts (such as Gemma 3, Llama, or GPT-4). It utilizes Natural Language Processing (NLP) techniques to remove grammatical "noise" (articles, prepositions, conjunctions) while keeping the semantic value intact.
+**Caveman** is a self-contained C# library that drastically reduces the number of tokens in your LLM prompts (Gemma 3, Llama, GPT-4, …). It strips grammatical "noise" (articles, prepositions, conjunctions, auxiliaries) and normalises inflected words to their base form, keeping the semantic payload intact.
 
 > "Why use many tokens when few tokens do trick?" — A caveman (and your wallet).
 
-## 🚀 Features
-- **Up to 70% Token Reduction**: Slash API costs and speed up local inference.
-- **Multilingual**: Support for over 50 languages (English, Italian, French, etc.) via Catalyst models.
-- **Compression Levels**: Choose between `Light`, `Semantic`, or `Aggressive` (Lemmatization).
-- **LLM Integration with Semantic Kernel**: Optimized for next-gen models that perfectly understand contracted language.
+It is inspired by the token-saving idea behind the Caveman plugin for Claude, but it is an independent implementation written from scratch — **no porting and no runtime NLP-model dependency**.
+
+---
+
+## ✨ Highlights
+
+- **Up to 70% token reduction** — slash API costs and speed up local inference.
+- **50+ languages out of the box** — language data is embedded in the assembly; nothing to download at runtime.
+- **No heavy NLP runtime** — pure lookup + heuristics over per-language word data. The only package dependency is `Microsoft.SemanticKernel` (for the optional plugins).
+- **Three compression levels** — `Light`, `Semantic`, `Aggressive`.
+- **Fast language detection** — a streaming parser reads only the stop-word section of each language to identify the input.
+- **Batch & custom filters** — `CompressBatchAsync()` and user-defined POS-style filters.
+- **Semantic Kernel plugins** + a suite of developer services (commit/review/stats/safety/wiki).
 
 ---
 
 ## 🛠️ Installation
 
-###  Base Package
-Install the core library and the model manager:
+```bash
+dotnet add package Caveman
+```
 
-dotnet add package Catalyst
-dotnet add package Mosaik.Core
+That's it — all language data ships inside the package. There are **no models to install**.
 
+### Quick start
 
-### Language Models
-Install the packages for the languages you intend to support:
-dotnet add package Catalyst.Models.English
-dotnet add package Catalyst.Models.Italian
+```csharp
+using caveman.core;
 
-Alternatively, run the PowerShell script Install-CatalystModels.ps1 (it automatically updates all libraries in the project).
-
-###  Quick Start
 var compressor = new CavemanCompressionService();
 string input = "I would like to know if it is possible to receive information about cheap restaurants in Rome.";
 
-// Compresses the text and calculates energy savings
 var result = await compressor.CompressAsync(input, CavemanCompressionLevel.Semantic);
 
 Console.WriteLine($"Compressed: {result.CompressedText}");
 Console.WriteLine($"Efficiency: {result.EfficiencyPercentage:F1}%");
-Console.WriteLine($"🌿 Energy Saved: {result.EstimatedEnergySavedMWh:F3} mWh");
+Console.WriteLine($"🌿 Energy saved: {result.EstimatedEnergySavedMWh:F3} mWh");
+```
 
-### 🌿 Sustainability: Why it matters
-Every token generated or processed by an LLM has an environmental cost. Caveman v1.1 introduces a built-in estimator based on industry averages:
+The input language is detected automatically; you can also call `ApplyCompression(text, iso3, level)` to force a specific language (ISO 639-3 code).
 
-Energy Consumption: Estimated at 5 mWh per token.
+---
 
-Carbon Footprint: Estimated at 0.4 mg of CO2 per mWh.
+## 🌐 Language detection (standalone)
 
-By compressing a prompt from 1000 to 400 tokens, you save approximately 3 mWh of energy. On a scale of millions of requests, Caveman helps build a more sustainable AI ecosystem.
+You don't need to compress anything to use Caveman's language detector — it works on its own across all 50+ supported languages, with no model download:
 
-### 📊 NLP Compression Levels
+```csharp
+var caveman = new CavemanCompressionService();
 
-| Level | Applied Logic | Removed POS Tags (Filters) | Savings |
+string iso3 = caveman.DetectLanguage("Vorrei un tavolo per due persone, per favore.");
+// -> "ita"
+
+// or get confidence scores per language (ISO 639-3 -> ratio of matched stop words)
+var scores = caveman.DetectLanguageScores("Where is the nearest train station?");
+// -> { "eng": 0.42, ... }
+```
+
+The detector is also usable directly via `CavemanLanguageDetector` if you don't want the compression service:
+
+```csharp
+var detector = new CavemanLanguageDetector();
+string iso3 = detector.Detect("Ich hätte gerne einen Kaffee.");   // -> "deu"
+```
+
+Detection is backed by a tiny embedded stop-word index, so it stays fast even though it scores every supported language.
+
+---
+
+## 📊 Compression levels
+
+| Level | Applied logic | What is kept | Typical savings |
 | :--- | :--- | :--- | :--- |
-| **Light** | *Stopword Removal* | `DET`, `ADP`, `CCONJ`, `SCONJ`, `PRON`, `PUNCT` | **~25-30%** |
-| **Semantic** | *Key Content Selection* | Keeps only `NOUN`, `VERB`, `ADJ`, `PROPN`, `ADV` | **~50%** |
-| **Aggressive** | *Lemmatization* | Keeps only `NOUN`, `VERB`, `PROPN` (base form) | **~70%** |
+| **Light** | Stop-word removal | Everything except function words & punctuation | ~25–30% |
+| **Semantic** | Content selection + lemmatization | Content words, normalised to their base form | ~50% |
+| **Aggressive** | Lemmatization + generic/descriptive pruning | Core nouns/verbs in base form | ~70% |
 
-### 🔍 Technical Tag Detail (Catalyst Mapping)
+### Example
 
-| POS Tag | Category | Examples (ENG/ITA) | Treatment |
-| :--- | :--- | :--- | :--- |
-| **DET** | Determiners | the, a / il, lo | **Removed** (from Light) |
-| **ADP** | Prepositions | of, at / di, a | **Removed** (from Light) |
-| **CCONJ** | Coord. Conjunctions | and, or / e, o | **Removed** (from Light) |
-| **SCONJ** | Subord. Conjunctions | that, if / che, se | **Removed** (from Light) |
-| **PRON** | Pronouns | I, you / io, tu | **Removed** (from Light) |
-| **NOUN** | Nouns | house, pizza / casa, pizza | **Always Kept** |
-| **VERB** | Verbs | eat, runs / mangiare, corre | **Always Kept** |
-| **ADV** | Adverbs | not, quickly / non, molto | **Kept in Semantic** |
-
-### 💡 Transformation Example
-
-| State | Prompt Text | Tokens / Characters |
+| State | Prompt | Size |
 | :--- | :--- | :--- |
-| **Original** | "I would like to know if it is possible to have a margherita pizza immediately." | 100% (78 ch) |
-| **Light** | "like know possible have margherita pizza immediately" | ~70% (54 ch) |
-| **Semantic** | "know possible have margherita pizza immediately" | ~55% (48 ch) |
-| **Aggressive**| "know possible have margherita pizza" | **~40% (38 ch)** |
+| **Original** | "I would like to know if it is possible to have a margherita pizza immediately." | 100% |
+| **Light** | "like know possible have margherita pizza immediately" | ~70% |
+| **Semantic** | "know possible have margherita pizza immediately" | ~55% |
+| **Aggressive** | "know possible margherita pizza" | ~40% |
 
-### 💡 This is a new feature introduced in version 1.0.2 : Caveman.Wiki
+---
 
-## Purpose
-Automatically generate AI-friendly markdown documentation for any software project, 
-semantically compressing content to optimize context for LLM prompts.
+## 🌍 How it works
 
-## How It Works
-1. **Project Analysis**: Automatically detects project type (C#, Python, Node.js, etc.) 
-   by scanning configuration files (.csproj, requirements.txt, package.json, etc.)
+Caveman does **not** load any NLP model at runtime. Each language is described by a `worddata/<iso3>.yaml` source file with four sections:
 
-2. **File Scanning**: Recursively traverses the folder, applying intelligent filters 
-   to exclude binary files, build folders, and external dependencies.
+- **`function_words`** — stop words, used both for compression and for language detection.
+- **`lemmas`** — `inflected form → base form` map (e.g. `studying → study`, `gatti → gatto`).
+- **`verbs`** — `base verb → [conjugated forms]`; folded into the lemma map at load time so every conjugation collapses to its base.
+- **`proper_nouns`** — a name gazetteer; capitalized tokens in it are kept verbatim (so names like `Termini` or `München` are never compressed).
 
-3. **Dependency Extraction**: Parses project files to extract packages and versions, 
-   organizing them by source (NuGet, PyPI, npm, etc.)
+For shipping, these YAML sources are compiled (by `scripts/compile-worddata`) into compact embedded artifacts and a custom streaming parser keeps loading fast:
 
-4. **Content Compression**: For files >2KB, uses `CavemanCompressionService` with 
-   `Semantic` level to reduce token count while preserving meaning.
+1. **Detection** reads a tiny brotli-compressed index (`_index.br`) holding only the stop words of every language, and scores the input by stop-word frequency — the large per-language data is never touched.
+2. **Compression** then loads the one detected language from its brotli blob (`<iso3>.yaml.br`), decompresses + parses it once, caches it, and applies the selected level.
 
-5. **Markdown Output**: Generates a structured document with:
-   - Project metadata in YAML format
-   - Organized dependency list
-   - Tree view of file structure
-   - File contents with syntax highlighting
-   - Statistical summary
+This keeps the assembly small (~13 MB instead of ~68 MB of raw text) while loading only the language actually used.
 
-## Benefits for AI
-✅ Complete context in readable format  
-✅ Token-optimized via semantic compression  
-✅ Predictable structure for automatic parsing  
-✅ Machine-readable metadata for RAG systems  
+Function words are dropped by their **surface form** before lemmatization, so a noisy lemma can never reinject a stop word.
 
-## Example Usage
-// Basic usage
+### Language data & provenance
+
+The `lemmas` and `verbs` data are generated from the **[Universal Dependencies](https://universaldependencies.org/)** treebanks via `scripts/import-ud-lemmas`. Languages with little inflection (Chinese, Vietnamese, Thai, …) intentionally carry few or no lemma entries. See **NOTICE** for per-language attribution.
+
+---
+
+## 🚀 Batch compression & custom filters
+
+**Batch** — compress many prompts in one call:
+
+```csharp
+string[] prompts =
+{
+    "I would like to know about cheap restaurants in Rome.",
+    "Tell me how to get to the Colosseum from Termini station."
+};
+
+var results = await compressor.CompressBatchAsync(prompts, CavemanCompressionLevel.Semantic);
+foreach (var r in results)
+    Console.WriteLine($"{r.CompressedText}  (error: {r.ErrorMessage ?? "none"})");
+```
+
+**Custom filters** — override the default rules:
+
+```csharp
+var filter = new CompressionFilter
+{
+    KeepOnly = new HashSet<string> { "CONTENT", "PROPN" },        // keep content words & proper nouns
+    CustomPredicate = token => token.Length > 2                    // skip very short tokens
+};
+
+var result = await compressor.CompressAsync(input, CavemanCompressionLevel.None, filter);
+```
+
+You can also blacklist categories with `Remove` (e.g. `"FUNC"`, `"PUNCT"`).
+
+---
+
+## 🌿 Sustainability
+
+Every token processed by an LLM has an energy cost. Caveman exposes a built-in estimator:
+
+- **Energy saved**: ~0.005 mWh (5 µWh) per saved token.
+- **CO₂ avoided**: ~0.4 mg per mWh saved.
+
+Compressing a prompt from 1000 → 400 tokens saves ~3 mWh and avoids ~1.2 mg CO₂. At scale, that adds up.
+
+---
+
+## 🔌 Semantic Kernel integration
+
+```csharp
+var builder = Kernel.CreateBuilder();
+builder.Plugins.AddFromType<TokenOptimizerPlugin>();
+var kernel = builder.Build();
+
+var result = await kernel.InvokeAsync<CompressionResult>("TokenOptimizer", "OptimizePrompt", new()
+{
+    ["input"] = "I would like to know if it's possible to get pizza near Rome.",
+    ["level"] = 2  // Semantic
+});
+```
+
+- **`TokenOptimizerPlugin`** — prompt compression as a kernel function.
+- **`CavemanWikiPlugin`** — on-demand, token-optimized project documentation (`generate_project_wiki`, `get_project_summary`, `detect_project_type`).
+- **`CavemanServicesPlugin`** — exposes the developer services below.
+
+---
+
+## 🦴 Caveman services (developer toolkit)
+
+| Service | What it does |
+| :--- | :--- |
+| `CavemanContextCompressor` | Compresses context files (CLAUDE.md, notes) into caveman-speak. |
+| `CavemanCommitGenerator` | Conventional commit messages from a git diff, under 50 chars. |
+| `CavemanReviewService` | Single-line PR review comments from a diff. |
+| `CavemanStatsTracker` | Tracks token & cost savings across sessions (persists to `%LOCALAPPDATA%/Caveman`). |
+| `CavemanSafetyGuard` | Auto-disables compression for security-critical/destructive content. |
+| `CavecrewService` | Micro-agents: investigator / builder / reviewer. |
+| `CavemanWiki` | AI-friendly, semantically compressed project documentation. |
+
+```csharp
 var wiki = new CavemanWiki();
-string context = await wiki.GenerateAsync(@"C:\Users\Dev\MyAwesomeProject");
+string context = await wiki.GenerateAsync(@"C:\Dev\MyProject");
 await File.WriteAllTextAsync("AI_CONTEXT.md", context);
+```
 
-// Advanced usage with custom parameters
-string context = await wiki.GenerateAsync(
-    projectFolderPath: @"..\MyProject",
-    maxFileSizeBytes: 50 * 1024,  // 50KB max per file
-    compressionLevel: CavemanCompressionLevel.Aggressive  // More aggressive compression
-);
+---
 
-// Integration with AI prompt system
-var prompt = $@"
-You are an expert assistant for the project described below.
+## 📄 License & attribution
 
-<project_context>
-{context}
-</project_context>
+Caveman is released under the **Caveman License** — the MIT License **plus one mandatory condition**:
 
-Answer questions based SOLELY on this context.
-";
-🤝 Contributing
+> **Any use of this library must clearly and visibly disclose that it uses
+> "Caveman" by Passaro Francesco Paolo (Digitalsolutions.it).**
 
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+A disclosure such as the following, in your docs, an *About/credits* screen, or your repository, satisfies the requirement:
+
+```
+Powered by Caveman — © Passaro Francesco Paolo, Digitalsolutions.it (https://digitalsolutions.it)
+```
+
+See [`LICENSE`](LICENSE) for the full terms.
+
+**Bundled language data** under `worddata/` is derived from the Universal Dependencies treebanks and is provided under their respective licenses (predominantly **CC BY-SA / CC BY**), *not* under the Caveman software license. See [`NOTICE`](NOTICE) for attribution and source treebanks.
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+To regenerate the language data from Universal Dependencies and recompile the
+embedded artifacts:
+
+```bash
+# 1. import lemmas / verbs / proper nouns into worddata/*.yaml (the source)
+dotnet run --project scripts/import-ud-lemmas -- --all     # all languages
+dotnet run --project scripts/import-ud-lemmas -- ita fra   # specific languages
+
+# 2. compile worddata/*.yaml -> worddata/*.yaml.br + worddata/_index.br (embedded)
+dotnet run --project scripts/compile-worddata
+
+# 3. rebuild the package so it embeds the fresh artifacts
+dotnet pack caveman.core.csproj -c Release
+```
+
+© 2026 Passaro Francesco Paolo — Digitalsolutions.it

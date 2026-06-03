@@ -1,0 +1,1712 @@
+iso3: vie
+iso1: vi
+name: Vietnamese
+
+function_words:
+  - ã
+  - a ha
+  - ã  æ¡i
+  - ã o
+  - ã¡
+  - ã¡ ã
+  - ã¡i
+  - ã¡i chã
+  - ã¡i dã
+  - ã¡ng
+  - ã´ hã´
+  - ã´ hay
+  - ã´ kã¬a
+  - ã´ kãª
+  - ã´i chao
+  - ã´i thã´i
+  - ã´ng
+  - ä‘ã nh ä‘áº¡ch
+  - ä‘ã¡ng lã­
+  - ä‘ã¡ng lã½
+  - ä‘ã¡ng láº½
+  - ä‘ã¡nh ä‘ã¹ng
+  - ä‘ã¡o ä‘á»ƒ
+  - ä‘ã¢y
+  - ä‘ã£
+  - ä‘á»u
+  - ä‘á»ƒ
+  - ä‘ã³
+  - ä‘æ°á»£c
+  - ä‘ang
+  - ä‘áº¡i ä‘á»ƒ
+  - ä‘áº¡i loáº¡i
+  - ä‘áº¡i nhã¢n
+  - ä‘áº¡i phã m
+  - ä‘áº¿n
+  - ä‘áº¿n ná»—i
+  - ä‘i
+  - ä‘iá»u
+  - ã¢u lã
+  - á»­
+  - á»‘i dã o
+  - á»‘i giá»i
+  - á»‘i giá»i æ¡i
+  - á»“
+  - á»›
+  - á»«
+  - á»§a
+  - á»© á»«
+  - á»© há»±
+  - á»•ng
+  - á»
+  - á»ÿ
+  - á»ÿ trãªn
+  - ã½
+  - ã½ chá»«ng
+  - ã½ da
+  - æ¡
+  - æ¡ hay
+  - æ¡ kã¬a
+  - æ¡i
+  - æ°
+  - ai
+  - ai ai
+  - ai náº¥y
+  - alã´
+  - a-lã´
+  - amen
+  - anh
+  - áº¡
+  - áº¡ æ¡i
+  - áº¯t
+  - áº¯t háº³n
+  - áº¯t lã
+  - áº¥y
+  - áº§u æ¡
+  - ãºi
+  - ãºi chã
+  - ãºi dã o
+  - bã
+  - bã i
+  - bã¡c
+  - bã¨n
+  - bã´ng
+  - bã¢y báº©y
+  - bã¢y chá»«
+  - bã¢y giá»
+  - bã¢y nhiãªu
+  - bá»‹
+  - bá»›
+  - bá»©c
+  - bá»‡t
+  - bá» máº¹
+  - bá»ƒn
+  - bá»—ng
+  - bá»—ng ä‘ã¢u
+  - bá»—ng chá»‘c
+  - bá»—ng dæ°ng
+  - bá»—ng khã´ng
+  - bá»—ng nhiãªn
+  - bá»™
+  - bá»™i pháº§n
+  - bá»ÿi
+  - bá»ÿi chæ°ng
+  - bá»ÿi nhæ°ng
+  - bá»ÿi tháº¿
+  - bá»ÿi vã¬
+  - bá»ÿi váº­y
+  - bã©ng
+  - bao giá»
+  - bao lã¢u
+  - bao náº£
+  - bao nhiãªu
+  - báº¡n
+  - báº¯t ä‘áº§u tá»«
+  - báº£n
+  - báº¥t ä‘á»“
+  - báº¥t cá»©
+  - báº¥t chá»£t
+  - báº¥t giã¡c
+  - báº¥t ká»³
+  - báº¥t ká»ƒ
+  - báº¥t kã¬
+  - báº¥t luáº­n
+  - báº¥t nhæ°á»£c
+  - báº¥t quã¡
+  - báº¥t tá»­
+  - báº¥t thã¬nh lã¬nh
+  - báº¥y
+  - báº¥y chá»«
+  - báº¥y cháº§y
+  - báº¥y giá»
+  - báº¥y lã¢u
+  - báº¥y lã¢u nay
+  - báº¥y nay
+  - báº¥y nhiãªu
+  - báº±ng
+  - báº±ng áº¥y
+  - báº±ng khã´ng
+  - báº±ng náº¥y
+  - báº­p bã  báº­p bãµm
+  - báº­p bãµm
+  - bay biáº¿n
+  - biáº¿t
+  - biáº¿t ä‘ã¢u
+  - biáº¿t ä‘ã¢u ä‘áº¥y
+  - biáº¿t ä‘ã¢u chá»«ng
+  - biáº¿t bao
+  - biáº¿t bao nhiãªu
+  - biáº¿t chá»«ng nã o
+  - biáº¿t máº¥y
+  - cã ng
+  - cã¡c
+  - cã¡i
+  - cã´
+  - cã´ mã¬nh
+  - cã´ng nhiãªn
+  - cã¢y
+  - cá»±c lá»±c
+  - cá»§a
+  - cá»©
+  - cá»© viá»‡c
+  - cá»• lai
+  - cå©ng
+  - cå©ng nhæ°
+  - cå©ng váº­y
+  - cå©ng váº­y thã´i
+  - cã¹ng
+  - cã¹ng cá»±c
+  - cã¹ng nhau
+  - cã¹ng vá»›i
+  - cã²n
+  - cã³
+  - cã³ chäƒng lã
+  - cã³ dá»…
+  - cã³ thá»ƒ
+  - cã³ váº»
+  - cã³c khã´
+  - cæ¡
+  - cæ¡ chá»«ng
+  - cæ¡ há»“
+  - cæ¡ mã
+  - cæ¡n
+  - cäƒn
+  - cäƒn cáº¯t
+  - cao
+  - cáº£
+  - cáº£ thá»ƒ
+  - cáº£ tháº£y
+  - cáº£m æ¡n
+  - cáº§n
+  - cáº­t lá»±c
+  - cáº­t sá»©c
+  - cáº­u
+  - cha
+  - chã­ cháº¿t
+  - cha cháº£
+  - chã nh cháº¡nh
+  - chá»‘c chá»‘c
+  - chá»›
+  - chá»› chi
+  - chá»£t
+  - chá»§n
+  - chá»©
+  - chá»© lá»‹
+  - chá»‰
+  - chá»‰n
+  - chã¹n chå©n
+  - chã¹n chã¹n
+  - chæ°a
+  - chäƒn cháº¯n
+  - chäƒng
+  - chã­nh
+  - chã­nh lã
+  - chã­nh thá»‹
+  - chãº
+  - chao ã´i
+  - chãº mã y
+  - chãº mã¬nh
+  - cháº¯c
+  - cháº¯c háº³n
+  - cháº¿t ná»—i
+  - cháº¿t tháº­t
+  - cháº¿t tiá»‡t
+  - cháº§m cháº­p
+  - cháº³ng láº½
+  - cháº³ng ná»¯a
+  - cháº³ng nhá»¯ng
+  - cháº³ng pháº£i
+  - cháº­c
+  - chãºng mã¬nh
+  - chãºng ta
+  - chãºng tã´i
+  - chiáº¿c
+  - cho
+  - cho ä‘áº¿n
+  - cho ä‘áº¿n khi
+  - cho nãªn
+  - cho tá»›i
+  - cho tá»›i khi
+  - choa
+  - chu cha
+  - chui cha
+  - chung cá»¥c
+  - chung qui
+  - chung quy
+  - chung quy láº¡i
+  - chuyá»‡n
+  - coi bá»™
+  - coi mã²i
+  - con
+  - cu cáº­u
+  - cuá»‘n
+  - cuá»™c
+  - dã o
+  - dá»¯
+  - dá»… sá»£
+  - dá»… thæ°á»ng
+  - dá»ÿ chá»«ng
+  - dã¬
+  - dã¹ cho
+  - dã¹ ráº±ng
+  - dæ°á»›i
+  - dáº¡
+  - dáº«u
+  - dáº«u sao
+  - dáº§n dã
+  - dáº§n dáº§n
+  - dáº§u sao
+  - do
+  - do ä‘ã³
+  - do vã¬
+  - do váº­y
+  - duy
+  - em
+  - gã¬
+  - giá»¯a
+  - há»
+  - há»i
+  - hæ¡n
+  - háº§u háº¿t
+  - hay
+  - hoã n toã n
+  - hoáº·c
+  - khã¡c
+  - khã´ng
+  - khi
+  - lã
+  - lã m
+  - lá»›n
+  - lãªn
+  - láº¡i
+  - láº§n
+  - lãºc
+  - luã´n
+  - mã
+  - má»›i
+  - má»£
+  - má»—i
+  - má»™t
+  - má»™t cã¡ch
+  - mã¬nh
+  - muá»‘n
+  - nã o
+  - nã y
+  - ná»¯a
+  - ná»›
+  - ná»©c ná»ÿ
+  - ná»
+  - ná»n
+  - nã³
+  - nã³c
+  - nã³i
+  - nãªn
+  - nãªn chi
+  - næ¡i
+  - näƒm
+  - náº¿u
+  - náº¿u nhæ°
+  - náº¥y
+  - ngã y
+  - ngã y cã ng
+  - ngã y ngã y
+  - ngã y xá»­a
+  - ngã y xæ°a
+  - ngã´i
+  - ngá»n
+  - ngá»t
+  - ngá»™ nhá»¡
+  - ngãµ háº§u
+  - ngæ°á»i
+  - ngæ°æ¡i
+  - ngäƒn ngáº¯t
+  - ngay
+  - ngay cáº£
+  - ngay khi
+  - ngay lãºc
+  - ngay láº­p tá»©c
+  - ngay tá»«
+  - ngay tá»©c kháº¯c
+  - nghá»‰m
+  - nghe ä‘ã¢u
+  - nghe chá»«ng
+  - nghen
+  - nghiá»…m nhiãªn
+  - ngoã i
+  - ngoã i ra
+  - ngoáº£i
+  - nh
+  - nhã
+  - nhã¢n dá»‹p
+  - nhã¢n tiá»‡n
+  - nhá»¡ ra
+  - nhá»¯ng
+  - nhá»¯ng ai
+  - nhá»¯ng nhæ°
+  - nhá»‰
+  - nhã©
+  - nhã³n nhã©n
+  - nhæ°
+  - nhæ° chæ¡i
+  - nhæ° khã´ng
+  - nhæ° quáº£
+  - nhæ° thá»ƒ
+  - nhæ° tuá»“ng
+  - nhæ° váº­y
+  - nhæ°á»£c báº±ng
+  - nhæ°ng
+  - nhæ°ng mã
+  - nháº¥t
+  - nháº¥t ä‘ã¡n
+  - nháº¥t ä‘á»‹nh
+  - nháº¥t loáº¡t
+  - nháº¥t luáº­t
+  - nháº¥t má»±c
+  - nháº¥t nháº¥t
+  - nháº¥t quyáº¿t
+  - nháº¥t sinh
+  - nháº¥t tã¢m
+  - nháº¥t tá»
+  - nháº¥t thiáº¿t
+  - nháº­n
+  - nhau
+  - nhiá»‡t liá»‡t
+  - nhiá»u
+  - nhiãªn háº­u
+  - nhung nhäƒng
+  - oã¡i
+  - oai oã¡i
+  - phã¨
+  - phá»‘c
+  - phá»¥t
+  - phá»©t
+  - phá»‰ phui
+  - phá»ng
+  - phá»ng nhæ°
+  - phã³c
+  - phã³t
+  - phæ°æ¡ng chi
+  - phäƒn pháº¯t
+  - pháº¯t
+  - pháº£i
+  - pháº£i chäƒng
+  - pháº£i chi
+  - pho
+  - qua
+  - qua quã½t
+  - qua quã­t
+  - quã¡
+  - quã¡ ä‘á»—i
+  - quã¡ ä‘á»™
+  - quã¡ æ°
+  - quã¡ chá»«ng
+  - quã¡ láº¯m
+  - quã¡ sã¡
+  - quã¡ thá»ƒ
+  - quã¡ trá»i
+  - quã¡ xã¡
+  - quã½ há»“
+  - quáº£
+  - quáº£ ä‘ãºng
+  - quáº£ lã
+  - quáº£ tã¬nh
+  - quáº£ tang
+  - quáº£ tháº­t
+  - quáº£ váº­y
+  - quyá»ƒn
+  - quyáº¿t
+  - quyáº¿t nhiãªn
+  - ra
+  - ra pháº¿t
+  - ra sao
+  - ra trã²
+  - rã y
+  - rã¡o
+  - rã¡o trá»i
+  - rá»‘t cá»¥c
+  - rá»‘t cuá»™c
+  - rá»“i
+  - rá»©a
+  - rã©n
+  - rã³n rã©n
+  - rã­ch
+  - räƒng
+  - ráº¥t
+  - ráº±ng
+  - ráº±ng lã
+  - rãºt cá»¥c
+  - ren rã©n
+  - riá»‡t
+  - riãªng
+  - riu rã­u
+  - sa sáº£
+  - sá»‘
+  - sá»‘ lã
+  - sá»‘t sá»™t
+  - sá»±
+  - sá»ÿ dä©
+  - sã¬
+  - sao
+  - sáº¡ch
+  - sáº¯p
+  - sáº¥t
+  - sáº½
+  - sau
+  - sau ä‘ã³
+  - sau cã¹ng
+  - sau chã³t
+  - sau cuá»‘i
+  - so
+  - song le
+  - suã½t
+  - tã  tã
+  - tã´i
+  - tã´ng tá»‘c
+  - tá»‘c táº£
+  - tá»‘i æ°
+  - tá»›
+  - tá»›i
+  - tá»± vã¬
+  - tá»±u trung
+  - tá»«
+  - tá»«ng
+  - tá»©c tá»‘c
+  - tá»©c thã¬
+  - tá» ra
+  - tá» váº»
+  - tá»t
+  - tá»™t
+  - tã¹ tã¬
+  - tã² te
+  - tãªnh
+  - täƒm táº¯p
+  - tanh
+  - táº¡i
+  - táº¡i vã¬
+  - táº¯p
+  - táº¯p lá»±
+  - táº¥m
+  - táº¥n
+  - táº¥t cáº£
+  - táº¥t táº§n táº­t
+  - táº¥t táº­t
+  - táº¥t tháº£y
+  - tã­t mã¹
+  - thã
+  - tha há»“
+  - thã  lã
+  - thã  ráº±ng
+  - thã nh ra
+  - thã nh thá»­
+  - thã¡i quã¡
+  - thã¡ng
+  - thã´i
+  - thá»‘c
+  - thá»‘c thã¡o
+  - thá»‘t
+  - thá»‘t nhiãªn
+  - thá»¥c máº¡ng
+  - thá»±c ra
+  - thá»±c sá»±
+  - thá»±c váº­y
+  - thá»‰nh thoáº£ng
+  - thá»i gian
+  - thá»m
+  - thá»­a
+  - thá»™c
+  - thã¬
+  - thã¬ thã´i
+  - thã¬nh lã¬nh
+  - thæ°á»ng
+  - thæ°æ¡ng ã´i
+  - thã­m
+  - than ã´i
+  - thanh
+  - tháº¿
+  - tháº¿ ã
+  - tháº¿ lã
+  - tháº¿ mã
+  - tháº¿ nã o
+  - tháº¿ nãªn
+  - tháº¿ ra
+  - tháº¿ thã¬
+  - tháº¿ch
+  - tháº£o hã¨n
+  - tháº£o nã o
+  - tháº¥y
+  - tháº©y
+  - tháº­m
+  - tháº­m chã­
+  - thãºng tháº¯ng
+  - tháº­t lá»±c
+  - tháº­t ra
+  - tháº­t váº­y
+  - theo
+  - thi thoáº£ng
+  - thoáº¡t
+  - thoáº¡t nhiãªn
+  - thoáº¯t
+  - thuáº§n
+  - tiá»‡n thá»ƒ
+  - tiáº¿p ä‘ã³
+  - tiáº¿p theo
+  - toã
+  - toã© khã³i
+  - toáº¹t
+  - trá»« phi
+  - trá»‡t
+  - trá»‡u tráº¡o
+  - trá»i ä‘áº¥t æ¡i
+  - trá»ng
+  - trá»ƒn
+  - trãªn
+  - træ°á»›c
+  - træ°á»›c ä‘ã¢y
+  - træ°á»›c ä‘ã³
+  - træ°á»›c kia
+  - træ°á»›c nay
+  - træ°á»›c tiãªn
+  - tráº¿u trã¡o
+  - trong
+  - tuá»‘t luá»‘t
+  - tuá»‘t tuá»“n tuá»™t
+  - tuá»‘t tuá»™t
+  - tuáº§n tá»±
+  - tuy
+  - tuy nhiãªn
+  - tuy ráº±ng
+  - tuy tháº¿
+  - tuy váº­y
+  - tuyá»‡t nhiãªn
+  - vã
+  - vã­ báº±ng
+  - vã­ dã¹
+  - vã­ phá»ng
+  - vã­ thá»­
+  - vã o
+  - vã¨o
+  - vã´ hã¬nh trung
+  - vã´ ká»ƒ
+  - vã´ luáº­n
+  - vã´ vã n
+  - vã¢ng
+  - vá»‘n dä©
+  - vá»‹ táº¥t
+  - vá»›i
+  - vá»›i láº¡i
+  - vá»¥t
+  - vá»«a
+  - vá»«a má»›i
+  - vá»
+  - vá»ÿ
+  - vã¬
+  - vã¬ chæ°ng
+  - vã¬ tháº¿
+  - vã¬ váº­y
+  - väƒng tãª
+  - váº¡n nháº¥t
+  - váº£ chäƒng
+  - váº£ láº¡i
+  - váº«n
+  - váº­y
+  - váº­y lã
+  - váº­y thã¬
+  - veo
+  - veo veo
+  - viá»‡c
+  - vung tã n tã¡n
+  - vung tã¡n tã n
+  - vung thiãªn ä‘á»‹a
+  - xa xáº£
+  - xá»‡p
+  - xá»nh xá»‡ch
+  - xäƒm xäƒm
+  - xäƒm xáº¯m
+  - xäƒm xãºi
+  - xiáº¿t bao
+  - xoã nh xoáº¡ch
+  - xoã©t
+  - xoáº¹t
+  - xoáº³n
+  - xon xã³n
+  - xuá»‘ng
+  - xuá»ƒ
+  - xuáº¥t ká»³ báº¥t ã½
+  - xuáº¥t kã¬ báº¥t ã½
+  - ta
+  - xin
+  - nghe
+  - tin
+  - tao
+  - bao
+  - tãªn
+  - xem
+  - yãªu
+  - quan
+  - hai
+  - äƒn
+  - tay
+  - xe
+  - nay
+  - gia
+  - quay
+  - bãªn
+  - vui
+  - gian
+  - i
+  - sinh
+  - trai
+  - kia
+  - ko
+  - lo
+  - oh
+  - rãµ
+  - tra
+  - ba
+  - t
+  - thay
+  - mang
+  - an
+  - bay
+  - c
+  - n
+  - xa
+  - coi
+  - xong
+  - y
+  - yeah
+  - sai
+  - ng
+  - minh
+  - a
+  - kinh
+  - mua
+  - may
+  - mai
+  - to
+  - the
+  - yãªn
+  - thãº
+  - m
+  - mau
+  - tinh
+  - khu
+  - danh
+  - you
+  - s
+  - hy
+  - ngon
+  - okay
+  - l
+  - hey
+  - ma
+  - tim
+  - nguy
+  - phim
+  - giao
+  - ngu
+  - hoa
+  - ban
+  - di
+  - da
+  - tham
+  - väƒn
+  - mong
+  - phi
+  - suy
+  - vua
+  - nghi
+  - im
+  - linh
+  - quen
+  - seìƒ
+  - uh
+  - thu
+  - nam
+  - chia
+  - ghi
+  - ly
+  - binh
+  - v
+  - tai
+  - la
+  - ok
+  - th
+  - chi
+  - hi
+  - john
+  - huy
+  - ch
+  - ca
+  - thi
+  - lai
+  - tha
+  - u
+  - kim
+  - b
+  - ty
+  - cung
+  - säƒn
+  - vi
+  - tãºi
+  - dãµi
+  - and
+  - khai
+  - jack
+  - ah
+  - xãºc
+  - bom
+  - rãºt
+  - sang
+  - chim
+  - nha
+  - new
+  - ãª
+  - xanh
+  - it
+  - can
+  - say
+  - hãºt
+  - xinh
+  - in
+  - du
+  - nãºi
+  - phãª
+  - h
+  - khoa
+  - truy
+  - thua
+  - bang
+  - kh
+  - of
+  - kãªu
+  - ãºy
+  - no
+  - quy
+  - tãºc
+  - mãª
+  - mi
+  - tung
+  - sam
+  - whoa
+  - me
+  - dao
+  - my
+  - sa
+  - vinh
+  - o
+  - nga
+  - ninh
+  - xung
+  - york
+  - vai
+  - che
+  - bi
+  - ha
+  - d
+  - well
+  - giam
+  - ghãª
+  - e
+  - on
+  - kho
+  - wow
+  - that
+  - phu
+  - trao
+  - lao
+  - canh
+  - lan
+  - tan
+  - um
+  - cãº
+  - long
+  - ben
+  - g
+  - treo
+  - leo
+  - vãµ
+  - lang
+  - thai
+  - mike
+  - jim
+  - hung
+  - lui
+  - don
+  - bia
+  - joey
+  - dung
+  - tom
+  - xu
+  - gan
+  - chai
+  - ross
+  - man
+  - r
+  - alex
+  - all
+  - what
+  - we
+  - fbi
+  - hmm
+  - joe
+  - tãºy
+  - ph
+  - is
+  - tu
+  - huh
+  - your
+  - will
+  - mary
+  - ho
+  - gi
+  - song
+  - bob
+  - tr
+  - ga
+  - ung
+  - max
+  - cam
+  - ray
+  - paul
+  - cãºt
+  - p
+  - for
+  - quãª
+  - be
+  - kem
+  - bill
+  - tri
+  - phe
+  - this
+  - mark
+  - manh
+  - god
+  - nick
+  - tv
+  - giai
+  - bar
+  - xoay
+  - sara
+  - re
+  - go
+  - know
+  - pha
+  - k
+  - lee
+  - nãºt
+  - li
+  - by
+  - tang
+  - anna
+  - jane
+  - heo
+  - he
+  - carl
+  - van
+  - dave
+  - hoan
+
+lemmas:
+  "tháng tư": "thángtư"
+
+verbs:
+
+proper_nouns:
+  - "1a"
+  - "2e"
+  - "a5"
+  - "abdul"
+  - "ads"
+  - "agrí"
+  - "ai cập"
+  - "ama công"
+  - "american"
+  - "amoro"
+  - "an cư đông"
+  - "an lão"
+  - "anana"
+  - "anh quân"
+  - "arizona"
+  - "arthur"
+  - "b612"
+  - "ba bường"
+  - "ba duẩn"
+  - "ba hương"
+  - "ba kiểu"
+  - "ba phước"
+  - "bangalore"
+  - "bangkok"
+  - "bao giờ"
+  - "benjamin"
+  - "berlin"
+  - "bhling chrlâng"
+  - "biên hòa"
+  - "biển chết"
+  - "biển lạc"
+  - "booksurge"
+  - "buôn ma thuột"
+  - "bà rịa"
+  - "bàu chồn"
+  - "bác"
+  - "bác hồ"
+  - "bây giờ"
+  - "bãi sậy"
+  - "bình"
+  - "bình chương"
+  - "bình dương"
+  - "bình minh"
+  - "bình phước"
+  - "bình thuận"
+  - "bình thạnh"
+  - "bình triệu"
+  - "bình định"
+  - "bùi a"
+  - "bùi hồng việt"
+  - "bùi thị lan"
+  - "bùi thị nhàn"
+  - "bùi văn huấn"
+  - "bùi văn luyến"
+  - "bùi văn thu"
+  - "bưởi"
+  - "bạc liêu"
+  - "bạch đằng"
+  - "bản t hung"
+  - "bắc"
+  - "bắc cực"
+  - "bắc giang"
+  - "bắc mỹ"
+  - "bắc ninh"
+  - "bắc trung bộ"
+  - "bằng"
+  - "bỉnh sâm"
+  - "bồ đề"
+  - "bộ"
+  - "bụt"
+  - "cam ranh"
+  - "campuchia"
+  - "capability"
+  - "cenote"
+  - "champasak"
+  - "chao phraya"
+  - "chatuchak"
+  - "chi nhánh"
+  - "chu quốc ân"
+  - "châu phi"
+  - "châu thành"
+  - "châu á"
+  - "châu âu"
+  - "chí tượng"
+  - "chín thái"
+  - "chính"
+  - "chính phủ"
+  - "chính trị"
+  - "chúng"
+  - "chăm"
+  - "chămkamoom"
+  - "chư pah"
+  - "chương"
+  - "chương dương"
+  - "chị"
+  - "cienco"
+  - "cil"
+  - "computer"
+  - "con rùa"
+  - "cpc"
+  - "cà mau"
+  - "cà ná"
+  - "cát bà"
+  - "cát hải"
+  - "công"
+  - "công an"
+  - "công nghiệp"
+  - "công ty"
+  - "cúc"
+  - "cơlâu bhưới"
+  - "cơlâu nhới"
+  - "cường"
+  - "cần thơ"
+  - "cầu hai"
+  - "cồn lá"
+  - "cổng trắng"
+  - "củ chi"
+  - "cự"
+  - "danh hải"
+  - "dankia"
+  - "dankia resort"
+  - "dezliangz"
+  - "diên"
+  - "dolarhyde"
+  - "dream"
+  - "du lịch"
+  - "duy tân"
+  - "duy xuyên"
+  - "dân"
+  - "dòng xài"
+  - "dũng"
+  - "dũng khang"
+  - "dương"
+  - "dương tuấn"
+  - "dầu giây"
+  - "engineering"
+  - "environment"
+  - "f."
+  - "famillia"
+  - "federation"
+  - "florida"
+  - "fordham"
+  - "formosa"
+  - "four-six"
+  - "fred"
+  - "future"
+  - "fx"
+  - "g."
+  - "galilê"
+  - "games"
+  - "gd-đt"
+  - "genève"
+  - "gerda"
+  - "gia huynh"
+  - "gia lai"
+  - "gia lâm"
+  - "gia định"
+  - "gianh"
+  - "giordan"
+  - "giày"
+  - "giồng trôm"
+  - "glen white"
+  - "google"
+  - "gregor"
+  - "gì"
+  - "h."
+  - "h5n1"
+  - "hai bà trưng"
+  - "hai sết"
+  - "hai địa"
+  - "hapro"
+  - "hcm"
+  - "henri martin"
+  - "hiên"
+  - "hiền"
+  - "hiệp bình chánh"
+  - "hoàn"
+  - "hoàng đạt"
+  - "hoạn thư"
+  - "huế"
+  - "huỳnh ngự"
+  - "hà"
+  - "hà nam"
+  - "hà nội"
+  - "hà tiên"
+  - "hà tĩnh"
+  - "hàm luông"
+  - "hàn"
+  - "hàng bồ"
+  - "hàng hành"
+  - "hàng mành"
+  - "hào"
+  - "háp"
+  - "hòa"
+  - "hòa châu"
+  - "hòa hiệp"
+  - "hùng"
+  - "hưng long"
+  - "hưng lịnh"
+  - "hưng nguyên"
+  - "hưng xá"
+  - "hương cảng"
+  - "hương rừng"
+  - "hạ hồi"
+  - "hạ long"
+  - "hạnh"
+  - "hạo"
+  - "hạt"
+  - "hải"
+  - "hải dương"
+  - "hải phòng"
+  - "hải vân"
+  - "hậu"
+  - "hằng"
+  - "họ"
+  - "học"
+  - "hố bỏ gùi"
+  - "hồ"
+  - "hồ chí minh"
+  - "hồ henri martin"
+  - "hồ hữu nhựt"
+  - "hồ raymonde dien"
+  - "hồ văn trương"
+  - "hồng"
+  - "hồng lĩnh"
+  - "hồng minh vũ"
+  - "hồng nhung"
+  - "hội"
+  - "hội an"
+  - "hữu hạnh"
+  - "hữu nghị"
+  - "ia me"
+  - "iam"
+  - "ibm"
+  - "ica"
+  - "indo"
+  - "ireland"
+  - "james"
+  - "jica"
+  - "jimmy phạm"
+  - "johor"
+  - "jude"
+  - "jurong"
+  - "jơ rai"
+  - "jơrum xia"
+  - "k."
+  - "k7"
+  - "kanni wignaraja"
+  - "kem kjang"
+  - "kenneth"
+  - "ketmany"
+  - "khiêm"
+  - "khoán"
+  - "khánh hòa"
+  - "khâm đức"
+  - "khổng lệ hòa"
+  - "kinh năm"
+  - "kinh tế"
+  - "kinh đô"
+  - "kiều oanh"
+  - "knights"
+  - "koto"
+  - "kredtrakarn"
+  - "kuala lumpur"
+  - "kìa"
+  - "kơtu"
+  - "kỳ"
+  - "la gi"
+  - "la ngà"
+  - "lam"
+  - "lao động"
+  - "leed"
+  - "levothyroxin"
+  - "liberia"
+  - "liên"
+  - "liên chiểu"
+  - "liên cảng a5"
+  - "liên hiệp quốc"
+  - "liên khương"
+  - "liễu"
+  - "lkn"
+  - "loan"
+  - "long an"
+  - "long phước"
+  - "los"
+  - "lumphini"
+  - "lung-nan"
+  - "luo qili"
+  - "luyến"
+  - "luân"
+  - "lào"
+  - "lâm"
+  - "lâm đồng"
+  - "lã thị kim oanh"
+  - "lê"
+  - "lê duy hiệp"
+  - "lê duẩn"
+  - "lê huy ngọ"
+  - "lê hồng khanh"
+  - "lê quí đôn"
+  - "lê thanh hải"
+  - "lê thế tiệm"
+  - "lê thị kính"
+  - "lê trung thành"
+  - "lê văn vinh"
+  - "lênin"
+  - "lý"
+  - "lý bỉnh sâm"
+  - "lý nam đế"
+  - "lý thường kiệt"
+  - "lăng cô"
+  - "lương thế vinh"
+  - "lạc"
+  - "lạng sơn"
+  - "lộc"
+  - "m."
+  - "mai quốc bình"
+  - "mai văn khuê"
+  - "mai ái trực"
+  - "mai động"
+  - "malaysia"
+  - "management"
+  - "marie curie"
+  - "matiz"
+  - "matxcơva"
+  - "mađagui"
+  - "mexico"
+  - "michoacana"
+  - "minh sang"
+  - "minsk"
+  - "monivong"
+  - "muay thai"
+  - "mát"
+  - "mình"
+  - "mũi đèn"
+  - "mười"
+  - "mười thơ"
+  - "mạnh"
+  - "mỏ cày"
+  - "mỹ"
+  - "mỹ phước tây"
+  - "mỹ sơn"
+  - "n."
+  - "na uy"
+  - "nam bộ"
+  - "nam cực"
+  - "nam hải vân"
+  - "nam kỳ"
+  - "nam mỹ"
+  - "nam trung bộ"
+  - "nam trà my"
+  - "nam định"
+  - "natsteel"
+  - "nazari"
+  - "ndaelndongl"
+  - "nghĩa"
+  - "nghệ an"
+  - "ngoại giao"
+  - "ngoại ngữ"
+  - "ngoại thương"
+  - "nguyên"
+  - "nguyên ngọc"
+  - "nguyễn"
+  - "nguyễn cao toản"
+  - "nguyễn chí thanh"
+  - "nguyễn chơn"
+  - "nguyễn công trứ"
+  - "nguyễn công tạn"
+  - "nguyễn huy hoàng"
+  - "nguyễn huệ"
+  - "nguyễn hải yến"
+  - "nguyễn hồng minh"
+  - "nguyễn hữu cầu"
+  - "nguyễn hữu vinh"
+  - "nguyễn khắc trường"
+  - "nguyễn lê nguyên"
+  - "nguyễn minh triết"
+  - "nguyễn phú bình"
+  - "nguyễn phú trọng"
+  - "nguyễn quang trung"
+  - "nguyễn sơn nam"
+  - "nguyễn thanh mỹ"
+  - "nguyễn thanh đoàn"
+  - "nguyễn thiện luân"
+  - "nguyễn thiện nhân"
+  - "nguyễn thiện thuật"
+  - "nguyễn thành phương"
+  - "nguyễn thành thượng"
+  - "nguyễn thế khanh"
+  - "nguyễn thị châu"
+  - "nguyễn thị diệp"
+  - "nguyễn thị dậu"
+  - "nguyễn thị hằng"
+  - "nguyễn thị loan"
+  - "nguyễn thị sinh"
+  - "nguyễn thị tiêu"
+  - "nguyễn thị viện"
+  - "nguyễn tiến thảo"
+  - "nguyễn tiến đạt"
+  - "nguyễn tri phương"
+  - "nguyễn trãi"
+  - "nguyễn văn bình"
+  - "nguyễn văn chí"
+  - "nguyễn văn hòa"
+  - "nguyễn văn linh"
+  - "nguyễn văn minh"
+  - "nguyễn văn nhã"
+  - "nguyễn văn quí"
+  - "nguyễn văn quỳnh"
+  - "nguyễn văn thuật"
+  - "nguyễn văn toại"
+  - "nguyễn văn tâm"
+  - "nguyễn văn tường"
+  - "nguyễn văn đẳng"
+  - "nguyễn ái quốc"
+  - "nguyễn đình chiểu"
+  - "nguyễn đình hùng"
+  - "ngô văn hoàng"
+  - "người"
+  - "ngọ"
+  - "ngọc"
+  - "ngọc hà"
+  - "ngọc vân"
+  - "ngụy"
+  - "nha trang"
+  - "nhi"
+  - "nhiêu lộc"
+  - "nhu"
+  - "nhuận đức"
+  - "nhà bè"
+  - "nhà đèn"
+  - "nhàn"
+  - "nhân đạo"
+  - "nhơn trạch"
+  - "như ý"
+  - "nhật"
+  - "nhật bản"
+  - "nhựt"
+  - "nn"
+  - "nonthaburi"
+  - "nó"
+  - "nông lâm súc"
+  - "nông nghiệp"
+  - "nông thôn"
+  - "nông thị hương"
+  - "năm"
+  - "năm kiếm"
+  - "năm long"
+  - "năm lặc"
+  - "nước mỹ"
+  - "nụ"
+  - "olympian newspaper"
+  - "online"
+  - "ops"
+  - "p."
+  - "pakse"
+  - "parkway"
+  - "pepsi"
+  - "phan thiết"
+  - "phan văn khải"
+  - "phan văn quán"
+  - "phan văn đu"
+  - "phet"
+  - "phnom penh"
+  - "phong"
+  - "phong phú"
+  - "photo"
+  - "pháo đài láng"
+  - "pháp"
+  - "pháp luật"
+  - "phát triển"
+  - "phù long"
+  - "phú"
+  - "phú giáo"
+  - "phú hữu"
+  - "phú lộc"
+  - "phú vang"
+  - "phú yên"
+  - "phương"
+  - "phương nam"
+  - "phước hương"
+  - "phước long"
+  - "phước lộc"
+  - "phước sơn"
+  - "phước thành"
+  - "phượng"
+  - "phạm"
+  - "phạm hồng giang"
+  - "phạm ngọc khang"
+  - "phạm văn thanh"
+  - "phạm xuân ái"
+  - "phật"
+  - "phật bà"
+  - "phố"
+  - "phủ lý"
+  - "pte"
+  - "ptnt"
+  - "pơloong zơra"
+  - "pơloong đinh"
+  - "q."
+  - "quang"
+  - "quang dũng"
+  - "quang trung"
+  - "qui nhơn"
+  - "quyên"
+  - "quách hồng lê"
+  - "quê hương"
+  - "quí"
+  - "quảng bình"
+  - "quảng nam"
+  - "quảng ngãi"
+  - "quảng ninh"
+  - "quảng trị"
+  - "quốc"
+  - "quỳnh"
+  - "rajadamnoen"
+  - "raymonde dien"
+  - "resort"
+  - "river"
+  - "road"
+  - "rob"
+  - "rùa"
+  - "rạch cát"
+  - "rạch giá"
+  - "rạch gốc"
+  - "sa tô"
+  - "sahara"
+  - "saint-exupéry"
+  - "sampong"
+  - "sanghamitra"
+  - "sanofi"
+  - "sao hoả"
+  - "sao kim"
+  - "sao thuỷ"
+  - "sea"
+  - "sea games 22"
+  - "sergeant"
+  - "service"
+  - "sihanouk"
+  - "sinaloa"
+  - "singapore"
+  - "special"
+  - "stirling"
+  - "suny brockport vietnam"
+  - "susan"
+  - "suối cạn"
+  - "sài gòn"
+  - "sáu chành"
+  - "sáu chí"
+  - "sáu kế"
+  - "sáu sao"
+  - "sáu vô"
+  - "sân bay"
+  - "sêrêpôk"
+  - "sóc trăng"
+  - "sông cầu"
+  - "sơ"
+  - "sơn tây"
+  - "sư phạm"
+  - "target"
+  - "templar"
+  - "th."
+  - "thanh hà"
+  - "thanh hóa"
+  - "thanh mỹ"
+  - "thanh nhàn"
+  - "thanh niên"
+  - "thiên cung"
+  - "thiệu"
+  - "thung vình"
+  - "thành"
+  - "thành bỉ"
+  - "thành công"
+  - "thành hưng"
+  - "thác ném"
+  - "thái"
+  - "thái bình"
+  - "thái bình dương"
+  - "thái lan"
+  - "thái mỹ"
+  - "thái thịnh"
+  - "tháng tám"
+  - "thánh paul"
+  - "thông tấn xã"
+  - "thùy"
+  - "thư"
+  - "thương binh"
+  - "thảo"
+  - "thắng"
+  - "thế"
+  - "thọ"
+  - "thổ"
+  - "thổ chu"
+  - "thổ nhĩ kỳ"
+  - "thủ đức"
+  - "thủy lợi"
+  - "ti"
+  - "tiên hưng"
+  - "tiên long"
+  - "tiên sơn"
+  - "tiến"
+  - "tiến dũng"
+  - "tiếp thị"
+  - "tony"
+  - "tours"
+  - "toàn"
+  - "trang"
+  - "tranh"
+  - "triều phú"
+  - "trung"
+  - "trung hữu"
+  - "trung nguyên"
+  - "trung quốc"
+  - "trà lập"
+  - "trà vinh"
+  - "trái đất"
+  - "trâm"
+  - "trúc"
+  - "trương thị ái vy"
+  - "trương văn lâm"
+  - "trương văn thưởng"
+  - "trương xuân đại"
+  - "trương định"
+  - "trường"
+  - "trường chinh"
+  - "trường sa"
+  - "trường sơn"
+  - "trường thịnh"
+  - "trần minh đức"
+  - "trần nhất thiện"
+  - "trần sỏ"
+  - "trần thị ngọc hảo"
+  - "trần tố nga"
+  - "trần văn minh"
+  - "trần văn nhật"
+  - "trịnh"
+  - "trịnh xuân thanh"
+  - "trọng hoàn"
+  - "trời"
+  - "trực"
+  - "trực ninh"
+  - "tr’ hy"
+  - "tu đinh"
+  - "tuyết"
+  - "tuấn"
+  - "tuấn anh"
+  - "tuổi trẻ"
+  - "tà hín"
+  - "tài chính"
+  - "tàu"
+  - "tám"
+  - "tám hòa"
+  - "tám nhiều"
+  - "tám on"
+  - "tám xáng"
+  - "tánh linh"
+  - "tân an"
+  - "tân bình"
+  - "tân lộc"
+  - "tân phú"
+  - "tân phước"
+  - "tân thanh"
+  - "tân thuận"
+  - "tân tây lan"
+  - "tân uyên"
+  - "tân xuân"
+  - "tân định"
+  - "tây"
+  - "tây bá lợi á"
+  - "tây nguyên"
+  - "tây sơn"
+  - "tình"
+  - "tôi"
+  - "tùng"
+  - "tư"
+  - "tư hạnh"
+  - "tư lý"
+  - "tớ"
+  - "ubdul"
+  - "ung bướu"
+  - "uyên hưng"
+  - "vang"
+  - "vietnam"
+  - "vinamilk"
+  - "vip"
+  - "viện"
+  - "viện kiểm sát"
+  - "việt"
+  - "việt hùng"
+  - "việt kiều"
+  - "việt nam"
+  - "việt tài"
+  - "vn"
+  - "voòng"
+  - "vy"
+  - "vàm cái su"
+  - "vàm lũng"
+  - "vàng"
+  - "võ"
+  - "võ bẩm"
+  - "võ công sơn"
+  - "võ danh hải"
+  - "võ nguyên giáp"
+  - "võ văn sung"
+  - "võ đức hơn"
+  - "văn khoa"
+  - "vĩnh"
+  - "vĩnh an"
+  - "vĩnh lộc"
+  - "vĩnh minh"
+  - "vũ ngọc bình"
+  - "vũ đình liệu"
+  - "vũ đình trúc"
+  - "vũng tàu"
+  - "vương tửu quán"
+  - "vạn hạnh"
+  - "wai-kru"
+  - "washington"
+  - "www.anangquangnamfund.org"
+  - "xinmei"
+  - "xoan"
+  - "xuân"
+  - "xuân hải"
+  - "xuân đám"
+  - "xuống đá"
+  - "xã hội"
+  - "y khoa"
+  - "yên phụ"
+  - "yêu"
+  - "yết kiêu"
+  - "zacaton"
+  - "zetas"
+  - "ái vy"
+  - "áo"
+  - "ðặng hải lý"
+  - "ông"
+  - "ông dầu"
+  - "ông trời"
+  - "úc"
+  - "út kang"
+  - "út tòng"
+  - "đan mạch"
+  - "đinh"
+  - "điện"
+  - "đl"
+  - "đoàn"
+  - "đu"
+  - "đà lạt"
+  - "đà nẵng"
+  - "đài"
+  - "đài bắc"
+  - "đài loan"
+  - "đài nam"
+  - "đào"
+  - "đào lập công"
+  - "đào xuân nhung"
+  - "đáng"
+  - "đâu"
+  - "đây"
+  - "đông"
+  - "đông bắc"
+  - "đông dương"
+  - "đúc nhỏ"
+  - "đạ tẻ"
+  - "đại"
+  - "đại học thương mại"
+  - "đảng"
+  - "đặng công lân"
+  - "đặng kỳ"
+  - "đặng văn ngữ"
+  - "đặng văn thanh"
+  - "đặng văn tình"
+  - "định quán"
+  - "đồng nai"
+  - "đồng xoài"
+  - "đồng đăng"
+  - "đỗ quốc việt"
+  - "đức"
+  - "đức linh"
+  - "ả rập"
+  - "ấn độ"
+  - "ấy"

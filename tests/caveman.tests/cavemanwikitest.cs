@@ -1,4 +1,14 @@
-﻿/*---------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// <copyright file="cavemanwikiTest.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Unit tests for the project-wiki generator.</summary>
+// -----------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------
 * PROJECT: Caveman (NLP Prompt Compressor) - Wiki Module Tests
 * DESCRIPTION:
 * NUnit test suite for CavemanWiki class.
@@ -14,8 +24,6 @@
 *---------------------------------------------------------------------------------------*/
 
 using caveman.core;
-
-using global::caveman.core;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -67,7 +75,7 @@ namespace caveman.tests
         // ==================== BASIC FUNCTIONALITY TESTS ====================
 
         [Test]
-        public async Task Test_GenerateAsync_InvalidPath_ThrowsException()
+        public void Test_GenerateAsync_InvalidPath_ThrowsException()
         {
             // Arrange
             string invalidPath = @"C:\This\Path\Should\Not\Exist_12345";

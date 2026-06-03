@@ -1,0 +1,1728 @@
+iso3: sqi
+iso1: sq
+name: Albanian
+
+function_words:
+  - ??
+  - ??far??
+  - ??sht??
+  - af??r
+  - ai
+  - ajo
+  - andej
+  - apo
+  - asaj
+  - asnj??her??
+  - at??
+  - at??her??
+  - ata
+  - atij
+  - atje
+  - ato
+  - brenda
+  - cil??t
+  - cila
+  - cilat
+  - cili
+  - deri
+  - dhe
+  - e
+  - edhe
+  - gjithmon??
+  - i
+  - i saj
+  - i tij
+  - i tyre
+  - im
+  - imja
+  - isha
+  - ishe
+  - ishim
+  - ishin
+  - ishte
+  - jam
+  - jan??
+  - jasht??
+  - je
+  - jemi
+  - jeni
+  - jot
+  - jotja
+  - ju
+  - k??ndej
+  - k??saj
+  - k??t??
+  - k??ta
+  - k??tij
+  - k??to
+  - k??tu
+  - ka
+  - kam
+  - kan??
+  - ke
+  - kemi
+  - keni
+  - kisha
+  - kishe
+  - kishte
+  - kjo
+  - ku
+  - kur
+  - kurr??
+  - kush
+  - ky
+  - larg
+  - lart
+  - m??
+  - madje
+  - mbi
+  - mbrapa
+  - me
+  - megjith??se
+  - megjithat??
+  - mir??po
+  - mjaft
+  - mos
+  - mua
+  - n??
+  - n??n
+  - n??se
+  - ndon??se
+  - ne
+  - nga
+  - nj??
+  - nuk
+  - ose
+  - p??r
+  - p??rpara
+  - pa
+  - pak
+  - pastaj
+  - por
+  - posht??
+  - pran??
+  - prandaj
+  - pse
+  - s
+  - s'
+  - s??
+  - sa
+  - sepse
+  - shum??
+  - si
+  - t??
+  - tani
+  - te
+  - tek
+  - tep??r
+  - ti
+  - tutje
+  - ty
+  - un??
+  - yt
+  - ytja
+
+lemmas:
+  "aeroportit": "aeroport"
+  "afrohet": "afroj"
+  "aktivitete": "aktivitet"
+  "aktoren": "aktore"
+  "aktorin": "aktor"
+  "alternative": "alternat"
+  "altoparlant": "altoparlan"
+  "ana": "anë"
+  "anketimi": "anketim"
+  "anëtarë": "anëtar"
+  "anëtarëve": "anëtar"
+  "aplikuar": "aplikoj"
+  "armëve": "armë"
+  "aroma": "aromë"
+  "arritur": "arrij"
+  "arsimimi": "arsimim"
+  "arsyeja": "arsye"
+  "artikujt": "artikull"
+  "asfaltin": "asfalt"
+  "automobilistike": "automobilistik"
+  "autorit": "autor"
+  "avancuara": "avancuar"
+  "babai": "baba"
+  "babain": "baba"
+  "babait": "baba"
+  "bahet": "baj"
+  "banonim": "banoj"
+  "bante": "ban"
+  "bardha": "bardhë"
+  "barkun": "bark"
+  "bartur": "bart"
+  "bashkëpunimin": "bashkëpunim"
+  "befasia": "befasi"
+  "befta": "beftë"
+  "beso": "besoj"
+  "betonin": "beton"
+  "binden": "bindej"
+  "binte": "bin"
+  "bisedimet": "bisedim"
+  "bjerren": "bjerrej"
+  "bora": "borë"
+  "borës": "borë"
+  "botën": "botë"
+  "botërore": "botëror"
+  "bredh": "bred"
+  "brigjet": "brigje"
+  "budallallëkun": "budallallëk"
+  "bujqësia": "bujqësi"
+  "buka": "bukë"
+  "bulmeti": "bulmet"
+  "burgu": "burg"
+  "burime": "burim"
+  "burimin": "burim"
+  "burrat": "burrë"
+  "burrin": "burr"
+  "buzën": "buzë"
+  "buzëqeshte": "buzëqesh"
+  "bë": "bëj"
+  "bëhej": "bëj"
+  "bën": "bëj"
+  "bëni": "bëj"
+  "bënte": "bëj"
+  "bëri": "bëj"
+  "bërë": "bëj"
+  "caktuara": "caktuar"
+  "centralizimin": "centralizim"
+  "daja": "dajë"
+  "damkosen": "damkoj"
+  "dashtun": "dua"
+  "dashtunës": "dashtunë"
+  "dashuria": "dashuri"
+  "dashuruar": "dashuroj"
+  "dendura": "dendur"
+  "dermani": "derman"
+  "desha": "deshaj"
+  "deshën": "duhet"
+  "detyra": "detyrë"
+  "devotshme": "devotshëm"
+  "dhashë": "dhas"
+  "dhimbjet": "dhimbje"
+  "dhoma": "dhomë"
+  "dhomës": "dhomë"
+  "dhuratën": "dhuratë"
+  "dhënë": "jap"
+  "dija": "di"
+  "dikujt": "dikull"
+  "dikur": "dikoj"
+  "dilnim": "dal"
+  "dilnin": "diln"
+  "dinjitoze": "dinjitoz"
+  "dinte": "di"
+  "ditëlindja": "ditëlindje"
+  "ditëlindjeje": "ditëlindje"
+  "ditën": "ditë"
+  "ditës": "ditë"
+  "ditët": "ditë"
+  "dixhitale": "dixhital"
+  "djegies": "djegie"
+  "djegim": "djeg"
+  "djem": "djalë"
+  "do": "dua"
+  "doja": "dua"
+  "doli": "dal"
+  "dolën": "dal"
+  "domethënie": "domethëni"
+  "donte": "dua"
+  "dora": "dorë"
+  "dorën": "dorë"
+  "dramaturgu": "dramaturg"
+  "drejtimet": "drejtim"
+  "dridhet": "dridhem"
+  "dridhura": "dridhurë"
+  "dritare": "dritar"
+  "dua": "duaj"
+  "duhan": "duha"
+  "duhej": "duhet"
+  "duhen": "duhet"
+  "dukeshin": "dukesh"
+  "duket": "dukem"
+  "dukshme": "dukshëm"
+  "dukur": "dukem"
+  "dyndet": "dynd"
+  "dyqanet": "dyqan"
+  "dyshemenë": "dysheme"
+  "dyshova": "dyshovë"
+  "dytë": "dy"
+  "dëgjohej": "dëgjoj"
+  "dëgjojmë": "dëgjoj"
+  "dëgjojë": "dëgjoj"
+  "dëgjonim": "dëgjoj"
+  "dëgjova": "dëgjoj"
+  "dëgjuar": "dëgjoj"
+  "dëmtojnë": "dëmtoj"
+  "dëshirave": "dëshirë"
+  "dëshire": "dëshir"
+  "dëshiroja": "dëshiroj"
+  "dëshiron": "dëshiroj"
+  "dëshirës": "dëshirë"
+  "dëshmonin": "dëshmoj"
+  "edukimi": "edukim"
+  "edukimin": "edukim"
+  "edukimit": "edukim"
+  "efikasiteti": "efikasitet"
+  "ekonomie": "ekonomi"
+  "ekziston": "ekzistoj"
+  "elemente": "element"
+  "emocionale": "emocional"
+  "emocionalë": "emocional"
+  "emri": "emër"
+  "emrin": "emër"
+  "emërimit": "emërim"
+  "energjitë": "energji"
+  "era": "erë"
+  "erdhi": "vij"
+  "errëta": "errët"
+  "erveheja": "ervehejë"
+  "eshtrat": "eshtrë"
+  "eshtrave": "eshtra"
+  "etj": "etj."
+  "evlia": "evli"
+  "evolucioni": "evolucion"
+  "familja": "familje"
+  "familjen": "familje"
+  "familjes": "familje"
+  "fashat": "fashë"
+  "fatit": "fat"
+  "femrat": "femër"
+  "festat": "festë"
+  "feste": "festë"
+  "fijet": "fije"
+  "fillimi": "fillim"
+  "fillin": "fill"
+  "fillojnë": "filloj"
+  "filluar": "filloj"
+  "filozofë": "filozof"
+  "fiziologjike": "fiziologjik"
+  "fjala": "fjalë"
+  "fjalën": "fjalë"
+  "flet": "fles"
+  "fletët": "fletë"
+  "forca": "forcë"
+  "forcat": "forcë"
+  "format": "formë"
+  "formave": "formë"
+  "formon": "formoj"
+  "formuan": "formoj"
+  "formulimin": "formulim"
+  "foshnja": "foshnjë"
+  "fosile": "fosil"
+  "frikshmen": "frikshme"
+  "frikës": "frikë"
+  "frikësohet": "frikësoj"
+  "frutat": "frut"
+  "fryn": "fry"
+  "fshatra": "fshat"
+  "fshehura": "fshehurë"
+  "fundin": "fund"
+  "funksionin": "funksion"
+  "fuqia": "fuqi"
+  "fuqisë": "fuqi"
+  "fushën": "fushë"
+  "fytyrën": "fytyrë"
+  "fëmijërisë": "fëmijëri"
+  "fëmijët": "fëmijë"
+  "gatiteshim": "gatitem"
+  "gishtat": "gishtë"
+  "gishtërinj": "gishtëri"
+  "gishtërinjtë": "gishtërinjë"
+  "gjallëroi": "gjallëroj"
+  "gjej": "gjem"
+  "gjeja": "gjej"
+  "gjejmë": "gjej"
+  "gjendesha": "gjendesoj"
+  "gjendet": "gjendem"
+  "gjendjes": "gjendje"
+  "gjenerali": "gjeneral"
+  "gjeneralit": "gjeneral"
+  "gjente": "gjej"
+  "gjerbi": "gjerb"
+  "gjermane": "gjerman"
+  "gjeta": "gjetëj"
+  "gjinisë": "gjini"
+  "gjuha": "gjuhë"
+  "gjuhën": "gjuhë"
+  "gjumit": "gjumë"
+  "gjymtyrët": "gjymtyr"
+  "gjysma": "gjysmë"
+  "gjëja": "gjë"
+  "gjëra": "gjë"
+  "gllënjkën": "gllënjkë"
+  "globale": "global"
+  "gojën": "gojë"
+  "gotën": "gotë"
+  "gratë": "grua"
+  "greke": "grek"
+  "grindëm": "grind"
+  "gruaja": "grua"
+  "gruas": "grua"
+  "gushtit": "gusht"
+  "guxon": "guxoj"
+  "gëzon": "gëzoj"
+  "hajë": "haj"
+  "hamendjet": "hamendje"
+  "hapa": "hap"
+  "hapi": "hap"
+  "harkuar": "harkoj"
+  "hartat": "hartë"
+  "harxhosh": "harxhoj"
+  "hequr": "heq"
+  "heshtja": "heshtje"
+  "heshtjen": "heshtje"
+  "heshtte": "hesh"
+  "hijerëndë": "hijerëj"
+  "hiqja": "heq"
+  "hirta": "hirtë"
+  "historitë": "histori"
+  "hoxhe": "hoxh"
+  "humbisja": "humbisoj"
+  "humbjes": "humbje"
+  "hynte": "hyn"
+  "identifikojnë": "identifikoj"
+  "idenë": "ide"
+  "informacionit": "informacion"
+  "instrumentin": "instrument"
+  "intensifikuar": "intensifikoj"
+  "interesi": "interes"
+  "intereson": "interesoj"
+  "ishulli": "ishull"
+  "janë": "jam"
+  "jap": "jam"
+  "japin": "jap"
+  "jashtëzakonshme": "jashtëzakonshëm"
+  "jesh": "jam"
+  "jetoj": "jatoj"
+  "jetoja": "jetoj"
+  "jetojnë": "jetoj"
+  "jetë": "jam"
+  "jetësimin": "jetësim"
+  "jetësore": "jetësor"
+  "jetëve": "jetë"
+  "joshjen": "joshje"
+  "joshjeve": "joshë"
+  "kafkës": "kafkë"
+  "kalimi": "kalim"
+  "kalimin": "kalim"
+  "kallashnikovëve": "kallashnikovov"
+  "kalon": "kaloj"
+  "kalonim": "kaloj"
+  "kalonin": "kaloj"
+  "kambanat": "kambanë"
+  "kanë": "kam"
+  "kapedani": "kapedan"
+  "kapedanin": "kapedan"
+  "kapin": "kam"
+  "karakteri": "karakter"
+  "karakterizohet": "karakterizoj"
+  "karburanteve": "karburant"
+  "katin": "kat"
+  "kenë": "kam"
+  "keqe": "keq"
+  "keqes": "keqe"
+  "keqja": "keq"
+  "keqësimet": "keqësim"
+  "kesh": "kam"
+  "ketë": "kam"
+  "kinematografisë": "kinematografi"
+  "kioskën": "kioskë"
+  "kishin": "kam"
+  "klimën": "klimë"
+  "kohën": "kohë"
+  "kohërave": "kohë"
+  "kohës": "kohë"
+  "kohësh": "kohë"
+  "koka": "kokë"
+  "kokën": "kokë"
+  "koleksionit": "koleksion"
+  "kolonelit": "kolonel"
+  "kombëtare": "kombëtar"
+  "komisari": "komisar"
+  "komplekse": "kompleks"
+  "komshiu": "komshi"
+  "komshiun": "komshi"
+  "komunikimit": "komunikim"
+  "konforti": "konfort"
+  "konsiderohen": "konsideroj"
+  "konsiston": "konsistoj"
+  "kontrollit": "kontroll"
+  "koordinatat": "koordinatë"
+  "kopetë": "kope"
+  "kopshteve": "kopsht"
+  "kosovare": "kosovar"
+  "krijoi": "krijoj"
+  "krijojë": "krijoj"
+  "krijuar": "krijoj"
+  "krisma": "krismë"
+  "krismat": "krismë"
+  "kryesore": "kryesor"
+  "kryesorë": "kryesor"
+  "kryhej": "kryej"
+  "kthehen": "kthej"
+  "kthehet": "kthej"
+  "kthen": "kthem"
+  "ktheu": "kthej"
+  "kthjellët": "kthjellë"
+  "kthye": "kthej"
+  "kthyer": "kthej"
+  "kujdesin": "kujdes"
+  "kujtoi": "kujtoj"
+  "kujtonte": "kujtoj"
+  "kujtua": "kujtoj"
+  "kujtuar": "kujtoj"
+  "kultura": "kulturë"
+  "kulture": "kulturë"
+  "kulturore": "kulturor"
+  "kundërta": "kundërt"
+  "kuptime": "kuptim"
+  "kuptohet": "kuptoj"
+  "kuptoja": "kuptoj"
+  "kuptova": "kuptoj"
+  "kuptuar": "kuptoj"
+  "kupën": "kupë"
+  "kureshtar": "kureshtoj"
+  "kushtonte": "kushtoj"
+  "kuzhinën": "kuzhinë"
+  "këmbën": "këmbë"
+  "këmbëngulë": "këmbëngul"
+  "këmbët": "këmbë"
+  "kënaqësitë": "kënaqësi"
+  "kënga": "këngë"
+  "këngët": "këngë"
+  "këngëtari": "këngëtar"
+  "kërkoi": "kërkoj"
+  "kërkoja": "kërkoj"
+  "kërkon": "kërkoj"
+  "kërkonin": "kërkoj"
+  "kërkonte": "kërkoj"
+  "lagte": "lag"
+  "lajmet": "lajm"
+  "lajthitjes": "lajthitje"
+  "largohej": "largohet"
+  "largova": "largoj"
+  "largua": "largoj"
+  "larta": "lartë"
+  "lejon": "lejoj"
+  "lenten": "lente"
+  "lexojmë": "lexoj"
+  "lexuar": "lexoj"
+  "liberale": "liberal"
+  "librin": "libër"
+  "lidhet": "lidh"
+  "lidhjet": "lidhje"
+  "lidhura": "lidhur"
+  "lindjes": "lindje"
+  "linte": "lin"
+  "llumin": "llum"
+  "lodhun": "lodh"
+  "lojna": "lojë"
+  "loti": "lot"
+  "luajta": "luaj"
+  "luante": "luaj"
+  "luftën": "luftë"
+  "lumturi": "lumtur"
+  "lumturia": "lumturi"
+  "lumturisë": "lumturi"
+  "lëkurës": "lëkurë"
+  "lëvizjeve": "lëvizje"
+  "lëvizur": "lëviz"
+  "madhe": "madh"
+  "malit": "mal"
+  "mallrave": "mall"
+  "mamanë": "mamë"
+  "mami": "mam"
+  "marrin": "marr"
+  "marrë": "marr"
+  "marrëdhënieve": "marrëdhënie"
+  "marrëveshja": "marrëveshje"
+  "mbahen": "mbaj"
+  "mbaja": "mbaj"
+  "mbajeni": "mbaj"
+  "mbajtur": "mbaj"
+  "mbajtësi": "mbajtës"
+  "mban": "mbaj"
+  "mbanin": "mbaj"
+  "mbaroi": "mbaroj"
+  "mbathte": "mbash"
+  "mbetemi": "mbetem"
+  "mbetet": "mbes"
+  "mbetur": "mbes"
+  "mbiemrin": "mbiemr"
+  "mbijetuar": "mbijetoj"
+  "mbledhja": "mbledhje"
+  "mbuloi": "mbuloj"
+  "mbyllë": "mbyll"
+  "mbërthente": "mbërthej"
+  "mbështjella": "mbështjelloj"
+  "mbështjellësen": "mbështjellëse"
+  "mbështjellëses": "mbështjellëse"
+  "melaninës": "melaninë"
+  "mendimeve": "mendim"
+  "mendja": "mend"
+  "mendjen": "mendje"
+  "mendohet": "mendoj"
+  "mendoi": "mendoj"
+  "merimangës": "merimangë"
+  "meritën": "meritë"
+  "merrem": "merres"
+  "merresh": "marr"
+  "metafizike": "metafizik"
+  "mijëvjeçarit": "mijëvjeçar"
+  "minarja": "minarjë"
+  "mira": "mirë"
+  "mirren": "marr"
+  "misionarët": "misionar"
+  "misioni": "mision"
+  "miza": "mizë"
+  "mjaftueshme": "mjaftueshëm"
+  "mjekët": "mjekë"
+  "mjekëve": "mjekë"
+  "mjete": "mjet"
+  "moderne": "modern"
+  "mohojnë": "mohoj"
+  "monoton": "monotoj"
+  "mora": "marr"
+  "morale": "moral"
+  "morfologjike": "morfologjik"
+  "morën": "marr"
+  "moskomunikimi": "moskomunikim"
+  "mosmarrëveshja": "mosmarrëveshje"
+  "motit": "mot"
+  "mpaket": "mpak"
+  "muajt": "muaj"
+  "muajve": "muaj"
+  "mugët": "mug"
+  "mundshme": "mundshëm"
+  "mundësuar": "mundësoj"
+  "mungonin": "mungoj"
+  "mysafiri": "mysafir"
+  "mysafirin": "mysafir"
+  "mëkatin": "mëkat"
+  "mëkatit": "mëkat"
+  "mëngjes": "mëngje"
+  "mëngjesi": "mëngjes"
+  "mënyrat": "mënyrë"
+  "mërzi": "mërz"
+  "mërzis": "mërz"
+  "mërzitësh": "mërzit"
+  "mësuar": "mësoj"
+  "naivitetin": "naivitet"
+  "nanës": "nanë"
+  "natyrën": "natyrë"
+  "natën": "natë"
+  "natës": "natë"
+  "ndalim-qarkullimit": "ndalim-qarkimim"
+  "ndenjëset": "ndenjës"
+  "ndihesh": "ndihem"
+  "ndihesha": "ndihem"
+  "ndihmojë": "ndihmoj"
+  "ndihmon": "ndihmoj"
+  "ndihmuar": "ndihmoj"
+  "ndikojnë": "ndikoj"
+  "ndjeva": "ndjej"
+  "ndodhesha": "ndodhem"
+  "ndodheshim": "ndodheshem"
+  "ndodhur": "ndodh"
+  "ndotjes": "ndotje"
+  "ndryshimesh": "ndryshim"
+  "ndryshimit": "ndryshim"
+  "ndryshme": "ndryshëm"
+  "ndryshuar": "ndryshoj"
+  "ndërsjella": "ndërsjellë"
+  "ndërtesat": "ndërtesë"
+  "ndërtojnë": "ndërtoj"
+  "ndëshkimin": "ndëshkim"
+  "negative": "negativ"
+  "nesërmes": "nesërme"
+  "nevojshme": "nevojshëm"
+  "ngatërresë": "ngatërre"
+  "ngjan": "ngjaj"
+  "ngjarjet": "ngjarje"
+  "ngjarë": "ngjaj"
+  "ngjitet": "ngjit"
+  "ngjyra": "ngjyrë"
+  "ngrita": "ngritëj"
+  "ngriti": "ngre"
+  "ngritja": "ngritje"
+  "ngrohjes": "ngrohje"
+  "njeriu": "njeri"
+  "njeriut": "njeri"
+  "njerka": "njerkë"
+  "njerkës": "njerkë"
+  "njerëz": "njeri"
+  "njerëzit": "njeri"
+  "njerëzore": "njerëzor"
+  "njerëzve": "njeri"
+  "njihet": "njoh"
+  "njëjtat": "njëjtë"
+  "njëjtën": "njëjtë"
+  "njësinë": "njësi"
+  "nofka": "nofkë"
+  "nomade": "nomad"
+  "nxit": "nxij"
+  "nxiti": "nxit"
+  "nxitjes": "nxitje"
+  "nxori": "nxorr"
+  "nënshkrua": "nënshkroj"
+  "nënshtruan": "nënshtroj"
+  "nënës": "nënë"
+  "ofshame": "ofshamë"
+  "ofshamën": "ofshamë"
+  "organizimit": "organizim"
+  "organizoheshin": "organizohem"
+  "orientuara": "orientuar"
+  "padukshme": "padukshëm"
+  "pakundërshtueshme": "pakundërshtumeshme"
+  "pamundshme": "pamundshëm"
+  "panjohura": "panjohurë"
+  "papritura": "papriturë"
+  "papërsëritshme": "papërsëritshëm"
+  "paragjykimet": "paragjykim"
+  "paranteze": "parantez"
+  "parantezën": "parantezë"
+  "paraqet": "paraqit"
+  "parashikuar": "parashikoj"
+  "parashtrojnë": "parashtroj"
+  "parcelat": "parcelë"
+  "parfumit": "parfum"
+  "pas": "kam"
+  "pashë": "pa"
+  "paskej": "kam"
+  "paskëshin": "kam"
+  "pasqyrimin": "pasqyrim"
+  "pasqyroheshin": "pasqyroj"
+  "pasqyrën": "pasqyrë"
+  "pasqyrës": "pasqyrë"
+  "pastoristët": "pastorist"
+  "pastruar": "pastroj"
+  "pasur": "kam"
+  "pasurisë": "pasuri"
+  "pata": "patë"
+  "patur": "patoj"
+  "pedagogjike": "pedagogjik"
+  "perdet": "perd"
+  "perimet": "perime"
+  "personave": "person"
+  "personi": "person"
+  "pigmentit": "pigment"
+  "pijetore": "pijetor"
+  "pika": "pikë"
+  "pikturave": "pikturë"
+  "pikëpamjeve": "pikëpamje"
+  "pinte": "pin"
+  "pirë": "pi"
+  "pistës": "pistë"
+  "pjesëtarë": "pjesëtar"
+  "planin": "plan"
+  "pluskonte": "pluskoj"
+  "poeti": "poet"
+  "poetët": "poet"
+  "pohoi": "pohoj"
+  "policinë": "polici"
+  "policisë": "polici"
+  "politikat": "politikë"
+  "popullsia": "popullsi"
+  "popullsinë": "popullsi"
+  "porositi": "poros"
+  "praktike": "praktik"
+  "prania": "prani"
+  "preka": "prek"
+  "prekur": "prek"
+  "prepotencës": "prepotencë"
+  "prezenca": "prezencë"
+  "prifti": "prift"
+  "priftit": "prift"
+  "prijnë": "prij"
+  "prisha": "pres"
+  "prishi": "pres"
+  "prishin": "prish"
+  "problemet": "problem"
+  "problemi": "problem"
+  "procesin": "proces"
+  "procesit": "proces"
+  "prodhimi": "prodhim"
+  "prodhojnë": "prodhoj"
+  "profesionale": "profesional"
+  "profeti": "profet"
+  "profilin": "profil"
+  "pronës": "pronë"
+  "prosi": "pros"
+  "provokova": "provokoj"
+  "psikoanaliza": "psikoanalizë"
+  "psikologjisë": "psikologji"
+  "puna": "punë"
+  "punëve": "punë"
+  "pushtetit": "pushtet"
+  "pushtimin": "pushtim"
+  "pyesja": "pyes"
+  "pyet": "pyes"
+  "pyeti": "pyes"
+  "pyetjen": "pyetje"
+  "pyetur": "pyet"
+  "pylli": "pyll"
+  "pëllumbi": "pëllumb"
+  "përbëhen": "përbëj"
+  "përbërësit": "përbërës"
+  "përcaktohet": "përcaktoj"
+  "përcaktuar": "përcaktoj"
+  "përforcuan": "përforcoj"
+  "përfshihen": "përfshij"
+  "përfundimtare": "përfundimtar"
+  "përfundon": "përfundoj"
+  "përgjigjen": "përgjigje"
+  "përgjigjet": "përgjigjem"
+  "përgjithshme": "përgjithshëm"
+  "përhershme": "përhershëm"
+  "përjashtohen": "përjashtoj"
+  "përkasin": "përkas"
+  "përket": "përkas"
+  "përkthyesit": "përkthyes"
+  "përkufizohet": "përkufizoj"
+  "përkujdesjet": "përkujdesje"
+  "përmbahet": "përmbaj"
+  "përmendur": "përmendoj"
+  "përmirësuan": "përmirësoj"
+  "përparuar": "përparoj"
+  "përparësitë": "përparësi"
+  "përpiu": "përp"
+  "përpjekur": "përpjek"
+  "përpoq": "përpjek"
+  "përshkruan": "përshkruaj"
+  "përshkruhet": "përshkruaj"
+  "përshtaten": "përshtat"
+  "përshtypjen": "përshtypje"
+  "përsëritën": "përsëritëj"
+  "përvjetorë": "përvjetor"
+  "përvojat": "përvojë"
+  "përvojave": "përvojë"
+  "përzuri": "përzur"
+  "pëshpërit": "pëshpër"
+  "qe": "jam"
+  "qejfi": "qejf"
+  "qeni": "qen"
+  "qenë": "jam"
+  "qeshi": "qesh"
+  "qet": "jam"
+  "qeveria": "qeveri"
+  "qeverive": "qeveri"
+  "qiellit": "qiell"
+  "quajnë": "quaj"
+  "quhej": "quaj"
+  "quhet": "quaj"
+  "qullur": "qulloj"
+  "qytetet": "qytet"
+  "qytetit": "qytet"
+  "qëllimi": "qëllim"
+  "qëndrimet": "qëndrim"
+  "qëndronte": "qëndroj"
+  "ra": "bie"
+  "radhe": "radhë"
+  "rashë": "ras"
+  "rastin": "rast"
+  "reale": "real"
+  "realitet": "realit"
+  "realitetin": "realitet"
+  "regjisori": "regjisor"
+  "rehabilitojnë": "rehabilitoj"
+  "reja": "ri"
+  "restaurimit": "restaurim"
+  "rikthimit": "rikthim"
+  "rojat": "rojë"
+  "role": "rol"
+  "rolet": "rol"
+  "rrethana": "rrethanë"
+  "rrethanat": "rrethanë"
+  "rrethojnë": "rrethoj"
+  "rrezikshmërisë": "rrezikshmëri"
+  "rri": "rrej"
+  "rrit": "rris"
+  "rritur": "rris"
+  "rritura": "rritur"
+  "rrjetën": "rrjetë"
+  "rrogëtarë": "rrogëtar"
+  "rruga": "rrugë"
+  "rryma": "rrym"
+  "rrëfimit": "rrëfim"
+  "rëndësinë": "rëndësi"
+  "rëndësishme": "rëndësishëm"
+  "salloni": "sallon"
+  "sallonit": "sallon"
+  "segmenti": "segment"
+  "sekonda": "sekondë"
+  "shahadet": "shahad"
+  "sheh": "shoh"
+  "shekujve": "shekull"
+  "shfaq": "shfaj"
+  "shfrytëzimit": "shfrytëzim"
+  "shihja": "shoh"
+  "shikonte": "shikoj"
+  "shikuar": "shikoj"
+  "shishja": "shishe"
+  "shitur": "shes"
+  "shiu": "shi"
+  "shkaktarët": "shkaktar"
+  "shkakton": "shkaktoj"
+  "shkaku": "shkak"
+  "shkallëve": "shkall"
+  "shkelësh": "shkelëj"
+  "shkencat": "shkencë"
+  "shkoja": "shkoj"
+  "shkojë": "shkoj"
+  "shkolla": "shkollë"
+  "shkonte": "shkoj"
+  "shkrehjet": "shkrehje"
+  "shkrimi": "shkrim"
+  "shkruhej": "shkruhem"
+  "shkruhen": "shkruaj"
+  "shkuare": "shkuar"
+  "shkëlqente": "shkëlqej"
+  "shmangesh": "shmangem"
+  "shmangur": "shmangoj"
+  "shndërruan": "shndërroj"
+  "shoh": "shoj"
+  "shoqja": "shoqjë"
+  "shoqërisë": "shoqëri"
+  "shoqërive": "shoqëri"
+  "shoqërore": "shoqëror"
+  "shpallin": "shpall"
+  "shpirti": "shpirt"
+  "shpjegimi": "shpjegim"
+  "shpjegohet": "shpjegoj"
+  "shpjegonte": "shpjegoj"
+  "shqetësohem": "shqetësoj"
+  "shqetësohet": "shqetësoj"
+  "shtatorit": "shtator"
+  "shtegun": "shteg"
+  "shtete": "shtet"
+  "shtoi": "shtoj"
+  "shtëpia": "shtëpi"
+  "shtëpiake": "shtëpiak"
+  "shtëpinë": "shtëpi"
+  "shtëpitë": "shtëpi"
+  "shuma": "shumë"
+  "shumica": "shumicë"
+  "shumëfishohet": "shumëfishoj"
+  "shërben": "shërbej"
+  "sigurimin": "sigurim"
+  "sigurojnë": "siguroj"
+  "simbolike": "simbolik"
+  "sirenat": "sirena"
+  "sirenave": "sirenë"
+  "sjelljes": "sjellje"
+  "skica": "skicë"
+  "skuqur": "skuqoj"
+  "skutat": "skutë"
+  "skutën": "skutë"
+  "sociale": "social"
+  "sotme": "sotëm"
+  "sqota": "sqotë"
+  "statistika": "statistikë"
+  "statusin": "status"
+  "statusit": "status"
+  "struktura": "strukturë"
+  "sundojnë": "sundoj"
+  "sundon": "sundoj"
+  "supet": "sup"
+  "syrin": "syri"
+  "syve": "sy"
+  "sëmundjen": "sëmundje"
+  "takimin": "takim"
+  "takuar": "takim"
+  "tambura": "tamburë"
+  "taverna": "tavernë"
+  "tejkalojnë": "tejkaloj"
+  "tha": "them"
+  "thashetheme": "thashethem"
+  "thashë": "them"
+  "theksonte": "theksoj"
+  "thella": "thellë"
+  "therte": "thert"
+  "thirr": "thërras"
+  "thoja": "thotë"
+  "thoshte": "them"
+  "thuash": "them"
+  "thuhet": "them"
+  "thyej": "thej"
+  "thënë": "them"
+  "tipare": "tipar"
+  "tmerrshme": "tmerrshëm"
+  "toka": "tokë"
+  "tokën": "tokë"
+  "tokës": "tokë"
+  "transmetimin": "transmetim"
+  "tregtinë": "tregti"
+  "tretet": "tret"
+  "trupi": "trup"
+  "trupin": "trup"
+  "turneu": "turne"
+  "turneun": "turne"
+  "tërheqjen": "tërheqje"
+  "tërhoqi": "tërheq"
+  "udhës": "udhë"
+  "udhëtimit": "udhëtim"
+  "uji": "uj"
+  "uli": "ul"
+  "ulur": "ules"
+  "ulërija": "ul"
+  "ulërimë": "ulëroj"
+  "ulërimës": "ulërimë"
+  "ulërirë": "ulërir"
+  "urti": "urt"
+  "ushqimit": "ushqim"
+  "ushqimore": "ushqimor"
+  "ushtarake": "ushtarak"
+  "ushtarëve": "ushtar"
+  "vajta": "vete"
+  "vajtur": "vaj"
+  "vajza": "vajzë"
+  "vazhdoja": "vazhdoj"
+  "vazhdon": "vazhdoj"
+  "vazhdonin": "vazhdoj"
+  "vdekjes": "vdekje"
+  "vdekurit": "vdekur"
+  "vejë": "vejê"
+  "vende": "vend"
+  "vendet": "vend"
+  "vendin": "vend"
+  "vendit": "vend"
+  "vendosjes": "vendosje"
+  "venë": "ve"
+  "verandën": "verandë"
+  "vere": "verë"
+  "verës": "verë"
+  "veshur": "vesh"
+  "veshët": "vesh"
+  "vetive": "veti"
+  "vetmi": "vetëm"
+  "vetmit": "vetmi"
+  "vetullën": "vetullë"
+  "vetëdijes": "vetëdije"
+  "vinin": "vij"
+  "vinte": "vij"
+  "vitaliteti": "vitalitet"
+  "vite": "vit"
+  "vitit": "vit"
+  "vizatimet": "vizatim"
+  "vjedhurazi": "vjedhuraz"
+  "vjen": "vij"
+  "vjeshta": "vjeshtë"
+  "vjeshtës": "vjeshtë"
+  "vjet": "vit"
+  "vogla": "vogël"
+  "vranësirave": "vranësirë"
+  "vrarë": "vras"
+  "vras": "vraj"
+  "vullkanike": "vullkanik"
+  "vullneti": "vullnet"
+  "vulën": "vulë"
+  "vura": "vuraj"
+  "vuri": "vë"
+  "vutë": "vis"
+  "vëmendjen": "vëmendje"
+  "vënë": "vë"
+  "vërshon": "vërshoj"
+  "vështirësitë": "vështirësi"
+  "vështronte": "vështroj"
+  "xhamie": "xhami"
+  "xhungla": "xhungël"
+  "zakonshme": "zakonshëm"
+  "zbatohet": "zbatoj"
+  "zbulova": "zbuloj"
+  "zeshkëta": "zeshkëtë"
+  "zezë": "zi"
+  "zgjatur": "zgjat"
+  "zgjimit": "zgjim"
+  "zhbënte": "zhbë"
+  "zhduk": "zhdek"
+  "zhdukjes": "zhdukje"
+  "zhvillimi": "zhvillim"
+  "zhvillimin": "zhvillim"
+  "zinxhirin": "zinxhir"
+  "zmadhoi": "zmadhoj"
+  "çaste": "çast"
+  "çastit": "çast"
+  "çlirohej": "çliroj"
+  "çmendina": "çmendinë"
+  "çmendinë": "çmendi"
+  "çoi": "çoj"
+  "çon": "çoj"
+  "çuar": "çoi"
+  "çuditet": "çudit"
+  "çështja": "çështje"
+  "çështjen": "çështje"
+  "është": "jam"
+
+verbs:
+  "afroj":
+    - "afrohet"
+  "arrij":
+    - "arritur"
+  "baj":
+    - "bahet"
+  "ban":
+    - "bante"
+  "banoj":
+    - "banonim"
+  "bart":
+    - "bartur"
+  "besoj":
+    - "beso"
+  "bie":
+    - "ra"
+  "bin":
+    - "binte"
+  "bindej":
+    - "binden"
+  "bjerrej":
+    - "bjerren"
+  "bred":
+    - "bredh"
+  "buzëqesh":
+    - "buzëqeshte"
+  "bëj":
+    - "bë"
+    - "bëhej"
+    - "bëhet"
+    - "bën"
+    - "bëni"
+    - "bënte"
+    - "bëri"
+    - "bërë"
+  "dal":
+    - "dilnim"
+    - "doli"
+    - "dolën"
+  "damkoj":
+    - "damkosen"
+  "dashuroj":
+    - "dashuruar"
+  "deshaj":
+    - "desha"
+  "dhas":
+    - "dhashë"
+  "di":
+    - "dija"
+    - "dinte"
+  "diln":
+    - "dilnin"
+  "djeg":
+    - "djegim"
+  "dridhem":
+    - "dridhet"
+  "dua":
+    - "do"
+    - "doja"
+    - "donte"
+  "duaj":
+    - "dua"
+  "duan":
+    - "dua"
+  "duhem":
+    - "duhet"
+  "duhet":
+    - "deshën"
+    - "duhej"
+    - "duhen"
+  "dukem":
+    - "duket"
+    - "dukur"
+  "dukesh":
+    - "dukeshin"
+  "dynd":
+    - "dyndet"
+  "dyshovë":
+    - "dyshova"
+  "dëgjoj":
+    - "dëgjohej"
+    - "dëgjojmë"
+    - "dëgjojë"
+    - "dëgjonim"
+    - "dëgjova"
+    - "dëgjuar"
+  "dëmtoj":
+    - "dëmtojnë"
+  "dëshiroj":
+    - "dëshiroja"
+    - "dëshiron"
+  "dëshmoj":
+    - "dëshmonin"
+  "ekzistoj":
+    - "ekziston"
+  "filloj":
+    - "fillojnë"
+    - "filluar"
+  "fles":
+    - "flet"
+  "formoj":
+    - "formon"
+    - "formuan"
+  "frikësoj":
+    - "frikësohet"
+  "fry":
+    - "fryn"
+  "gatitem":
+    - "gatiteshim"
+  "gjallëroj":
+    - "gjallëroi"
+  "gjej":
+    - "gjeja"
+    - "gjejmë"
+    - "gjente"
+  "gjem":
+    - "gjej"
+  "gjendem":
+    - "gjendet"
+  "gjendesoj":
+    - "gjendesha"
+  "gjerb":
+    - "gjerbi"
+  "gjetëj":
+    - "gjeta"
+  "grind":
+    - "grindëm"
+  "guxoj":
+    - "guxon"
+  "gëzoj":
+    - "gëzon"
+  "haj":
+    - "hajë"
+  "hap":
+    - "hapa"
+    - "hapi"
+  "harkoj":
+    - "harkuar"
+  "harxhoj":
+    - "harxhosh"
+  "heq":
+    - "hequr"
+    - "hiqja"
+  "hesh":
+    - "heshtte"
+  "humbisoj":
+    - "humbisja"
+  "hyn":
+    - "hynte"
+  "identifikoj":
+    - "identifikojnë"
+  "intensifikoj":
+    - "intensifikuar"
+  "interesoj":
+    - "intereson"
+  "jam":
+    - "isha"
+    - "ishim"
+    - "ishin"
+    - "ishte"
+    - "janë"
+    - "jap"
+    - "je"
+    - "jemi"
+    - "jesh"
+    - "jetë"
+    - "kisha"
+    - "qe"
+    - "qenë"
+    - "qet"
+    - "është"
+  "jap":
+    - "dhënë"
+    - "japin"
+  "jatoj":
+    - "jetoj"
+  "jetoj":
+    - "jetoja"
+    - "jetojnë"
+  "kaloj":
+    - "kalon"
+    - "kalonim"
+    - "kalonin"
+  "kam":
+    - "ka"
+    - "kanë"
+    - "kapin"
+    - "ke"
+    - "kemi"
+    - "keni"
+    - "kenë"
+    - "kesh"
+    - "ketë"
+    - "kisha"
+    - "kishin"
+    - "kishte"
+    - "pas"
+    - "paskej"
+    - "paskëshin"
+    - "pasur"
+  "karakterizoj":
+    - "karakterizohet"
+  "konsideroj":
+    - "konsiderohen"
+  "konsistoj":
+    - "konsiston"
+  "krijoj":
+    - "krijoi"
+    - "krijojë"
+    - "krijuar"
+  "kryej":
+    - "kryhej"
+  "kthej":
+    - "kthehen"
+    - "kthehet"
+    - "ktheu"
+    - "kthye"
+    - "kthyer"
+  "kthem":
+    - "kthen"
+  "kujtoj":
+    - "kujtoi"
+    - "kujtonte"
+    - "kujtua"
+    - "kujtuar"
+  "kuptoj":
+    - "kuptohet"
+    - "kuptoja"
+    - "kuptova"
+    - "kuptuar"
+  "kushtoj":
+    - "kushtonte"
+  "këmbëngul":
+    - "këmbëngulë"
+  "kërkoj":
+    - "kërkoi"
+    - "kërkoja"
+    - "kërkon"
+    - "kërkonin"
+    - "kërkonte"
+  "lag":
+    - "lagte"
+  "largohet":
+    - "largohej"
+  "largoj":
+    - "largova"
+    - "largua"
+  "lejoj":
+    - "lejon"
+  "lexoj":
+    - "lexojmë"
+    - "lexuar"
+  "lidh":
+    - "lidhet"
+  "lin":
+    - "linte"
+  "luaj":
+    - "luajta"
+    - "luante"
+  "lëviz":
+    - "lëvizur"
+  "marr":
+    - "marrin"
+    - "marrë"
+    - "merresh"
+    - "mirren"
+    - "mora"
+    - "morën"
+  "mbaj":
+    - "mbahen"
+    - "mbaja"
+    - "mbajeni"
+    - "mbajtur"
+    - "mban"
+    - "mbanin"
+  "mbaroj":
+    - "mbaroi"
+  "mbash":
+    - "mbathte"
+  "mbes":
+    - "mbetet"
+    - "mbetur"
+  "mbetem":
+    - "mbetemi"
+    - "mbetet"
+  "mbijetoj":
+    - "mbijetuar"
+  "mbuloj":
+    - "mbuloi"
+  "mbyll":
+    - "mbyllë"
+  "mbërthej":
+    - "mbërthente"
+  "mbështjelloj":
+    - "mbështjella"
+  "mendoj":
+    - "mendohet"
+    - "mendoi"
+  "merres":
+    - "merrem"
+  "mohoj":
+    - "mohojnë"
+  "mpak":
+    - "mpaket"
+  "mundësoj":
+    - "mundësuar"
+  "mungoj":
+    - "mungonin"
+  "mërz":
+    - "mërzis"
+  "mërzit":
+    - "mërzitësh"
+  "mësoj":
+    - "mësuar"
+  "ndihem":
+    - "ndihesh"
+    - "ndihesha"
+  "ndihmoj":
+    - "ndihmojë"
+    - "ndihmon"
+    - "ndihmuar"
+  "ndikoj":
+    - "ndikojnë"
+  "ndjej":
+    - "ndjeva"
+  "ndodh":
+    - "ndodhur"
+  "ndodhem":
+    - "ndodhesha"
+  "ndodheshem":
+    - "ndodheshim"
+  "ndryshoj":
+    - "ndryshuar"
+  "ndërtoj":
+    - "ndërtojnë"
+  "ngjaj":
+    - "ngjan"
+    - "ngjarë"
+  "ngjar":
+    - "ngjarë"
+  "ngjit":
+    - "ngjitet"
+  "ngre":
+    - "ngriti"
+  "ngritëj":
+    - "ngrita"
+  "njoh":
+    - "njihet"
+  "nxij":
+    - "nxit"
+  "nxit":
+    - "nxiti"
+  "nxorr":
+    - "nxori"
+  "nënshkroj":
+    - "nënshkrua"
+  "nënshtroj":
+    - "nënshtruan"
+  "organizohem":
+    - "organizoheshin"
+  "pa":
+    - "pashë"
+  "paraqit":
+    - "paraqet"
+  "parashikoj":
+    - "parashikuar"
+  "parashtroj":
+    - "parashtrojnë"
+  "pasqyroj":
+    - "pasqyroheshin"
+  "pastroj":
+    - "pastruar"
+  "patoj":
+    - "patur"
+  "patë":
+    - "pata"
+  "pi":
+    - "pinte"
+    - "pirë"
+  "pin":
+    - "pinte"
+  "pluskoj":
+    - "pluskonte"
+  "pohoj":
+    - "pohoi"
+  "poros":
+    - "porositi"
+  "prek":
+    - "preka"
+    - "prekur"
+  "pres":
+    - "prisha"
+    - "prishi"
+  "prij":
+    - "prijnë"
+  "prish":
+    - "prishin"
+  "prodhoj":
+    - "prodhojnë"
+  "provokoj":
+    - "provokova"
+  "pyes":
+    - "pyesja"
+    - "pyet"
+    - "pyeti"
+  "pyet":
+    - "pyetur"
+  "përbëj":
+    - "përbëhen"
+  "përcaktoj":
+    - "përcaktohet"
+    - "përcaktuar"
+  "përforcoj":
+    - "përforcuan"
+  "përfshij":
+    - "përfshihen"
+  "përfundoj":
+    - "përfundon"
+  "përgjigjem":
+    - "përgjigjet"
+  "përjashtoj":
+    - "përjashtohen"
+  "përkas":
+    - "përkasin"
+    - "përket"
+  "përkufizoj":
+    - "përkufizohet"
+  "përmbaj":
+    - "përmbahet"
+  "përmendoj":
+    - "përmendur"
+  "përmirësoj":
+    - "përmirësuan"
+  "përp":
+    - "përpiu"
+  "përparoj":
+    - "përparuar"
+  "përpjek":
+    - "përpjekur"
+    - "përpoq"
+  "përshkruaj":
+    - "përshkruan"
+    - "përshkruhet"
+  "përshtat":
+    - "përshtaten"
+  "përsëritëj":
+    - "përsëritën"
+  "përzur":
+    - "përzuri"
+  "pëshpër":
+    - "pëshpërit"
+  "qesh":
+    - "qeshi"
+  "quaj":
+    - "quajnë"
+    - "quhej"
+    - "quhet"
+  "qulloj":
+    - "qullur"
+  "qëndroj":
+    - "qëndronte"
+  "ras":
+    - "rashë"
+  "rehabilitoj":
+    - "rehabilitojnë"
+  "rrej":
+    - "rri"
+  "rrethoj":
+    - "rrethojnë"
+  "rris":
+    - "rrit"
+    - "rritur"
+  "s'ka":
+    - "s'"
+  "shes":
+    - "shitur"
+  "shfaj":
+    - "shfaq"
+  "shikoj":
+    - "shikonte"
+    - "shikuar"
+  "shkaktoj":
+    - "shkakton"
+  "shkelëj":
+    - "shkelësh"
+  "shkoj":
+    - "shkoja"
+    - "shkojë"
+    - "shkonte"
+  "shkruaj":
+    - "shkruhen"
+  "shkruhem":
+    - "shkruhej"
+  "shkëlqej":
+    - "shkëlqente"
+  "shmangem":
+    - "shmangesh"
+  "shmangoj":
+    - "shmangur"
+  "shndërroj":
+    - "shndërruan"
+  "shoh":
+    - "parë"
+    - "sheh"
+    - "shihja"
+  "shoj":
+    - "shoh"
+  "shpall":
+    - "shpallin"
+  "shpjegoj":
+    - "shpjegohet"
+    - "shpjegonte"
+  "shqetësoj":
+    - "shqetësohem"
+    - "shqetësohet"
+  "shtoj":
+    - "shtoi"
+  "shumëfishoj":
+    - "shumëfishohet"
+  "shërbej":
+    - "shërben"
+  "siguroj":
+    - "sigurojnë"
+  "sundoj":
+    - "sundojnë"
+    - "sundon"
+  "takim":
+    - "takuar"
+  "tejkaloj":
+    - "tejkalojnë"
+  "thej":
+    - "thyej"
+  "theksoj":
+    - "theksonte"
+  "them":
+    - "tha"
+    - "thashë"
+    - "thoshte"
+    - "thuash"
+    - "thuhet"
+    - "thënë"
+  "thert":
+    - "therte"
+  "thotë":
+    - "thoja"
+  "thënë":
+    - "them"
+  "thërras":
+    - "thirr"
+  "tret":
+    - "tretet"
+  "tërheq":
+    - "tërhoqi"
+  "ul":
+    - "uli"
+    - "ulërija"
+  "ulem":
+    - "uli"
+  "ules":
+    - "ulur"
+  "ulërir":
+    - "ulërirë"
+  "ulëroj":
+    - "ulërimë"
+  "vaj":
+    - "vajtur"
+  "vazhdoj":
+    - "vazhdoja"
+    - "vazhdon"
+    - "vazhdonin"
+  "vesh":
+    - "veshur"
+  "vete":
+    - "vajta"
+  "vij":
+    - "erdhi"
+    - "vinin"
+    - "vinte"
+    - "vjen"
+  "vis":
+    - "vutë"
+  "vjedhuraz":
+    - "vjedhurazi"
+  "vraj":
+    - "vras"
+  "vras":
+    - "vrarë"
+  "vuraj":
+    - "vura"
+  "vë":
+    - "vuri"
+    - "vënë"
+  "vëj":
+    - "vënë"
+  "vërshoj":
+    - "vërshon"
+  "vështroj":
+    - "vështronte"
+  "zbatoj":
+    - "zbatohet"
+  "zbuloj":
+    - "zbulova"
+  "zgjat":
+    - "zgjatur"
+  "zhbë":
+    - "zhbënte"
+  "zhdek":
+    - "zhduk"
+  "zmadhoj":
+    - "zmadhoi"
+  "çliroj":
+    - "çlirohej"
+  "çoi":
+    - "çuar"
+  "çoj":
+    - "çoi"
+    - "çon"
+  "çudit":
+    - "çuditet"
+
+proper_nouns:
+  - "bamit"
+  - "bashkimit"
+  - "berti"
+  - "britania"
+  - "dizi"
+  - "dizin"
+  - "dizit"
+  - "djui"
+  - "djuin"
+  - "ernest"
+  - "ernesti"
+  - "ernestit"
+  - "ervehenë"
+  - "evropës"
+  - "hadi"
+  - "hadin"
+  - "homo"
+  - "japoninë"
+  - "kinës"
+  - "korenë"
+  - "linda"
+  - "lindën"
+  - "lorin"
+  - "manit"
+  - "marga"
+  - "margën"
+  - "margës"
+  - "nerminja"
+  - "norsëve"
+  - "odise"
+  - "parku"
+  - "ruso"
+  - "shakespeare"
+  - "shpëtim"
+  - "shqipëri"
+  - "shqipërisë"
+  - "shtunë"
+  - "tibet"
+  - "vajazan"
+  - "varrit"
+  - "vedat"
+  - "vedati"
+  - "vedatit"
+  - "william"
+  - "xhepi"
+  - "zhak"
+  - "zhan"
+  - "çuçka"

@@ -1,4 +1,14 @@
-﻿/*---------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// <copyright file="TokenOptimizerPluginTests.cs" company="Digitalsolutions.it">
+//   Caveman — NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Licensed under the Caveman License (MIT + mandatory attribution): any use
+//   must disclose use of the Caveman library by Passaro Francesco Paolo
+//   (Digitalsolutions.it). See the LICENSE file for full terms.
+// </copyright>
+// <summary>Unit tests for the TokenOptimizer Semantic Kernel plugin.</summary>
+// -----------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------
  * PROJECT: Caveman (NLP Prompt Compressor) - TokenOptimizerPlugin Tests
  * DESCRIPTION:
  * NUnit test suite for TokenOptimizerPlugin class.
@@ -162,12 +172,12 @@ namespace caveman.tests
             Assert.That(result.EstimatedCO2SavedMg, Is.EqualTo(0));
         }
         [Test]
-        public async Task OptimizePrompt_NullInput_ThrowsArgumentNullException()
+        public void OptimizePrompt_NullInput_ThrowsArgumentNullException()
         {
             // Act & Assert
             // FIXED: Use Throws.TypeOf for clearer intent
             var exception = Assert.ThrowsAsync<ArgumentNullException>(
-                async () => await _plugin.OptimizePrompt(null, level: 2));
+                async () => await _plugin.OptimizePrompt(null!, level: 2));
 
             // Optional: Verify the exception message contains the parameter name
             Assert.That(exception.ParamName, Is.EqualTo("input"),
@@ -324,7 +334,7 @@ namespace caveman.tests
                 // If original tokens > 0, efficiency formula should be mathematically consistent
                 if (result.OriginalTokens > 0)
                 {
-                    double expectedEff = (result.SavedTokens / result.OriginalTokens) * 100;
+                    double expectedEff = ((double)result.SavedTokens / result.OriginalTokens) * 100;
                     Assert.That(result.EfficiencyPercentage,
                         Is.EqualTo(expectedEff).Within(0.1),
                         $"Efficiency calculation mismatch at level {level}");
@@ -375,7 +385,7 @@ namespace caveman.tests
             // Act & Assert
             // FIXED: Use Throws.TypeOf for clearer intent
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new TokenOptimizerPlugin(null));
+                () => new TokenOptimizerPlugin(null!));
 
             // Optional: Verify the exception message contains the parameter name
             Assert.That(exception.ParamName, Is.EqualTo("compressionService"),
@@ -421,7 +431,7 @@ namespace caveman.tests
             Assert.That(result.SavedTokens, Is.EqualTo(calculatedSaved),
                 "SavedTokens should equal max(0, original - compressed)");
 
-            double calculatedEff = result.OriginalTokens == 0 ? 0 : (result.SavedTokens / result.OriginalTokens) * 100;
+            double calculatedEff = result.OriginalTokens == 0 ? 0 : ((double)result.SavedTokens / result.OriginalTokens) * 100;
             Assert.That(result.EfficiencyPercentage, Is.EqualTo(calculatedEff).Within(0.01),
                 "EfficiencyPercentage should match calculated value");
 
