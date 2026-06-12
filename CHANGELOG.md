@@ -2,6 +2,49 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.1.0] - 2026-06-12
+
+Caveman gains a full **NLP pipeline** — tokenization, sentence detection, and
+two independent summarizers (TF-IDF + TextRank) — all language-agnostic and
+backed by the same YAML word data, with zero external NLP dependencies.
+
+### Highlights
+- **Unicode-aware tokenizer** — `CavemanTextSplitter` splits text into tokens
+  by Unicode category (Word, Number, Punctuation, Whitespace, Email, Url, Emoji,
+  Newline) without a single regex, working correctly across Latin, CJK, Arabic,
+  Devanagari, and every other script.
+- **Abbreviation-aware sentence detector** — `CavemanSentenceDetector` uses a
+  per-language abbreviation list (from the YAML data) to avoid false splits after
+  common abbreviations (e.g. *Dr.*, *Sig.*, *e.g.*).
+- **Two summarization algorithms** — choose the approach that fits your content:
+  - **TF-IDF + position bias + MMR** (`CavemanSummarizer.CondenseText`) —
+    weighs sentences by rare-term frequency, boosts first/last sentences, and
+    diversifies with Maximum Marginal Relevance. Best for factual/report text.
+  - **TextRank + MMR** (`CavemanTextRank.RankAndSummarize`) — builds a
+    similarity graph between sentences and runs PageRank to extract the most
+    central ones. Best for narrative/story text.
+- **Interactive demo commands** — `/summarizer-demo`, `/summarizer`,
+  `/textrank-demo`, `/textrank` in the console app.
+
+### Added
+- `CavemanTextSplitter` — `ParseText()`, `CombineTokens()`, `ExtractWords()`
+- `CavemanSentenceDetector` — `SplitText()`, `SplitTokens()`, `ExtractPhrases()`
+- `CavemanSummarizer` — `CondenseText(text, sentenceCount, iso3)` and
+  `CondenseText(text, ratio, iso3)`, plus `CompressWithSummaryAsync()` that
+  chains compression after summarization.
+- `CavemanTextRank` — `RankAndSummarize(text, sentenceCount, iso3)` and
+  `RankAndSummarize(text, ratio, iso3)`.
+- Demo text ("Il ladro di ombre") embedded in the console app for immediate
+  evaluation of both algorithms.
+
+### Fixed
+- `CavemanToken` constructor signature updated for consistency.
+- Emoji regex syntax changed from `\u{...}` to surrogate-pair form for
+  cross-runtime compatibility.
+- Async warning in `CompressWithSummaryAsync` resolved.
+
+[1.1.0]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.1.0
+
 ## [1.0.3] - 2026-06-03
 
 Major release: Caveman is now a fully **self-contained** library with greatly

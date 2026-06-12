@@ -156,6 +156,10 @@ namespace caveman
             Console.WriteLine("  /caveman-build <desc> | <files> - Plan surgical changes");
             Console.WriteLine("  /caveman-crew-review [diff|EOF] - Cavecrew diff analysis");
             Console.WriteLine("  /caveman-safety <msg>        - Check security/destructive patterns");
+            Console.WriteLine("  /summarizer-demo             - Demo: TF-IDF summarization (Italian)");
+            Console.WriteLine("  /summarizer                  - Summarize your own text (paste, EOF to end)");
+            Console.WriteLine("  /textrank-demo               - Demo TextRank graph-based summary (Italian)");
+            Console.WriteLine("  /textrank                    - TextRank summarizer (paste, EOF to end)");
             Console.WriteLine("  /help                        - Show this menu");
             Console.WriteLine("  /exit                        - Exit");
             Console.WriteLine();
@@ -188,6 +192,10 @@ namespace caveman
                         Console.WriteLine("  /caveman-build <desc> | <files> - Plan surgical changes");
                         Console.WriteLine("  /caveman-crew-review [diff|EOF] - Cavecrew diff analysis");
                         Console.WriteLine("  /caveman-safety <msg>       - Check message safety level");
+                        Console.WriteLine("  /summarizer-demo            - Demo TF-IDF summarization (Italian)");
+                        Console.WriteLine("  /summarizer                 - Summarize your own text (paste, EOF to end)");
+                        Console.WriteLine("  /textrank-demo              - Demo TextRank graph-based summary (Italian)");
+                        Console.WriteLine("  /textrank                   - TextRank summarizer (paste, EOF to end)");
                         Console.WriteLine("  /help                       - Show this menu");
                         Console.WriteLine("  /exit                       - Exit");
                         Console.WriteLine();
@@ -325,6 +333,28 @@ namespace caveman
                             break;
                         }
 
+                    case "/summarizer-demo":
+                        await RunSummarizerDemoAsync();
+                        break;
+
+                    case "/summarizer":
+                        Console.WriteLine("Paste your text (end with EOF on new line):");
+                        var summaryText = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(summaryText))
+                            await RunSummarizerAsync(summaryText);
+                        break;
+
+                    case "/textrank-demo":
+                        await RunTextRankDemoAsync();
+                        break;
+
+                    case "/textrank":
+                        Console.WriteLine("Paste your text (end with EOF on new line):");
+                        var textrankText = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(textrankText))
+                            RunTextRankAsync(textrankText);
+                        break;
+
                     case null:
                         break;
 
@@ -335,6 +365,129 @@ namespace caveman
 
                 Console.WriteLine();
             }
+        }
+
+        static Task RunSummarizerDemoAsync()
+        {
+            var text = DemoText;
+            RunSummarizerAsync(text);
+            return Task.CompletedTask;
+        }
+
+        static Task RunTextRankDemoAsync()
+        {
+            var text = DemoText;
+            RunTextRankAsync(text);
+            return Task.CompletedTask;
+        }
+
+        static void RunTextRankAsync(string text)
+        {
+            var textRank = new CavemanTextRank();
+
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("=== TEXT RANK (Graph-Based Summary) ===");
+            Console.ResetColor();
+            Console.WriteLine();
+
+            var iso3 = new CavemanLanguageDetector().Detect(text);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"Lingua rilevata: {iso3}");
+            Console.ResetColor();
+
+            PrintOriginalText(text);
+
+            var sentenceCounts = new[] { 2, 3, 5 };
+            foreach (var count in sentenceCounts)
+            {
+                var summary = textRank.RankAndSummarize(text, count, iso3);
+                var originalWords = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+                var summaryWords = summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+                var reduction = 100.0 * (1.0 - (double)summaryWords / originalWords);
+
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.WriteLine($"--- TextRank in {count} frasi ({summaryWords} parole, -{reduction:F0}%) ---");
+                Console.ResetColor();
+                Console.WriteLine(summary);
+                Console.WriteLine();
+            }
+
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine(new string('=', 65));
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+
+        static void PrintOriginalText(string text)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine();
+            Console.WriteLine(new string('─', 65));
+            Console.WriteLine("TESTO ORIGINALE:");
+            Console.WriteLine(new string('─', 65));
+            Console.ResetColor();
+            Console.WriteLine(text.Trim());
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine(new string('─', 65));
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+
+        static string DemoText => "Il ladro di ombre\n\nNel piccolo villaggio di Valchiara, situato ai piedi di una montagna perennemente innevata, viveva un uomo di nome Elia. A differenza degli altri abitanti, Elia non faceva il boscaiolo o il pastore, ma aveva un mestiere del tutto particolare: era un collezionista di ombre.\n\nFin da quando era ragazzo, Elia aveva scoperto di possedere un dono straordinario. Grazie a una piccola lanterna di ottone e a un pizzico di polvere di stelle, riusciva a staccare l'ombra dalle persone e dagli oggetti, conservandola in barattoli di vetro. Non rubava le ombre per fare del male, ma per preservare i ricordi felici. Nei suoi scaffali, allineati nella sua piccola casa di legno, custodiva l'ombra del primo sorriso di un bambino, l'ombra del gatto del sindaco che amava dormire al sole, e persino l'ombra del primo albero piantato nel paese.\n\nGli abitanti del villaggio, tuttavia, non capivano questa sua passione e lo evitavano, considerandolo uno stravagante stregone. L'unico a fargli visita era Leo, un bambino curioso e coraggioso di dieci anni. Leo andava spesso a trovare Elia, affascinato dai riflessi argentati e bluastri chiusi nei barattoli.\n\nUna gelida notte d'inverno, un vento ululante spazzò via la neve e spense tutti i lampioni del villaggio, lasciando Valchiara nel buio più totale. Gli abitanti, spaventati e incapaci di orientarsi, si chiusero in casa. Il freddo e il gelo stavano persino iniziando a bloccare i meccanismi della centrale elettrica del paese.\n\nSenza perdersi d'animo, Elia prese la sua borsa di tela e i suoi barattoli più preziosi. Insieme al piccolo Leo, uscì nella tormenta. Raggiunse la piazza principale e, aprendo i barattoli, liberò le ombre che aveva conservato nel corso degli anni: l'ombra del sole di mezzogiorno, l'ombra del fuoco scoppiettante del camino, l'ombra della gioia e del calore.\n\nImmediatamente, la piazza si illuminò di una luce calda e avvolgente. Le ombre danzavano sui muri delle case, portando con sé un tepore magico che sciolse il ghiaccio e ridiede coraggio e speranza a tutti. Gli abitanti, svegliati da quel bagliore dorato, uscirono dalle loro abitazioni e rimasero a bocca aperta.\n\nCapirono finalmente che Elia non era un pericolo, ma un custode di tesori preziosi. Da quella notte in poi, il villaggio non fu mai più avvolto dal buio e dal gelo, ed Elia divenne il cittadino più rispettato e amato da tutti.";
+
+        static Task RunSummarizerAsync(string text)
+        {
+            var summarizer = new CavemanSummarizer();
+
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("=== RIASSUNTO (Summarizer Demo) ===");
+            Console.ResetColor();
+
+            var iso3 = new CavemanLanguageDetector().Detect(text);
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"Lingua rilevata: {iso3}");
+            Console.ResetColor();
+
+            PrintOriginalText(text);
+
+            var sentenceCounts = new[] { 2, 3, 5 };
+            foreach (var count in sentenceCounts)
+            {
+                var summary = summarizer.CondenseText(text, count, iso3);
+                var originalWords = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+                var summaryWords = summary.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+                var reduction = 100.0 * (1.0 - (double)summaryWords / originalWords);
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"--- Riassunto in {count} frasi ({summaryWords} parole, -{reduction:F0}%) ---");
+                Console.ResetColor();
+                Console.WriteLine(summary);
+                Console.WriteLine();
+            }
+
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine(new string('=', 65));
+            Console.ResetColor();
+
+            var splitter = new CavemanTextSplitter();
+            var detector = new CavemanSentenceDetector();
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("=== ANALISI (Tokenizzazione + Frasi) ===");
+            Console.ResetColor();
+
+            var tokens = splitter.ParseText(text);
+            var words = tokens.Count(t => t.Category == CavemanTokenCategory.Word);
+            var punct = tokens.Count(t => t.Category == CavemanTokenCategory.Punctuation);
+            var numbers = tokens.Count(t => t.Category == CavemanTokenCategory.Number);
+            Console.WriteLine($"Token: {tokens.Length} totali | {words} parole | {punct} punteggiatura | {numbers} numeri");
+
+            var sentences = detector.SplitText(text, iso3);
+            Console.WriteLine($"Frasi: {sentences.Length} trovate");
+            Console.ResetColor();
+            Console.WriteLine();
+            return Task.CompletedTask;
         }
 
         /// <summary>

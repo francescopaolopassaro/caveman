@@ -150,6 +150,91 @@ You can also blacklist categories with `Remove` (e.g. `"FUNC"`, `"PUNCT"`).
 
 ---
 
+## 🧠 NLP pipeline — tokenize, detect sentences, summarize
+
+Caveman now ships a language-agnostic NLP pipeline built entirely on its YAML word data — no external models, no API/LLM calls. Every component works across all 50+ supported languages.
+
+### Tokenization (`CavemanTextSplitter`)
+
+Splits text into tokens by Unicode category — Word, Number, Punctuation, Whitespace, Email, URL, Emoji, Newline — with no regex dependency. Handles Latin, CJK, Arabic, Devanagari, and any other script.
+
+```csharp
+var splitter = new CavemanTextSplitter();
+var tokens = splitter.ParseText("Ciao, mondo! 🎉");
+
+// 7 tokens: Ciao (Word) , (Punct)  (Space) mondo (Word) ! (Punct)  (Space) 🎉 (Emoji)
+
+// Extract only words:
+string[] words = splitter.ExtractWords("Caveman is 10/10!");  // ["Caveman", "is"]
+```
+
+### Sentence detection (`CavemanSentenceDetector`)
+
+Splits text into sentences using punctuation + context + per-language abbreviation lists from the YAML data (so *Sig.*, *Dr.*, *e.g.* don't cause false splits).
+
+```csharp
+var detector = new CavemanSentenceDetector();
+string[] sentences = detector.SplitText("Dr. Rossi abita a Roma. Oggi piove.", "ita");
+// → "Dr. Rossi abita a Roma."  |  "Oggi piove."
+```
+
+### Summarization — two algorithms
+
+Both algorithms accept a target sentence count or a compression ratio (0.0–1.0) and return the most important sentences from the original text.
+
+| Algorithm | Strategy | Best for | Typical reduction |
+| :--- | :--- | :--- | :--- |
+| **TF-IDF + MMR** (`CavemanSummarizer`) | Rare-term weighting + position bias (first/last sentences boosted) + Maximum Marginal Relevance diversity | Factual/report text, news articles, documentation | 50–80% |
+| **TextRank + MMR** (`CavemanTextRank`) | Sentence similarity graph → PageRank centrality + MMR diversity | Narrative/story text, blog posts, long-form content | 50–80% |
+
+#### TF-IDF summarizer
+
+```csharp
+var summarizer = new CavemanSummarizer();
+
+// By sentence count:
+string summary = summarizer.CondenseText(longText, sentenceCount: 3, "ita");
+
+// Or by ratio (30% of original):
+string summary = summarizer.CondenseText(longText, ratio: 0.3f, "ita");
+
+// Chain compression after summarization for even more savings:
+var result = await summarizer.CompressWithSummaryAsync(longText, 3, "ita");
+// result.Summary = condensed text
+// result.CompressedText = summary with stop words removed, lemmatized
+```
+
+#### TextRank summarizer
+
+```csharp
+var textRank = new CavemanTextRank();
+
+// By sentence count:
+string summary = textRank.RankAndSummarize(longText, sentenceCount: 3, "ita");
+
+// By ratio:
+string summary = textRank.RankAndSummarize(longText, ratio: 0.3f, "ita");
+```
+
+#### When to use which
+
+- **TF-IDF** picks sentences with rare, distinctive words — ideal for extracting key facts (e.g. *"Revenue grew 23% in Q3"*, *"The patient was diagnosed with X"*).
+- **TextRank** picks sentences that are central in the narrative flow — ideal for preserving the storyline (e.g. *"Elia opened his jar of shadows and lit up the square"*).
+- **Chained** (`CompressWithSummaryAsync`) first condenses to the essential sentences, then strips function words and normalises inflections — max token savings for LLM prompts.
+
+### Console demos
+
+The console app includes two demo commands that run both algorithms on a fixed Italian story ("Il ladro di ombre") plus a free-text mode:
+
+```
+/summarizer-demo     TF-IDF demo on the built-in story
+/summarizer          Paste your own text for TF-IDF summarization
+/textrank-demo       TextRank demo on the built-in story
+/textrank            Paste your own text for TextRank summarization
+```
+
+---
+
 ## 🌿 Sustainability
 
 Every token processed by an LLM has an energy cost. Caveman exposes a built-in estimator:
