@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // <copyright file="CavecrewService.cs" company="Digitalsolutions.it">
-//   Caveman — NLP prompt compressor for LLMs.
-//   Copyright (c) 2026 Passaro Francesco Paolo — Digitalsolutions.it.
+//   Caveman ï¿½ NLP prompt compressor for LLMs.
+//   Copyright (c) 2026 Passaro Francesco Paolo ï¿½ Digitalsolutions.it.
 //   Licensed under the Caveman License (MIT + mandatory attribution): any use
 //   must disclose use of the Caveman library by Passaro Francesco Paolo
 //   (Digitalsolutions.it). See the LICENSE file for full terms.
@@ -12,12 +12,13 @@ using caveman.core.entities;
 
 namespace caveman.core.services;
 
-public class CavemanSummarizer
+public class CavemanSummarizer : ISummarizer
 {
     private readonly FunctionWordProvider _wordProvider;
-    private readonly CavemanLanguageDetector _detector;
+    private readonly ILanguageDetector _detector;
     private readonly CavemanTextSplitter _splitter;
     private readonly CavemanSentenceDetector _sentenceDetector;
+    private readonly ICompressionService _compressionService;
 
     public CavemanSummarizer()
         : this(new FunctionWordProvider())
@@ -25,12 +26,27 @@ public class CavemanSummarizer
     }
 
     public CavemanSummarizer(FunctionWordProvider wordProvider)
+        : this(wordProvider, null)
+    {
+    }
+
+    /// <param name="compressionService">Optional compression engine used by <see cref="CompressWithSummaryAsync"/>.</param>
+    public CavemanSummarizer(FunctionWordProvider wordProvider, ICompressionService? compressionService)
     {
         _wordProvider = wordProvider;
         _detector = new CavemanLanguageDetector(_wordProvider);
         _splitter = new CavemanTextSplitter();
         _sentenceDetector = new CavemanSentenceDetector(_wordProvider);
+        _compressionService = compressionService ?? new CavemanCompressionService(null, _wordProvider);
     }
+
+    /// <inheritdoc />
+    public string Summarize(string text, int sentenceCount, string? iso3 = null)
+        => iso3 is null ? CondenseText(text, sentenceCount) : CondenseText(text, sentenceCount, iso3);
+
+    /// <inheritdoc />
+    public string Summarize(string text, float ratio, string? iso3 = null)
+        => iso3 is null ? CondenseText(text, ratio) : CondenseText(text, ratio, iso3);
 
     public string CondenseText(string text, int sentenceCount)
     {
@@ -88,9 +104,7 @@ public class CavemanSummarizer
             ct.ThrowIfCancellationRequested();
 
             var summary = CondenseText(input, summarySentenceCount, iso3);
-
-            var compressor = new CavemanCompressionService();
-            var compressed = compressor.ApplyCompression(summary, iso3, level);
+            var compressed = _compressionService.ApplyCompression(summary, iso3, level);
 
             return Task.FromResult(compressed);
         }

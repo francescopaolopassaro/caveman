@@ -14,15 +14,19 @@ using caveman.core.entities;
 
 namespace caveman.core.services;
 
-public class CavemanTextRank
+public class CavemanTextRank : ISummarizer
 {
     private readonly FunctionWordProvider _wordProvider;
-    private readonly CavemanLanguageDetector _detector;
+    private readonly ILanguageDetector _detector;
     private readonly CavemanTextSplitter _splitter;
     private readonly CavemanSentenceDetector _sentenceDetector;
-    private readonly CavemanCompressionService _compressor;
+    private readonly ICompressionService _compressor;
     private readonly CavemanSafetyGuard _safety;
     private readonly ITokenCounter _tokenCounter;
+    private readonly IConversationParser _parser;
+
+    /// <summary>Starts a fluent builder; override only the seams you need.</summary>
+    public static CavemanTextRankBuilder CreateBuilder() => new();
 
     public CavemanTextRank()
         : this(new FunctionWordProvider())
@@ -36,15 +40,46 @@ public class CavemanTextRank
 
     /// <param name="tokenCounter">Optional token counter for metrics/budget; defaults to the built-in heuristic.</param>
     public CavemanTextRank(FunctionWordProvider wordProvider, ITokenCounter? tokenCounter)
+        : this(wordProvider, tokenCounter, null)
+    {
+    }
+
+    public CavemanTextRank(FunctionWordProvider wordProvider, ITokenCounter? tokenCounter, IConversationParser? parser)
+        : this(wordProvider, tokenCounter, parser, null)
+    {
+    }
+
+    public CavemanTextRank(
+        FunctionWordProvider wordProvider, ITokenCounter? tokenCounter,
+        IConversationParser? parser, ICompressionService? compressionService)
+        : this(wordProvider, tokenCounter, parser, compressionService, null)
+    {
+    }
+
+    /// <param name="parser">Optional conversation parser; defaults to <see cref="CavemanConversationParser"/>.</param>
+    /// <param name="compressionService">Optional compression engine; defaults to <see cref="CavemanCompressionService"/>.</param>
+    /// <param name="detector">Optional language detector; defaults to <see cref="CavemanLanguageDetector"/>.</param>
+    public CavemanTextRank(
+        FunctionWordProvider wordProvider, ITokenCounter? tokenCounter,
+        IConversationParser? parser, ICompressionService? compressionService, ILanguageDetector? detector)
     {
         _wordProvider = wordProvider;
-        _detector = new CavemanLanguageDetector(_wordProvider);
+        _detector = detector ?? new CavemanLanguageDetector(_wordProvider);
         _splitter = new CavemanTextSplitter();
         _sentenceDetector = new CavemanSentenceDetector(_wordProvider);
-        _compressor = new CavemanCompressionService(null, _wordProvider);
+        _compressor = compressionService ?? new CavemanCompressionService(null, _wordProvider);
         _safety = new CavemanSafetyGuard();
         _tokenCounter = tokenCounter ?? new ModelTokenizer();
+        _parser = parser ?? new CavemanConversationParser();
     }
+
+    /// <inheritdoc />
+    public string Summarize(string text, int sentenceCount, string? iso3 = null)
+        => iso3 is null ? RankAndSummarize(text, sentenceCount) : RankAndSummarize(text, sentenceCount, iso3);
+
+    /// <inheritdoc />
+    public string Summarize(string text, float ratio, string? iso3 = null)
+        => iso3 is null ? RankAndSummarize(text, ratio) : RankAndSummarize(text, ratio, iso3);
 
     public string RankAndSummarize(string text, int sentenceCount)
     {
@@ -125,7 +160,7 @@ public class CavemanTextRank
         List<ChatBlock> blocks;
         if (options.ParseConversation)
         {
-            var conv = new CavemanConversationParser().Parse(conversation);
+            var conv = _parser.Parse(conversation);
             result.Format = conv.Format;
             blocks = BuildBlocksFromConversation(conv, options);
         }

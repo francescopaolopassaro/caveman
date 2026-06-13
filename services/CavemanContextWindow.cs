@@ -42,16 +42,22 @@ public sealed class CavemanContextWindow
     /// <summary>When true, appending a turn whose content was already seen is skipped (idempotent).</summary>
     public bool DeduplicateOnAppend { get; set; }
 
+    /// <summary>Starts a fluent builder; the token budget is required.</summary>
+    public static CavemanContextWindowBuilder CreateBuilder() => new();
+
     public CavemanContextWindow(
         int maxTokens, LlmModel model = LlmModel.Gpt4,
-        CavemanTextRank? textRank = null, ITokenCounter? tokenCounter = null)
+        CavemanTextRank? textRank = null, ITokenCounter? tokenCounter = null,
+        ICompressionService? compressionService = null)
     {
         if (maxTokens <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxTokens), "Token budget must be positive.");
         MaxTokens = maxTokens;
         Model = model;
         _tokenizer = tokenCounter ?? new ModelTokenizer();
-        _textRank = textRank ?? new CavemanTextRank(new FunctionWordProvider(), _tokenizer);
+        // When no TextRank is supplied, build one wired with the injected token counter and
+        // compression engine, so the whole DI chain flows through the context window.
+        _textRank = textRank ?? new CavemanTextRank(new FunctionWordProvider(), _tokenizer, parser: null, compressionService: compressionService);
     }
 
     /// <summary>Number of turns currently held.</summary>

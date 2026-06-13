@@ -17,7 +17,7 @@ namespace caveman.core;
 /// stop-word list. Backed by a small embedded index, so it stays fast even though it
 /// considers every supported language. Usable standalone, without compression.
 /// </summary>
-public class CavemanLanguageDetector
+public class CavemanLanguageDetector : ILanguageDetector
 {
     private static readonly Regex WordSplit = new(@"\p{L}+(?:'\p{L}+)?", RegexOptions.Compiled);
     private readonly FunctionWordProvider _wordProvider;
@@ -127,6 +127,10 @@ public class CavemanLanguageDetector
 
         return scores;
     }
+
+    // Explicit interface implementation: the public method returns a concrete Dictionary
+    // (kept for backward compatibility), while the interface exposes the read-only view.
+    IReadOnlyDictionary<string, double> ILanguageDetector.DetectWithScores(string input) => DetectWithScores(input);
 
     private static List<string> Tokenize(string text)
     {

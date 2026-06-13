@@ -70,7 +70,11 @@ Kernel plugin. Everything is **additive and backward compatible**: the existing
 - **Observability** — opt-in `ChatSummarizeOptions.CollectTrace` populates
   `ChatSummarizeResult.Trace` (per-block action: summarized / compressed / kept /
   critical / dropped / deduplicated, with sizes).
-- **Examples** — `docs/EXAMPLES.md` documents every public method with a runnable snippet.
+- **Examples** — `docs/EXAMPLES.md` documents every public method with a runnable snippet;
+  `docs/MIGRATION.md` covers the package split.
+- **Fluent builders** — `CavemanTextRank.CreateBuilder()` and
+  `CavemanContextWindow.CreateBuilder()` tame the constructors now that there are several
+  injectable seams.
 - **Incremental compaction** — `CavemanContextWindow` no longer re-summarizes turns it
   already compacted: a previously compacted turn is kept as-is on later compactions
   (still droppable under the budget), avoiding progressive quality loss. Exposed for
@@ -80,6 +84,16 @@ Kernel plugin. Everything is **additive and backward compatible**: the existing
   "commerce"/"source", *production* in "reproduction") while still catching standalone
   acronyms (DDoS, XSS, TLS) and command strings (`rm -rf`, `> /dev/sda`). A new
   constructor accepts extra critical/warning patterns: `new CavemanSafetyGuard(extraCritical, extraWarning)`.
+- **Abstractions / DI seams** — `ISummarizer` (implemented by both `CavemanSummarizer`
+  and `CavemanTextRank`, via a unified `Summarize(text, count|ratio, iso3?)`),
+  `IConversationParser` (implemented by `CavemanConversationParser`) and
+  `ICompressionService` (implemented by `CavemanCompressionService`). `CavemanTextRank`
+  accepts an injectable parser and compression engine; `CavemanSummarizer` accepts an
+  injectable compression engine; `CavemanContextWindow` forwards both an `ITokenCounter`
+  and an `ICompressionService` to its internal pipeline. Plus `ILanguageDetector`
+  (implemented by `CavemanLanguageDetector`), injectable into `CavemanCompressionService`
+  and `CavemanTextRank`. The full DI seam set is now: `ITokenCounter`, `IConversationStore`,
+  `ISummarizer`, `IConversationParser`, `ICompressionService`, `ILanguageDetector`.
 
 ### Added
 - `CavemanConversation`, `CavemanMessage`, `CavemanRole`, `CavemanConversationParser`.

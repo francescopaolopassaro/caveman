@@ -28,7 +28,7 @@ public sealed class RelevanceHit
 /// </summary>
 public sealed class CavemanRelevanceFilter
 {
-    private readonly CavemanLanguageDetector _detector;
+    private readonly ILanguageDetector _detector;
     private readonly FunctionWordProvider _wordProvider;
     private readonly CavemanTextSplitter _splitter;
 

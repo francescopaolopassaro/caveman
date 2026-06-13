@@ -32,6 +32,7 @@ That's it — all language data ships inside the package. There are **no models 
 
 > 📖 **Looking for a usage example of a specific method?** See
 > [`docs/EXAMPLES.md`](docs/EXAMPLES.md) — a runnable snippet for every public API.
+> Upgrading from 1.2.0 (Semantic Kernel plugins)? See [`docs/MIGRATION.md`](docs/MIGRATION.md).
 
 ### Quick start
 

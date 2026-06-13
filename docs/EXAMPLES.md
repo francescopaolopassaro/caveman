@@ -102,6 +102,11 @@ string t1 = tr.RankAndSummarize(text, sentenceCount: 3);
 string t2 = tr.RankAndSummarize(text, sentenceCount: 3, "ita");
 string t3 = tr.RankAndSummarize(text, ratio: 0.3f);
 string t4 = tr.RankAndSummarize(text, ratio: 0.3f, "ita");
+
+// Both implement ISummarizer — swap strategies behind one interface:
+ISummarizer summarizer = useGraph ? new CavemanTextRank() : new CavemanSummarizer();
+string s = summarizer.Summarize(text, sentenceCount: 3);          // iso3 auto-detected
+string sLang = summarizer.Summarize(text, ratio: 0.3f, iso3: "ita");
 ```
 
 ---
@@ -149,6 +154,10 @@ string transcript   = conv.ToTranscript();                   // "User: ...\n\nAs
 
 Recognized formats: OpenAI/Anthropic JSON (incl. content-block arrays, `{ "messages": [...] }`,
 and `tool_calls` → `[tool_call: name(args)]`), ChatML, Gemma, Llama/Mistral, labeled transcripts.
+
+`CavemanConversationParser` implements `IConversationParser`; inject a custom one into
+`CavemanTextRank` to support a bespoke format:
+`new CavemanTextRank(new FunctionWordProvider(), tokenCounter: null, parser: myParser)`.
 
 ---
 

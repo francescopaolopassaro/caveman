@@ -47,13 +47,13 @@ namespace caveman.core
     /// to their base form, while preserving names. Also exposes standalone language
     /// detection. Language data is embedded; nothing is downloaded at runtime.
     /// </summary>
-    public class CavemanCompressionService
+    public class CavemanCompressionService : ICompressionService
     {
         private static readonly Regex WordSplit = new(
             @"\p{L}+(?:'\p{L}+)?|\p{N}+(?:[.,]\p{N}+)?|[^\p{L}\p{N}\s]",
             RegexOptions.Compiled);
 
-        private readonly CavemanLanguageDetector _detector;
+        private readonly ILanguageDetector _detector;
         private readonly ModelTokenizer? _tokenizer;
         private readonly FunctionWordProvider _wordProvider;
         private static readonly ConcurrentDictionary<string, WordDataFile?> _dataCache = new(StringComparer.OrdinalIgnoreCase);
@@ -96,9 +96,13 @@ namespace caveman.core
         public CavemanCompressionService(ModelTokenizer? tokenizer) : this(tokenizer, null) { }
 
         public CavemanCompressionService(ModelTokenizer? tokenizer, FunctionWordProvider? wordProvider)
+            : this(tokenizer, wordProvider, null) { }
+
+        /// <param name="detector">Optional language detector; defaults to <see cref="CavemanLanguageDetector"/>.</param>
+        public CavemanCompressionService(ModelTokenizer? tokenizer, FunctionWordProvider? wordProvider, ILanguageDetector? detector)
         {
             _wordProvider = wordProvider ?? new FunctionWordProvider();
-            _detector = new CavemanLanguageDetector(_wordProvider);
+            _detector = detector ?? new CavemanLanguageDetector(_wordProvider);
             _tokenizer = tokenizer;
         }
 

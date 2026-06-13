@@ -24,7 +24,7 @@ namespace caveman.core.services;
 /// (<c>User:</c> / <c>Assistant:</c> / <c>Utente:</c> …). Anything else falls back to a
 /// single <see cref="CavemanRole.Unknown"/> message holding the whole text.
 /// </summary>
-public sealed class CavemanConversationParser
+public sealed class CavemanConversationParser : IConversationParser
 {
     private static readonly Regex TranscriptLabel = new(
         @"^\s*(system|sistema|developer|user|utente|human|umano|assistant|assistente|ai|bot|model|modello|tool|strumento|function|funzione)\s*[:>\-]\s?",
