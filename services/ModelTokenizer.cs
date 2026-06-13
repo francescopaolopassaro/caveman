@@ -21,7 +21,17 @@ public enum LlmModel
     Claude3
 }
 
-public class ModelTokenizer
+/// <summary>
+/// Abstraction over token counting so callers can plug in a real BPE/tiktoken counter
+/// instead of the built-in heuristic. The default implementation is <see cref="ModelTokenizer"/>.
+/// </summary>
+public interface ITokenCounter
+{
+    /// <summary>Counts the tokens of <paramref name="text"/> for the given <paramref name="model"/>.</summary>
+    int CountTokens(string text, LlmModel model = LlmModel.Gpt4);
+}
+
+public class ModelTokenizer : ITokenCounter
 {
     private static readonly Dictionary<LlmModel, string> ModelPatterns = new()
     {

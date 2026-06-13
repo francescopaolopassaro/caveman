@@ -2,6 +2,98 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.2.1] - 2026-06-13
+
+A **special, agent-ready** release: Caveman now understands the *structure* of a
+human↔chatbot conversation (roles, turns, multiple AI formats) and ships
+forward-looking primitives for building AI agents — a rolling context window, a
+memory distiller and a query-focused context filter — plus a dedicated Semantic
+Kernel plugin. Everything is **additive and backward compatible**: the existing
+`RankAndSummarizeChat(string)` behaves exactly as before unless you opt in.
+
+### Highlights
+- **Structured conversation model + multi-format parser** — `CavemanConversation`,
+  `CavemanMessage`, `CavemanRole` and `CavemanConversationParser`, which detects and
+  parses **OpenAI/Anthropic JSON** (including Anthropic content-block arrays and the
+  `{ "messages": [...] }` wrapper), **ChatML** (`<|im_start|>`), **Gemma**
+  (`<start_of_turn>`), **Llama/Mistral** (`[INST]`, `<<SYS>>`) and **plain labeled
+  transcripts** (`User:` / `Assistant:` / `Utente:` …), with a safe fallback.
+- **Role/turn-aware chat summarization** — `RankAndSummarizeChat` can parse roles,
+  keep the **last N turns verbatim** (recency window), keep the **system prompt**
+  verbatim, **deduplicate** repeated blocks, skip **safety-critical** blocks, keep
+  **JSON/code** verbatim (`KeepJson`/`KeepCode`), optionally **caveman-compress** the
+  kept text, and honor a hard **token budget** (shrink → compress → drop oldest, with
+  a `[…]` truncation marker). All via additive `ChatSummarizeOptions`.
+- **Metrics + structured output** — new `RankAndSummarizeChatDetailed` returns a
+  `ChatSummarizeResult` with per-model token counts, per-block stats and the compacted
+  `CavemanConversation` (re-serializable via `ToMessagesJson()` / `ToTranscript()`).
+- **AI-agent primitives (forward-looking):**
+  - `CavemanContextWindow` — a rolling, **token-budget-bounded working memory**:
+    append turns; it auto-compacts older ones to always fit the model's window.
+  - `CavemanMemoryExtractor` — distills a **durable memory** (salient sentences +
+    key terms/entities) so an agent can forget the transcript but keep what matters.
+  - `CavemanRelevanceFilter` — **query-focused, embedding-free** context shaping:
+    keep only the blocks most relevant to the current question.
+- **Semantic Kernel** — new `CavemanConversationPlugin` (`summarize_conversation`,
+  `fit_to_budget`, `extract_memory`, `focus_conversation`, `estimate_tokens`) and an
+  `estimate_tokens` function added to `TokenOptimizerPlugin`.
+- **Package split** — the core `Caveman` package **no longer depends on
+  Microsoft.SemanticKernel**. All Semantic Kernel plugins moved to a new, optional
+  **`Caveman.SemanticKernel`** package (which references `Caveman`). Install
+  `Caveman.SemanticKernel` only if you use the plugins; it pulls in the core
+  automatically. Compression/summarization/agent APIs stay in the dependency-free core.
+- **Pluggable token counting** — new `ITokenCounter` abstraction (`ModelTokenizer`
+  implements it); inject your own (real BPE/tiktoken) into `CavemanTextRank` /
+  `CavemanContextWindow` for accurate budgets.
+- **Cost estimate (USD + EUR)** — `ChatSummarizeResult` now reports
+  `EstimatedSavedUsd` / `EstimatedSavedEur` (indicative per-model prices via
+  `CavemanCostEstimator`, overridable through `ChatSummarizeOptions.UsdPer1KTokens` /
+  `UsdToEurRate`).
+- **Better relevance & fact pinning** — `CavemanRelevanceFilter` now **lemmatizes**
+  terms (so *passwords* matches *password*) and exposes a `Score` method;
+  `ChatSummarizeOptions` gains `MustKeepPatterns` (regex) and `KeepNumbersAndDates`
+  to keep factual blocks verbatim.
+- **Parser fidelity** — `CavemanConversationParser` preserves OpenAI **tool/function
+  calls** as `[tool_call: …]` notes and adds `[image]`/`[type]` placeholders for
+  non-text content blocks instead of dropping them.
+- **Persistence & agent memory** — `ConversationState`/`PersistedTurn` DTOs,
+  `CavemanContextWindow.Save()/Load()` (+ `DeduplicateOnAppend` idempotency),
+  `IConversationStore` with `FileConversationStore` (atomic writes) and
+  `InMemoryConversationStore`, and a `CavemanMemoryStore` that recalls relevant
+  `MemoryNote`s for a query (embedding-free) and round-trips to JSON.
+- **Shared lemma map** — `FunctionWordProvider.GetLemmaMap(iso3)` centralizes the
+  inflected→base form map used by the compressor, summarizer and relevance/recall.
+- **Async chat API** — `RankAndSummarizeChatAsync` / `RankAndSummarizeChatDetailedAsync`
+  with `CancellationToken` checkpoints in the block-processing and budget loops.
+- **Config presets** — `ChatSummarizeOptions.Faithful()`, `.AgentMemory(maxTokens, model)`,
+  `.CodingChat()`, `.Aggressive()`.
+- **Observability** — opt-in `ChatSummarizeOptions.CollectTrace` populates
+  `ChatSummarizeResult.Trace` (per-block action: summarized / compressed / kept /
+  critical / dropped / deduplicated, with sizes).
+- **Examples** — `docs/EXAMPLES.md` documents every public method with a runnable snippet.
+
+### Added
+- `CavemanConversation`, `CavemanMessage`, `CavemanRole`, `CavemanConversationParser`.
+- `ChatSummarizeResult`, `CavemanTextRank.RankAndSummarizeChatDetailed`.
+- `ChatSummarizeOptions`: `ParseConversation`, `KeepLastTurnsVerbatim`,
+  `ShowRolePrefixes`, `Deduplicate`, `KeepSystemVerbatim`, `RespectSafety`,
+  `KeepJson`, `KeepCode`, `ExtractHtml`, `CompressKeptText`, `CompressionLevel`,
+  `MaxTokens`, `TokenModel`.
+- `CavemanConversationToText.ExtractTextFromMarkdown(text, MarkdownExtractOptions)`.
+- `CavemanContextWindow`, `CavemanMemoryExtractor` / `MemoryNote`,
+  `CavemanRelevanceFilter` / `RelevanceHit`.
+- `CavemanConversationPlugin`; `TokenOptimizerPlugin.estimate_tokens`.
+
+### Known limitations (planned for a future release)
+- The **default** token counter is heuristic; inject `ITokenCounter` for an exact
+  provider tokenizer when budget precision matters.
+- Persistence + `DeduplicateOnAppend` cover idempotent reload and exact-duplicate
+  turns, but the context window still re-summarizes already-compacted turns on each
+  compaction (incremental "skip already-compacted" not yet wired).
+- The chat path is synchronous (no `CancellationToken`); the budget loop is best-effort.
+
+[1.2.1]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.2.1
+
 ## [1.2.0] - 2026-06-13
 
 Caveman can now summarize **whole chatbot/LLM conversations** in one call,

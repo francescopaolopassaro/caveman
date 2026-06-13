@@ -13,23 +13,64 @@ using System.Text.RegularExpressions;
 
 namespace caveman.core.services;
 
+/// <summary>Controls which parts of a markdown/JSON/HTML blob are stripped vs. kept.</summary>
+public sealed class MarkdownExtractOptions
+{
+    /// <summary>Keep JSON (fenced ```json blocks and inline objects) instead of removing it.</summary>
+    public bool KeepJson { get; set; }
+
+    /// <summary>Keep fenced code blocks (and inline code) verbatim instead of removing them.</summary>
+    public bool KeepCode { get; set; }
+
+    /// <summary>Extract the inner text of HTML elements (default). When false, HTML is left untouched.</summary>
+    public bool ExtractHtml { get; set; } = true;
+
+    /// <summary>The defaults reproduce the historical behavior (strip JSON + code, extract HTML text).</summary>
+    public static MarkdownExtractOptions Default { get; } = new();
+}
+
 public static class CavemanConversationToText
 {
+    /// <summary>Extracts clean plain text from markdown, stripping JSON and code (historical behavior).</summary>
     public static string ExtractTextFromMarkdown(string markdown)
+        => ExtractTextFromMarkdown(markdown, MarkdownExtractOptions.Default);
+
+    /// <summary>Extracts clean text from markdown, honoring <paramref name="options"/> for JSON/code/HTML.</summary>
+    public static string ExtractTextFromMarkdown(string markdown, MarkdownExtractOptions options)
     {
         if (string.IsNullOrWhiteSpace(markdown))
             return string.Empty;
 
+        options ??= MarkdownExtractOptions.Default;
         var text = markdown;
 
         text = RemoveYamlFrontMatter(text);
-        text = RemoveJsonFencedBlocks(text);
-        text = RemoveInlineJson(text);
-        text = ExtractHtmlText(text);
+
+        if (options.KeepJson)
+        {
+            // Keep the JSON body as plain text: drop only the ```json fence markers so it
+            // survives the code-stripping steps below.
+            text = UnwrapJsonFences(text);
+        }
+        else
+        {
+            text = RemoveJsonFencedBlocks(text);
+            text = RemoveInlineJson(text);
+        }
+
+        if (options.ExtractHtml)
+            text = ExtractHtmlText(text);
+
         text = RemoveImages(text);
         text = ConvertLinksToText(text);
-        text = RemoveFencedCodeBlocks(text);
-        text = RemoveInlineCode(text);
+
+        if (!options.KeepCode)
+        {
+            // JSON fences (if kept) were already unwrapped, so this only strips real code.
+            text = RemoveFencedCodeBlocks(text);
+            text = RemoveInlineCode(text);
+        }
+
         text = RemoveHorizontalRules(text);
         text = RemoveHeadingMarkers(text);
         text = RemoveBoldItalic(text);
@@ -38,6 +79,12 @@ public static class CavemanConversationToText
         text = CollapseWhitespace(text);
 
         return text.Trim();
+    }
+
+    private static string UnwrapJsonFences(string text)
+    {
+        return Regex.Replace(text, @"```json[ \t]*\r?\n?([\s\S]*?)```", "$1",
+            RegexOptions.Multiline | RegexOptions.IgnoreCase);
     }
 
     private static string RemoveYamlFrontMatter(string text)

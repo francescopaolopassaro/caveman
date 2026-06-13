@@ -2,13 +2,13 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.2.0</Version>
+  <Version>1.2.1</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction across 50+ languages. Licensed under the Caveman License (MIT + mandatory attribution to Passaro Francesco Paolo - Digitalsolutions.it). Bundled language data derived from Universal Dependencies (see NOTICE).</Description>
   <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3</PackageTags>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
-  <PackageReleaseNotes>1.2.0: Conversation/chat summarization. New CavemanTextRank.RankAndSummarizeChat(text) cleans a full chatbot/LLM transcript (markdown + JSON), segments it into blocks and applies TextRank only to long natural-language discourses that exceed a configurable quota, while keeping short service results / keyword lists verbatim (tunable via ChatSummarizeOptions). CavemanConversationToText now extracts HTML inner text as plain text (decoding entities) instead of dropping it. Licensed under the Caveman License (MIT + mandatory attribution); bundled data under Universal Dependencies terms (see NOTICE).</PackageReleaseNotes>
+  <PackageReleaseNotes>1.2.1 (special, agent-ready): adds a structured conversation model and a multi-format parser (OpenAI/Anthropic JSON, ChatML, Gemma, Llama/Mistral, labeled transcripts). RankAndSummarizeChat gains role/turn awareness, a recency window, deduplication, safety-aware skipping, optional JSON/code preservation (KeepJson/KeepCode), post-compression and a hard token budget — all additive via ChatSummarizeOptions (backward compatible). New RankAndSummarizeChatDetailed returns token metrics + the compacted conversation (re-serializable to messages JSON). New AI-agent primitives: CavemanContextWindow (rolling, budget-bounded working memory), CavemanMemoryExtractor (durable memory distillation) and CavemanRelevanceFilter (query-focused, embedding-free context shaping). New CavemanConversationPlugin for Semantic Kernel (summarize_conversation, fit_to_budget, extract_memory, focus_conversation, estimate_tokens). Licensed under the Caveman License (MIT + mandatory attribution); bundled data under Universal Dependencies terms (see NOTICE).</PackageReleaseNotes>
   
   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <OutputType>Library</OutputType>
@@ -42,7 +42,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.74.0" />
+    <!-- Semantic Kernel plugins live in the separate Caveman.SemanticKernel package so the
+         core stays dependency-free. The SemanticKernel folder is excluded from compilation. -->
+    <Compile Remove="SemanticKernel\**" />
   </ItemGroup>
 
   <ItemGroup>

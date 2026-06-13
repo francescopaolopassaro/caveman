@@ -227,4 +227,139 @@ public class CavemanChatSummarizeTests
 
         return (sb.ToString(), lines, markers);
     }
+
+    // ---- 1.2.1 additive options ----
+
+    [Test]
+    public void Detailed_ReportsTokenMetricsAndBlockCounts()
+    {
+        var chat = string.Join("\n\n", "## I.5 - Stemma, gonfalone, sigillo", Discourse);
+
+        var result = _textRank.RankAndSummarizeChatDetailed(chat);
+
+        Assert.That(result.OriginalTokens, Is.GreaterThan(0));
+        Assert.That(result.CompressedTokens, Is.LessThan(result.OriginalTokens));
+        Assert.That(result.SummarizedBlocks, Is.GreaterThanOrEqualTo(1));
+        Assert.That(result.KeptVerbatimBlocks, Is.GreaterThanOrEqualTo(1));
+        Assert.That(result.WithinBudget, Is.True);
+    }
+
+    [Test]
+    public void ParseConversation_KeepsRolePrefixes_AndRecencyVerbatim()
+    {
+        var json = $$"""
+        [
+          { "role": "user", "content": {{System.Text.Json.JsonSerializer.Serialize(Discourse)}} },
+          { "role": "assistant", "content": {{System.Text.Json.JsonSerializer.Serialize(Discourse)}} },
+          { "role": "user", "content": "Grazie mille, e tutto chiaro adesso." }
+        ]
+        """;
+
+        var options = new ChatSummarizeOptions { ParseConversation = true, KeepLastTurnsVerbatim = 1 };
+        var result = _textRank.RankAndSummarizeChatDetailed(json, options);
+
+        Assert.That(result.Format, Is.EqualTo("openai-json"));
+        Assert.That(result.Text, Does.Contain("User:"));
+        Assert.That(result.Text, Does.Contain("Assistant:"));
+        // The last turn (within the recency window) is kept verbatim.
+        Assert.That(result.Text, Does.Contain("Grazie mille, e tutto chiaro adesso."));
+        // The earlier discourse turns are summarized (not copied verbatim).
+        Assert.That(result.Text, Does.Not.Contain(Discourse));
+    }
+
+    [Test]
+    public void KeepCode_PreservesFencedCode()
+    {
+        var chat = "Ecco la soluzione:\n\n```csharp\nvar x = Compute();\nConsole.WriteLine(x);\n```";
+
+        var stripped = _textRank.RankAndSummarizeChat(chat);
+        var kept = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { KeepCode = true });
+
+        Assert.That(stripped, Does.Not.Contain("Console.WriteLine"));
+        Assert.That(kept, Does.Contain("Console.WriteLine"));
+    }
+
+    [Test]
+    public void KeepJson_PreservesJsonContent()
+    {
+        var chat = "Risultato del tool:\n\n```json\n{ \"city\": \"Roma\", \"temp\": 30 }\n```";
+
+        var stripped = _textRank.RankAndSummarizeChat(chat);
+        var kept = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { KeepJson = true });
+
+        Assert.That(stripped, Does.Not.Contain("city"));
+        Assert.That(kept, Does.Contain("Roma"));
+    }
+
+    [Test]
+    public void Deduplicate_RemovesRepeatedBlocks()
+    {
+        var sys = "Sei un assistente cortese e disponibile.";
+        var chat = string.Join("\n\n", sys, "Prima domanda utente.", sys, "Seconda domanda utente.", sys);
+
+        var result = _textRank.RankAndSummarizeChatDetailed(chat, new ChatSummarizeOptions { Deduplicate = true });
+
+        Assert.That(result.DuplicatesRemoved, Is.EqualTo(2));
+        // Only one copy of the system prompt remains.
+        var occurrences = result.Text.Split(sys).Length - 1;
+        Assert.That(occurrences, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void RespectSafety_KeepsCriticalBlockVerbatim()
+    {
+        // A long discourse that contains a destructive command pattern.
+        var dangerous = Discourse + " Per pulire esegui rm -rf / sul server di produzione immediatamente.";
+        var chat = dangerous;
+
+        var result = _textRank.RankAndSummarizeChatDetailed(chat, new ChatSummarizeOptions { RespectSafety = true });
+
+        Assert.That(result.SkippedForSafety, Is.GreaterThanOrEqualTo(1));
+        Assert.That(result.Text, Does.Contain("rm -rf"));
+    }
+
+    [Test]
+    public void CompressKeptText_ReducesFurtherThanSummaryAlone()
+    {
+        var chat = Discourse;
+
+        var summaryOnly = _textRank.RankAndSummarizeChat(chat);
+        var compressed = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions
+        {
+            CompressKeptText = true,
+            CompressionLevel = caveman.core.CavemanCompressionLevel.Aggressive
+        });
+
+        Assert.That(compressed.Length, Is.LessThan(summaryOnly.Length));
+    }
+
+    [Test]
+    public void MaxTokens_BudgetIsHonored()
+    {
+        var (chat, _, _) = BuildDirtyChat(400);
+        var budget = 200;
+
+        var result = _textRank.RankAndSummarizeChatDetailed(chat, new ChatSummarizeOptions
+        {
+            MaxTokens = budget,
+            ParseConversation = false
+        });
+
+        Assert.That(result.CompressedTokens, Is.LessThanOrEqualTo(budget));
+        Assert.That(result.WithinBudget, Is.True);
+    }
+
+    [Test]
+    public void Defaults_AreBackwardCompatible_WithFlatBehavior()
+    {
+        var chat = string.Join("\n\n", "## I.5 - Stemma, gonfalone, sigillo", Discourse, "{ \"k\": 1 }");
+
+        // The legacy string overload and the detailed method must agree on the text.
+        var legacy = _textRank.RankAndSummarizeChat(chat);
+        var detailed = _textRank.RankAndSummarizeChatDetailed(chat);
+
+        Assert.That(detailed.Text, Is.EqualTo(legacy));
+        Assert.That(legacy, Does.Contain("I.5 - Stemma, gonfalone, sigillo"));
+        Assert.That(legacy, Does.Not.Contain("\"k\""));
+    }
 }

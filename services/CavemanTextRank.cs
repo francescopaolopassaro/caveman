@@ -9,6 +9,8 @@
 // <summary>Cavecrew micro-agents (investigator, builder, reviewer) for delegated code tasks.</summary>
 // -----------------------------------------------------------------------------
 using System.Text.RegularExpressions;
+using caveman.core;
+using caveman.core.entities;
 
 namespace caveman.core.services;
 
@@ -18,6 +20,9 @@ public class CavemanTextRank
     private readonly CavemanLanguageDetector _detector;
     private readonly CavemanTextSplitter _splitter;
     private readonly CavemanSentenceDetector _sentenceDetector;
+    private readonly CavemanCompressionService _compressor;
+    private readonly CavemanSafetyGuard _safety;
+    private readonly ITokenCounter _tokenCounter;
 
     public CavemanTextRank()
         : this(new FunctionWordProvider())
@@ -25,11 +30,20 @@ public class CavemanTextRank
     }
 
     public CavemanTextRank(FunctionWordProvider wordProvider)
+        : this(wordProvider, null)
+    {
+    }
+
+    /// <param name="tokenCounter">Optional token counter for metrics/budget; defaults to the built-in heuristic.</param>
+    public CavemanTextRank(FunctionWordProvider wordProvider, ITokenCounter? tokenCounter)
     {
         _wordProvider = wordProvider;
         _detector = new CavemanLanguageDetector(_wordProvider);
         _splitter = new CavemanTextSplitter();
         _sentenceDetector = new CavemanSentenceDetector(_wordProvider);
+        _compressor = new CavemanCompressionService(null, _wordProvider);
+        _safety = new CavemanSafetyGuard();
+        _tokenCounter = tokenCounter ?? new ModelTokenizer();
     }
 
     public string RankAndSummarize(string text, int sentenceCount)
@@ -75,45 +89,393 @@ public class CavemanTextRank
     /// segments the text into blocks and applies TextRank only to the long natural-language
     /// "discourse" blocks that exceed the configured quota. Short structured blocks
     /// (service results / keyword lists such as "I.5 - Stemma, gonfalone, sigillo") and
-    /// discourses already below the quota are preserved verbatim.
+    /// discourses already below the quota are preserved verbatim. Optional features
+    /// (role parsing, recency window, deduplication, safety, post-compression and a token
+    /// budget) are all controlled through <see cref="ChatSummarizeOptions"/>; with the
+    /// defaults the behavior is identical to previous versions.
     /// </summary>
-    /// <param name="conversation">The raw conversation context (markdown/JSON allowed).</param>
+    /// <param name="conversation">The raw conversation context (markdown/JSON/HTML allowed).</param>
     /// <param name="options">Optional thresholds; sensible defaults are used when null.</param>
-    public string RankAndSummarizeChat(string conversation, ChatSummarizeOptions? options = null)
+    public string RankAndSummarizeChat(string conversation, ChatSummarizeOptions? options = null, CancellationToken ct = default)
+        => RankAndSummarizeChatDetailed(conversation, options, ct).Text;
+
+    /// <summary>Async wrapper over <see cref="RankAndSummarizeChat"/> (offloads the CPU-bound work, honors cancellation).</summary>
+    public Task<string> RankAndSummarizeChatAsync(string conversation, ChatSummarizeOptions? options = null, CancellationToken ct = default)
+        => Task.Run(() => RankAndSummarizeChat(conversation, options, ct), ct);
+
+    /// <summary>Async wrapper over <see cref="RankAndSummarizeChatDetailed"/>.</summary>
+    public Task<ChatSummarizeResult> RankAndSummarizeChatDetailedAsync(string conversation, ChatSummarizeOptions? options = null, CancellationToken ct = default)
+        => Task.Run(() => RankAndSummarizeChatDetailed(conversation, options, ct), ct);
+
+    /// <summary>
+    /// Same as <see cref="RankAndSummarizeChat"/> but returns a rich <see cref="ChatSummarizeResult"/>
+    /// with token metrics (per the chosen model) and per-block statistics.
+    /// </summary>
+    public ChatSummarizeResult RankAndSummarizeChatDetailed(string conversation, ChatSummarizeOptions? options = null, CancellationToken ct = default)
     {
+        var result = new ChatSummarizeResult();
         if (string.IsNullOrWhiteSpace(conversation))
-            return string.Empty;
+            return result;
 
+        ct.ThrowIfCancellationRequested();
         options ??= new ChatSummarizeOptions();
+        var tokenizer = _tokenCounter;
+        result.OriginalTokens = tokenizer.CountTokens(conversation, options.TokenModel);
 
+        List<ChatBlock> blocks;
+        if (options.ParseConversation)
+        {
+            var conv = new CavemanConversationParser().Parse(conversation);
+            result.Format = conv.Format;
+            blocks = BuildBlocksFromConversation(conv, options);
+        }
+        else
+        {
+            result.Format = "flat";
+            blocks = BuildBlocksFromFlat(conversation, options);
+        }
+
+        if (options.Deduplicate)
+            result.DuplicatesRemoved = Deduplicate(blocks);
+
+        ProcessBlocks(blocks, options, ct);
+        EnforceBudget(blocks, options, tokenizer, ct);
+
+        result.Text = Render(blocks);
+        result.CompressedTokens = tokenizer.CountTokens(result.Text, options.TokenModel);
+        result.Conversation = BuildResultConversation(blocks, result.Format);
+        if (options.CollectTrace)
+            result.Trace = BuildTrace(blocks);
+
+        result.Blocks = blocks.Count;
+        result.SummarizedBlocks = blocks.Count(b => b.Summarized && !b.Dropped);
+        result.CompressedBlocks = blocks.Count(b => b.Compressed && !b.Dropped);
+        result.KeptVerbatimBlocks = blocks.Count(b => !b.Summarized && !b.Compressed && !b.Dropped);
+        result.DroppedBlocks = blocks.Count(b => b.DroppedByBudget);
+        result.SkippedForSafety = blocks.Count(b => b.Critical);
+        result.WithinBudget = options.MaxTokens <= 0 || result.CompressedTokens <= options.MaxTokens;
+
+        var usdPer1K = options.UsdPer1KTokens ?? CavemanCostEstimator.DefaultUsdPer1KTokens(options.TokenModel);
+        result.EstimatedSavedUsd = CavemanCostEstimator.Usd(result.SavedTokens, usdPer1K);
+        result.EstimatedSavedEur = CavemanCostEstimator.Eur(result.SavedTokens, usdPer1K, options.UsdToEurRate);
+
+        return result;
+    }
+
+    private static MarkdownExtractOptions MdOptions(ChatSummarizeOptions o) => new()
+    {
+        KeepJson = o.KeepJson,
+        KeepCode = o.KeepCode,
+        ExtractHtml = o.ExtractHtml
+    };
+
+    private List<ChatBlock> BuildBlocksFromFlat(string conversation, ChatSummarizeOptions options)
+    {
         var clean = options.AlreadyClean
             ? conversation
-            : CavemanConversationToText.ExtractTextFromMarkdown(conversation);
+            : CavemanConversationToText.ExtractTextFromMarkdown(conversation, MdOptions(options));
 
+        var result = new List<ChatBlock>();
         if (string.IsNullOrWhiteSpace(clean))
-            return string.Empty;
+            return result;
 
         var iso3 = options.Iso3 ?? _detector.Detect(clean);
         var funcWords = _wordProvider.GetFunctionWords(iso3);
 
-        var blocks = SplitIntoBlocks(clean);
-        var output = new List<string>(blocks.Count);
+        int order = 0;
+        foreach (var text in SplitIntoBlocks(clean))
+            result.Add(MakeBlock(text, iso3, funcWords, options, CavemanRole.Unknown, null, order++, keepVerbatim: false));
 
-        foreach (var block in blocks)
+        return result;
+    }
+
+    private List<ChatBlock> BuildBlocksFromConversation(CavemanConversation conv, ChatSummarizeOptions options)
+    {
+        var result = new List<ChatBlock>();
+        int messageCount = conv.Messages.Count;
+        int recencyFrom = options.KeepLastTurnsVerbatim > 0
+            ? messageCount - options.KeepLastTurnsVerbatim
+            : int.MaxValue;
+
+        for (int i = 0; i < messageCount; i++)
         {
-            if (IsLongDiscourse(block, funcWords, iso3, options, out var sentenceCount))
+            var msg = conv.Messages[i];
+            bool isRecent = i >= recencyFrom;
+            bool keepVerbatim = isRecent ||
+                                (msg.Role == CavemanRole.System && options.KeepSystemVerbatim);
+
+            var clean = options.AlreadyClean
+                ? msg.Content
+                : CavemanConversationToText.ExtractTextFromMarkdown(msg.Content, MdOptions(options));
+            if (string.IsNullOrWhiteSpace(clean))
+                continue;
+
+            var iso3 = options.Iso3 ?? _detector.Detect(clean);
+            var funcWords = _wordProvider.GetFunctionWords(iso3);
+
+            bool first = true;
+            foreach (var text in SplitIntoBlocks(clean))
             {
-                var count = ComputeSummaryCount(sentenceCount, options);
-                output.Add(RankAndSummarize(block, count, iso3).Trim());
-            }
-            else
-            {
-                // Service result / keyword list / already-short discourse: keep as is.
-                output.Add(block.Trim());
+                var prefix = first && options.ShowRolePrefixes && msg.RoleLabel.Length > 0 ? msg.RoleLabel : null;
+                result.Add(MakeBlock(text, iso3, funcWords, options, msg.Role, prefix, i, keepVerbatim));
+                first = false;
             }
         }
 
-        return string.Join("\n\n", output.Where(b => b.Length > 0));
+        return result;
+    }
+
+    private ChatBlock MakeBlock(
+        string text, string iso3, HashSet<string> funcWords, ChatSummarizeOptions options,
+        CavemanRole role, string? rolePrefix, int turnIndex, bool keepVerbatim)
+    {
+        var block = new ChatBlock
+        {
+            Iso3 = iso3,
+            Original = text,
+            Rendered = text,
+            Role = role,
+            RolePrefix = rolePrefix,
+            TurnIndex = turnIndex
+        };
+
+        if (options.RespectSafety && _safety.Check(text).Level == SafetyLevel.Critical)
+        {
+            block.Protected = true;
+            block.Critical = true;
+            return block;
+        }
+
+        if (keepVerbatim || MatchesMustKeep(text, options))
+        {
+            block.Protected = true;     // recency / system prompt / pinned fact: keep verbatim
+            return block;
+        }
+
+        if (IsLongDiscourse(text, funcWords, iso3, options, out var sentenceCount))
+        {
+            block.IsDiscourse = true;
+            block.SentenceCount = sentenceCount;
+        }
+
+        return block;
+    }
+
+    // Any integer/decimal/date/time figure (e.g. 12345, 3.14, 12:30, 2026-06-13).
+    private static readonly Regex NumberOrDate = new(
+        @"\d+([.,:/\-]\d+)*", RegexOptions.Compiled);
+
+    private static bool MatchesMustKeep(string text, ChatSummarizeOptions options)
+    {
+        if (options.KeepNumbersAndDates && NumberOrDate.IsMatch(text))
+            return true;
+
+        foreach (var pattern in options.MustKeepPatterns)
+        {
+            if (string.IsNullOrEmpty(pattern))
+                continue;
+            try
+            {
+                if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
+                    return true;
+            }
+            catch (ArgumentException)
+            {
+                // Ignore an invalid user-supplied pattern rather than throwing.
+            }
+        }
+        return false;
+    }
+
+    private void ProcessBlocks(List<ChatBlock> blocks, ChatSummarizeOptions options, CancellationToken ct = default)
+    {
+        foreach (var b in blocks)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (b.Protected || b.Dropped)
+                continue;
+
+            if (b.IsDiscourse)
+            {
+                b.KeptSentences = ComputeSummaryCount(b.SentenceCount, options);
+                b.Rendered = RankAndSummarize(b.Original, b.KeptSentences, b.Iso3).Trim();
+                b.Summarized = true;
+            }
+
+            if (options.CompressKeptText)
+            {
+                b.Rendered = CavemanCompress(b.Rendered, b.Iso3, options.CompressionLevel);
+                b.Compressed = true;
+            }
+        }
+    }
+
+    private void EnforceBudget(List<ChatBlock> blocks, ChatSummarizeOptions options, ITokenCounter tokenizer, CancellationToken ct = default)
+    {
+        if (options.MaxTokens <= 0)
+            return;
+
+        int guard = 0;
+        while (guard++ < 500)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (tokenizer.CountTokens(Render(blocks), options.TokenModel) <= options.MaxTokens)
+                break;
+
+            // 1) Shrink the largest summarizable discourse that can still lose a sentence.
+            var shrink = blocks
+                .Where(b => !b.Protected && !b.Dropped && b.IsDiscourse && b.KeptSentences > 1)
+                .OrderByDescending(b => b.Rendered.Length)
+                .FirstOrDefault();
+            if (shrink != null)
+            {
+                shrink.KeptSentences--;
+                shrink.Rendered = RankAndSummarize(shrink.Original, shrink.KeptSentences, shrink.Iso3).Trim();
+                if (shrink.Compressed)
+                    shrink.Rendered = CavemanCompress(shrink.Rendered, shrink.Iso3, options.CompressionLevel);
+                continue;
+            }
+
+            // 2) Caveman-compress (aggressively) the largest not-yet-compressed block.
+            var compress = blocks
+                .Where(b => !b.Protected && !b.Dropped && !b.Compressed)
+                .OrderByDescending(b => b.Rendered.Length)
+                .FirstOrDefault();
+            if (compress != null)
+            {
+                compress.Rendered = CavemanCompress(compress.Rendered, compress.Iso3, CavemanCompressionLevel.Aggressive);
+                compress.Compressed = true;
+                continue;
+            }
+
+            // 3) Drop the oldest droppable block entirely.
+            var drop = blocks
+                .Where(b => !b.Protected && !b.Dropped)
+                .OrderBy(b => b.TurnIndex)
+                .FirstOrDefault();
+            if (drop == null)
+                break;
+            drop.Dropped = true;
+            drop.DroppedByBudget = true;
+        }
+    }
+
+    private static int Deduplicate(List<ChatBlock> blocks)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int removed = 0;
+        foreach (var b in blocks)
+        {
+            var key = Regex.Replace(b.Original, @"\s+", " ").Trim().ToLowerInvariant();
+            if (key.Length == 0)
+                continue;
+            if (!seen.Add(key))
+            {
+                b.Dropped = true;
+                removed++;
+            }
+        }
+        return removed;
+    }
+
+    private const string TruncationMarker = "[…]";
+
+    private static string Render(List<ChatBlock> blocks)
+    {
+        var parts = new List<string>(blocks.Count);
+        bool lastWasMarker = false;
+
+        foreach (var b in blocks)
+        {
+            if (b.Dropped)
+            {
+                // Budget-dropped turns leave a compact placeholder (collapsing consecutive ones)
+                // so the model can tell context was truncated; dedup-dropped blocks vanish silently.
+                if (b.DroppedByBudget && !lastWasMarker)
+                {
+                    parts.Add(TruncationMarker);
+                    lastWasMarker = true;
+                }
+                continue;
+            }
+
+            var text = b.Rendered.Trim();
+            if (text.Length == 0)
+                continue;
+
+            parts.Add(b.RolePrefix is { Length: > 0 } p ? $"{p}: {text}" : text);
+            lastWasMarker = false;
+        }
+
+        return string.Join("\n\n", parts);
+    }
+
+    private static List<BlockTrace> BuildTrace(List<ChatBlock> blocks)
+    {
+        var trace = new List<BlockTrace>(blocks.Count);
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            var b = blocks[i];
+            string action =
+                b.Dropped ? (b.DroppedByBudget ? "dropped" : "deduplicated") :
+                b.Critical ? "critical" :
+                b.Summarized ? (b.Compressed ? "summarized+compressed" : "summarized") :
+                b.Compressed ? "compressed" :
+                "kept";
+
+            trace.Add(new BlockTrace
+            {
+                Index = i,
+                Role = b.RolePrefix ?? string.Empty,
+                Action = action,
+                Discourse = b.IsDiscourse,
+                OriginalChars = b.Original.Length,
+                FinalChars = b.Dropped ? 0 : b.Rendered.Trim().Length
+            });
+        }
+        return trace;
+    }
+
+    private static CavemanConversation BuildResultConversation(List<ChatBlock> blocks, string format)
+    {
+        var conv = new CavemanConversation { Format = format };
+        foreach (var group in blocks.Where(b => !b.Dropped).GroupBy(b => b.TurnIndex).OrderBy(g => g.Key))
+        {
+            var content = string.Join("\n\n",
+                group.Select(b => b.Rendered.Trim()).Where(t => t.Length > 0));
+            if (content.Length == 0)
+                continue;
+            conv.Messages.Add(new CavemanMessage(group.First().Role, content));
+        }
+        return conv;
+    }
+
+    private string CavemanCompress(string text, string iso3, CavemanCompressionLevel level)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+        var compressed = _compressor.ApplyCompression(text, iso3, level).CompressedText;
+        return string.IsNullOrWhiteSpace(compressed) ? text : compressed;
+    }
+
+    /// <summary>Internal working unit: one segment of the conversation with its processing state.</summary>
+    private sealed class ChatBlock
+    {
+        public string Iso3 = "eng";
+        public string Original = string.Empty;
+        public string Rendered = string.Empty;
+        public CavemanRole Role = CavemanRole.Unknown;
+        public bool IsDiscourse;
+        public int SentenceCount;
+        public int KeptSentences;
+        public bool Protected;
+        public bool Critical;
+        public bool Summarized;
+        public bool Compressed;
+        public bool Dropped;
+        public bool DroppedByBudget;
+        public string? RolePrefix;
+        public int TurnIndex;
     }
 
     /// <summary>Splits cleaned text into paragraph-level blocks on blank lines.</summary>
@@ -349,4 +711,111 @@ public sealed class ChatSummarizeOptions
 
     /// <summary>Upper bound on sentences kept per summarized discourse.</summary>
     public int MaxSummarySentences { get; set; } = 8;
+
+    // ---- Conversation structure (additive; defaults preserve the flat behavior) ----
+
+    /// <summary>Parse the input into role-tagged turns (OpenAI/Anthropic JSON, ChatML, Gemma, Llama/Mistral, transcripts).</summary>
+    public bool ParseConversation { get; set; }
+
+    /// <summary>Keep the last N turns verbatim (recency window). Requires <see cref="ParseConversation"/>.</summary>
+    public int KeepLastTurnsVerbatim { get; set; }
+
+    /// <summary>Re-emit role labels (e.g. "User:", "Assistant:") when rendering a parsed conversation.</summary>
+    public bool ShowRolePrefixes { get; set; } = true;
+
+    /// <summary>Drop duplicate blocks (e.g. a system prompt repeated every turn).</summary>
+    public bool Deduplicate { get; set; }
+
+    /// <summary>Keep system/developer turns verbatim (instructions are rarely safe to summarize). Requires <see cref="ParseConversation"/>.</summary>
+    public bool KeepSystemVerbatim { get; set; } = true;
+
+    /// <summary>Regex patterns (case-insensitive) that pin a block: any block matching one is kept verbatim, never summarized.</summary>
+    public List<string> MustKeepPatterns { get; set; } = new();
+
+    /// <summary>When true, blocks containing numbers/dates/times are kept verbatim (so factual figures are never summarized away).</summary>
+    public bool KeepNumbersAndDates { get; set; }
+
+    /// <summary>Consult <see cref="CavemanSafetyGuard"/>; security-critical blocks are kept verbatim.</summary>
+    public bool RespectSafety { get; set; }
+
+    // ---- Markdown / JSON / HTML extraction ----
+
+    /// <summary>Keep JSON content (fenced and inline) instead of stripping it.</summary>
+    public bool KeepJson { get; set; }
+
+    /// <summary>Keep fenced code blocks verbatim instead of stripping them (useful for coding chats).</summary>
+    public bool KeepCode { get; set; }
+
+    /// <summary>Extract the inner text from HTML (default); when false HTML is left untouched.</summary>
+    public bool ExtractHtml { get; set; } = true;
+
+    // ---- Extra compression of the kept text ----
+
+    /// <summary>After summarizing, also run caveman compression (stop-word/lemma) on the kept text.</summary>
+    public bool CompressKeptText { get; set; }
+
+    /// <summary>Compression level used when <see cref="CompressKeptText"/> is enabled.</summary>
+    public CavemanCompressionLevel CompressionLevel { get; set; } = CavemanCompressionLevel.Semantic;
+
+    // ---- Token budget ----
+
+    /// <summary>Hard token budget; when &gt; 0 the result is tightened (shrink, compress, drop oldest) to fit.</summary>
+    public int MaxTokens { get; set; }
+
+    /// <summary>Model used for token counting (metrics and budget).</summary>
+    public LlmModel TokenModel { get; set; } = LlmModel.Gpt4;
+
+    // ---- Cost estimate (USD + EUR) ----
+
+    /// <summary>Input price in USD per 1K tokens; when null, an indicative default for <see cref="TokenModel"/> is used.</summary>
+    public decimal? UsdPer1KTokens { get; set; }
+
+    /// <summary>USD→EUR conversion rate used for the EUR cost estimate.</summary>
+    public decimal UsdToEurRate { get; set; } = CavemanCostEstimator.DefaultUsdToEur;
+
+    // ---- Observability ----
+
+    /// <summary>When true, the result is populated with a per-block <c>Trace</c> explaining each action.</summary>
+    public bool CollectTrace { get; set; }
+
+    // ---- Presets (convenience factories) ----
+
+    /// <summary>Conservative: parse roles, keep system/code verbatim, only summarize clearly long prose.</summary>
+    public static ChatSummarizeOptions Faithful() => new()
+    {
+        ParseConversation = true,
+        KeepSystemVerbatim = true,
+        KeepCode = true,
+        MinDiscourseWords = 80,
+        SummaryRatio = 0.6f
+    };
+
+    /// <summary>Rolling agent memory: parse roles, keep recent turns &amp; system verbatim, dedup, fit a budget.</summary>
+    public static ChatSummarizeOptions AgentMemory(int maxTokens, LlmModel model = LlmModel.Gpt4) => new()
+    {
+        ParseConversation = true,
+        KeepLastTurnsVerbatim = 4,
+        KeepSystemVerbatim = true,
+        Deduplicate = true,
+        MaxTokens = maxTokens,
+        TokenModel = model
+    };
+
+    /// <summary>Coding chat: parse roles and keep fenced code blocks verbatim.</summary>
+    public static ChatSummarizeOptions CodingChat() => new()
+    {
+        ParseConversation = true,
+        KeepCode = true,
+        KeepSystemVerbatim = true
+    };
+
+    /// <summary>Maximum savings: summarize hard and also caveman-compress the kept text.</summary>
+    public static ChatSummarizeOptions Aggressive() => new()
+    {
+        ParseConversation = true,
+        SummaryRatio = 0.25f,
+        MaxSummarySentences = 4,
+        CompressKeptText = true,
+        CompressionLevel = CavemanCompressionLevel.Aggressive
+    };
 }

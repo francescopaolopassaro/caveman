@@ -30,6 +30,9 @@ dotnet add package Caveman
 
 That's it — all language data ships inside the package. There are **no models to install**.
 
+> 📖 **Looking for a usage example of a specific method?** See
+> [`docs/EXAMPLES.md`](docs/EXAMPLES.md) — a runnable snippet for every public API.
+
 ### Quick start
 
 ```csharp
@@ -266,6 +269,108 @@ Markdown, JSON and HTML are stripped to plain text by
 entities decoded); call it yourself and pass `AlreadyClean = true` if your input
 is already clean.
 
+### Role/turn-aware conversations (multi-format)
+
+Set `ParseConversation = true` and Caveman parses the *structure* of a conversation —
+**OpenAI/Anthropic JSON** (incl. content-block arrays and `{ "messages": [...] }`),
+**ChatML**, **Gemma**, **Llama/Mistral** (`[INST]`, `<<SYS>>`) and plain labeled
+transcripts (`User:` / `Assistant:` / `Utente:` …) — then summarizes **per turn**:
+
+```csharp
+var options = new ChatSummarizeOptions
+{
+    ParseConversation    = true,   // detect roles/turns automatically
+    KeepLastTurnsVerbatim = 4,     // recency window: keep the last 4 turns intact
+    KeepSystemVerbatim    = true,  // never summarize the system prompt
+    Deduplicate           = true,  // drop a system prompt repeated every turn
+    RespectSafety         = true,  // keep security-critical turns verbatim
+    KeepCode              = true,  // keep fenced code blocks (coding chats)
+    MaxTokens             = 4000,  // hard budget: shrink → compress → drop oldest
+    TokenModel            = LlmModel.Gpt4
+};
+
+var result = textRank.RankAndSummarizeChatDetailed(conversation, options);
+
+Console.WriteLine($"{result.OriginalTokens} → {result.CompressedTokens} tokens " +
+                  $"({result.EfficiencyPercentage:F0}% saved), format: {result.Format}");
+
+// Re-feed the compacted conversation to your LLM API:
+string messagesJson = result.Conversation.ToMessagesJson(indented: true);
+```
+
+`RankAndSummarizeChatDetailed` returns token metrics, per-block stats and the
+compacted `CavemanConversation` (re-serializable with `ToMessagesJson()` /
+`ToTranscript()`). When the budget can't be met by compression alone, the oldest
+turns are dropped and replaced with a compact `[…]` marker.
+
+---
+
+## 🤖 AI-agent toolkit (forward-looking)
+
+Three embedding-free primitives for building agents on top of Caveman:
+
+```csharp
+// 1) A rolling, token-budget-bounded working memory.
+var window = new CavemanContextWindow(maxTokens: 4000) { KeepLastTurns = 6 };
+window.Append(CavemanRole.User, "…");
+window.Append(CavemanRole.Assistant, "…");
+// It auto-compacts older turns whenever it would exceed the budget:
+string contextForNextCall = window.ToMessagesJson();
+
+// 2) Distill a durable memory (salient sentences + key terms) to carry across sessions.
+MemoryNote memory = new CavemanMemoryExtractor().Extract(conversation, maxSentences: 5);
+//   memory.Summary  -> short recap   |   memory.Keywords -> names/entities to remember
+
+// 3) Query-focused context shaping: keep only what matters for the current question.
+string focused = new CavemanRelevanceFilter()
+    .Focus(largeContext, query: "How do I reset the password?", topK: 5);
+```
+
+These are also exposed to **Semantic Kernel** via `CavemanConversationPlugin`
+(`summarize_conversation`, `fit_to_budget`, `extract_memory`, `focus_conversation`,
+`estimate_tokens`), so the model can manage its own context window. The plugins ship in
+the separate, optional **`Caveman.SemanticKernel`** package (`dotnet add package
+Caveman.SemanticKernel`):
+
+```csharp
+var builder = Kernel.CreateBuilder();
+builder.Plugins.AddFromType<CavemanConversationPlugin>();
+var kernel = builder.Build();
+```
+
+### Persistence & long-term memory
+
+Save/restore an agent's working memory, and keep a recallable long-term memory across
+sessions — JSON, no external store required:
+
+```csharp
+// Persist a context window (atomic file store; pluggable backend via IConversationStore).
+var store = new FileConversationStore(@"C:\agent-state");
+window.SessionId = "user-42";
+await window.SaveAsync(store);
+var restored = await CavemanContextWindow.LoadAsync(store, "user-42");
+
+// Long-term memory: remember distilled notes, recall the relevant ones for a query.
+var memory = new CavemanMemoryStore();
+memory.Remember(new CavemanMemoryExtractor().Extract(conversation));
+var relevant = memory.Recall("what did we decide about the API?", topK: 3);
+string json = memory.Save();   // persist anywhere
+```
+
+`CavemanContextWindow.DeduplicateOnAppend = true` makes appending an already-seen turn
+idempotent (e.g. a system prompt re-sent every call).
+
+### Accurate budgets & cost
+
+Token counting is pluggable via **`ITokenCounter`** — inject a real BPE/tiktoken counter
+for exact budgets: `new CavemanTextRank(new FunctionWordProvider(), myCounter)`.
+`RankAndSummarizeChatDetailed` also reports the estimated money saved in **USD and EUR**
+(`EstimatedSavedUsd` / `EstimatedSavedEur`; indicative prices, override via
+`ChatSummarizeOptions.UsdPer1KTokens` / `UsdToEurRate`).
+
+To never lose a critical figure, pin blocks with `MustKeepPatterns` (regex) or
+`KeepNumbersAndDates = true` — matching blocks are kept verbatim.
+
 ### Console demos
 
 The console app includes demo commands that run both algorithms on a fixed Italian story ("Il ladro di ombre"), a free-text mode, and a conversation mode:
@@ -292,6 +397,10 @@ Compressing a prompt from 1000 → 400 tokens saves ~3 mWh and avoids ~1.2 mg CO
 ---
 
 ## 🔌 Semantic Kernel integration
+
+> The Semantic Kernel plugins live in the separate, optional **`Caveman.SemanticKernel`**
+> package — the core `Caveman` package has no Semantic Kernel dependency.
+> `dotnet add package Caveman.SemanticKernel`
 
 ```csharp
 var builder = Kernel.CreateBuilder();

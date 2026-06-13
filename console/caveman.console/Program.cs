@@ -438,22 +438,22 @@ namespace caveman
             Console.ResetColor();
             Console.WriteLine();
 
-            var result = textRank.RankAndSummarizeChat(text);
-
-            var originalWords = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-            var resultWords = result.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
-            var reduction = originalWords > 0 ? 100.0 * (1.0 - (double)resultWords / originalWords) : 0;
+            // Parse roles/turns when the input is a structured conversation, and report metrics.
+            var options = new ChatSummarizeOptions { ParseConversation = true };
+            var result = textRank.RankAndSummarizeChatDetailed(text, options);
 
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"Caratteri: {text.Length} -> {result.Length}");
-            Console.WriteLine($"Parole: {originalWords} -> {resultWords} (-{reduction:F0}%)");
+            Console.WriteLine($"Formato rilevato: {result.Format}");
+            Console.WriteLine($"Caratteri: {text.Length} -> {result.Text.Length}");
+            Console.WriteLine($"Token (GPT approx): {result.OriginalTokens} -> {result.CompressedTokens} (-{result.EfficiencyPercentage:F0}%)");
+            Console.WriteLine($"Blocchi: {result.Blocks} | riassunti {result.SummarizedBlocks} | verbatim {result.KeptVerbatimBlocks} | duplicati rimossi {result.DuplicatesRemoved}");
             Console.ResetColor();
             Console.WriteLine();
 
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine("--- Risultato (discorsi compressi, parole chiave/risultati intatti) ---");
             Console.ResetColor();
-            Console.WriteLine(result);
+            Console.WriteLine(result.Text);
             Console.WriteLine();
 
             Console.ForegroundColor = ConsoleColor.DarkGray;

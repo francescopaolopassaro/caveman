@@ -17,6 +17,8 @@ namespace caveman.core;
 public class FunctionWordProvider
 {
     private static readonly ConcurrentDictionary<string, HashSet<string>> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, Dictionary<string, string>> _lemmaCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string> _emptyLemmas = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> _empty = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Assembly _assembly = typeof(FunctionWordProvider).Assembly;
 
@@ -357,6 +359,43 @@ public class FunctionWordProvider
         if (string.IsNullOrEmpty(iso3))
             return _empty;
         return _cache.GetOrAdd(iso3, LoadFunctionWords);
+    }
+
+    /// <summary>
+    /// Returns the cached inflected-form → base-form map for a language (verbs folded in, explicit
+    /// lemmas taking precedence). Empty when the language has no lemma data. Shared by the
+    /// compressor, summarizer and relevance/dedup so they all normalize words the same way.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> GetLemmaMap(string iso3)
+    {
+        if (string.IsNullOrEmpty(iso3))
+            return _emptyLemmas;
+        return _lemmaCache.GetOrAdd(iso3, BuildLemmaMap);
+    }
+
+    private Dictionary<string, string> BuildLemmaMap(string iso3)
+    {
+        var data = LoadWordData(iso3);
+        if (data == null)
+            return _emptyLemmas;
+
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // Verbs are stored as lemma -> [conjugated forms]; invert into form -> lemma.
+        if (data.verbs?.Count > 0)
+            foreach (var (lemma, forms) in data.verbs)
+            {
+                if (string.IsNullOrEmpty(lemma) || forms == null) continue;
+                foreach (var f in forms)
+                    if (!string.IsNullOrEmpty(f)) map[f] = lemma;
+            }
+
+        // Explicit lemmas take precedence over verb-derived mappings.
+        if (data.lemmas?.Count > 0)
+            foreach (var (form, lemma) in data.lemmas)
+                if (!string.IsNullOrEmpty(form) && !string.IsNullOrEmpty(lemma)) map[form] = lemma;
+
+        return map.Count > 0 ? map : _emptyLemmas;
     }
 
     private HashSet<string> LoadFunctionWords(string iso3)
