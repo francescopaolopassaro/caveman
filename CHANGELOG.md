@@ -2,6 +2,43 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.2.0] - 2026-06-13
+
+Caveman can now summarize **whole chatbot/LLM conversations** in one call,
+intelligently compressing only the long natural-language passages while leaving
+structured service output untouched.
+
+### Highlights
+- **Conversation summarizer** — `CavemanTextRank.RankAndSummarizeChat(text)` takes
+  a full conversation context (markdown + JSON allowed), cleans it, splits it into
+  blocks and applies TextRank **only** to the long "discourse" blocks. Short blocks
+  (service results, keyword lists such as *"I.5 - Stemma, gonfalone, sigillo"*) and
+  discourses already under the quota are preserved **verbatim**.
+- **Discourse detection heuristic** — a block is treated as a summarizable discourse
+  only when it clears all three thresholds: a **word quota**, a minimum
+  **stop-word density** (prose vs. keyword/service lists) and a minimum
+  **sentence count**. No model, no LLM call.
+- **Tunable** — every threshold is exposed through `ChatSummarizeOptions`
+  (`MinDiscourseWords`, `MinFunctionWordRatio`, `MinDiscourseSentences`,
+  `SummaryRatio`, `MinSummarySentences`, `MaxSummarySentences`, `Iso3`, `AlreadyClean`).
+- **HTML is now extracted, not dropped** — `CavemanConversationToText` pulls the
+  inner text out of HTML (decoding entities like `&nbsp;`/`&amp;`, turning block
+  tags into separators) instead of discarding the content.
+
+### Added
+- `CavemanTextRank.RankAndSummarizeChat(string conversation, ChatSummarizeOptions? options = null)`.
+- `ChatSummarizeOptions` — thresholds that drive the conversation summarizer.
+- `/textrank-chat` console command — summarizes a pasted conversation.
+
+### Changed
+- `CavemanConversationToText.ExtractTextFromMarkdown` extracts HTML inner text as
+  plain text (entity decoding + exotic-space normalization) rather than removing it.
+
+### Removed
+- `/textrank-conversation` console command (superseded by `/textrank-chat`).
+
+[1.2.0]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.2.0
+
 ## [1.1.0] - 2026-06-12
 
 Caveman gains a full **NLP pipeline** — tokenization, sentence detection, and

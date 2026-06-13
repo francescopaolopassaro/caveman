@@ -2,13 +2,13 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.1.0</Version>
+  <Version>1.2.0</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction across 50+ languages. Licensed under the Caveman License (MIT + mandatory attribution to Passaro Francesco Paolo - Digitalsolutions.it). Bundled language data derived from Universal Dependencies (see NOTICE).</Description>
   <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3</PackageTags>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
-  <PackageReleaseNotes>1.0.3: Self-contained engine (no Catalyst/YamlDotNet at runtime). Lemmas, verb forms and a proper-noun gazetteer for 50+ languages imported from Universal Dependencies; verbs drive compression and names are kept verbatim. Language data compiled to brotli artifacts (~13 MB assembly vs ~68 MB) with a compact detection index. Licensed under the Caveman License (MIT + mandatory attribution); bundled data under Universal Dependencies terms (see NOTICE).</PackageReleaseNotes>
+  <PackageReleaseNotes>1.2.0: Conversation/chat summarization. New CavemanTextRank.RankAndSummarizeChat(text) cleans a full chatbot/LLM transcript (markdown + JSON), segments it into blocks and applies TextRank only to long natural-language discourses that exceed a configurable quota, while keeping short service results / keyword lists verbatim (tunable via ChatSummarizeOptions). CavemanConversationToText now extracts HTML inner text as plain text (decoding entities) instead of dropping it. Licensed under the Caveman License (MIT + mandatory attribution); bundled data under Universal Dependencies terms (see NOTICE).</PackageReleaseNotes>
   
   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <OutputType>Library</OutputType>

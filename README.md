@@ -222,15 +222,60 @@ string summary = textRank.RankAndSummarize(longText, ratio: 0.3f, "ita");
 - **TextRank** picks sentences that are central in the narrative flow — ideal for preserving the storyline (e.g. *"Elia opened his jar of shadows and lit up the square"*).
 - **Chained** (`CompressWithSummaryAsync`) first condenses to the essential sentences, then strips function words and normalises inflections — max token savings for LLM prompts.
 
+### Summarizing a whole conversation (`RankAndSummarizeChat`)
+
+When the input is a **full chatbot/LLM transcript** — a single big string mixing
+prose, JSON tool output, markdown and HTML — you usually don't want to summarize
+everything uniformly. `RankAndSummarizeChat` cleans the transcript, splits it into
+blocks and runs TextRank **only** on the long natural-language passages, while
+leaving short structured output (service results, keyword lists like
+*"I.5 - Stemma, gonfalone, sigillo"*) and already-short passages **verbatim**.
+
+```csharp
+var textRank = new CavemanTextRank();
+
+string conversation = /* the whole markdown/JSON/HTML chat context */;
+string condensed = textRank.RankAndSummarizeChat(conversation);
+```
+
+A block is treated as a summarizable **discourse** only when it clears all three
+heuristics — so a keyword list or a JSON-derived result is never mangled:
+
+- a **word quota** (`MinDiscourseWords`),
+- a minimum **stop-word density** (`MinFunctionWordRatio`) — prose has many
+  function words, keyword/service lists almost none,
+- a minimum **sentence count** (`MinDiscourseSentences`).
+
+Tune any threshold via `ChatSummarizeOptions`:
+
+```csharp
+var options = new ChatSummarizeOptions
+{
+    MinDiscourseWords = 80,     // only compress longer passages
+    SummaryRatio = 0.3f,        // keep ~30% of each discourse's sentences
+    MaxSummarySentences = 5,
+    Iso3 = "ita",               // skip auto-detection
+    AlreadyClean = false        // run markdown/JSON/HTML extraction first
+};
+
+string condensed = textRank.RankAndSummarizeChat(conversation, options);
+```
+
+Markdown, JSON and HTML are stripped to plain text by
+`CavemanConversationToText.ExtractTextFromMarkdown` (HTML **inner text is kept**,
+entities decoded); call it yourself and pass `AlreadyClean = true` if your input
+is already clean.
+
 ### Console demos
 
-The console app includes two demo commands that run both algorithms on a fixed Italian story ("Il ladro di ombre") plus a free-text mode:
+The console app includes demo commands that run both algorithms on a fixed Italian story ("Il ladro di ombre"), a free-text mode, and a conversation mode:
 
 ```
 /summarizer-demo     TF-IDF demo on the built-in story
 /summarizer          Paste your own text for TF-IDF summarization
 /textrank-demo       TextRank demo on the built-in story
 /textrank            Paste your own text for TextRank summarization
+/textrank-chat       Paste a full conversation; summarizes only the long discourses
 ```
 
 ---

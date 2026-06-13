@@ -160,6 +160,7 @@ namespace caveman
             Console.WriteLine("  /summarizer                  - Summarize your own text (paste, EOF to end)");
             Console.WriteLine("  /textrank-demo               - Demo TextRank graph-based summary (Italian)");
             Console.WriteLine("  /textrank                    - TextRank summarizer (paste, EOF to end)");
+            Console.WriteLine("  /textrank-chat               - TextRank on a full chat: summarizes only long discourses (paste, EOF)");
             Console.WriteLine("  /help                        - Show this menu");
             Console.WriteLine("  /exit                        - Exit");
             Console.WriteLine();
@@ -196,6 +197,7 @@ namespace caveman
                         Console.WriteLine("  /summarizer                 - Summarize your own text (paste, EOF to end)");
                         Console.WriteLine("  /textrank-demo              - Demo TextRank graph-based summary (Italian)");
                         Console.WriteLine("  /textrank                   - TextRank summarizer (paste, EOF to end)");
+                        Console.WriteLine("  /textrank-chat              - TextRank on a full chat: summarizes only long discourses (paste, EOF)");
                         Console.WriteLine("  /help                       - Show this menu");
                         Console.WriteLine("  /exit                       - Exit");
                         Console.WriteLine();
@@ -355,6 +357,13 @@ namespace caveman
                             RunTextRankAsync(textrankText);
                         break;
 
+                    case "/textrank-chat":
+                        Console.WriteLine("Paste the full chat context (end with EOF on new line):");
+                        var chatText = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(chatText))
+                            RunTextRankChatAsync(chatText);
+                        break;
+
                     case null:
                         break;
 
@@ -412,6 +421,40 @@ namespace caveman
                 Console.WriteLine(summary);
                 Console.WriteLine();
             }
+
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine(new string('=', 65));
+            Console.ResetColor();
+            Console.WriteLine();
+        }
+
+        static void RunTextRankChatAsync(string text)
+        {
+            var textRank = new CavemanTextRank();
+
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("=== TEXT RANK CHAT (riassume solo i discorsi lunghi) ===");
+            Console.ResetColor();
+            Console.WriteLine();
+
+            var result = textRank.RankAndSummarizeChat(text);
+
+            var originalWords = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+            var resultWords = result.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+            var reduction = originalWords > 0 ? 100.0 * (1.0 - (double)resultWords / originalWords) : 0;
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Caratteri: {text.Length} -> {result.Length}");
+            Console.WriteLine($"Parole: {originalWords} -> {resultWords} (-{reduction:F0}%)");
+            Console.ResetColor();
+            Console.WriteLine();
+
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.WriteLine("--- Risultato (discorsi compressi, parole chiave/risultati intatti) ---");
+            Console.ResetColor();
+            Console.WriteLine(result);
+            Console.WriteLine();
 
             Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.WriteLine(new string('=', 65));
