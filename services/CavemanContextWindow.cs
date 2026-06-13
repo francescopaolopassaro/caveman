@@ -24,6 +24,8 @@ public sealed class CavemanContextWindow
     private readonly ITokenCounter _tokenizer;
     private readonly List<CavemanMessage> _messages = new();
     private readonly HashSet<string> _seenHashes = new(StringComparer.OrdinalIgnoreCase);
+    // Fingerprints of turns already produced by a compaction — never re-summarized again.
+    private HashSet<string> _compactedHashes = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The hard token budget the window keeps the conversation within.</summary>
     public int MaxTokens { get; }
@@ -95,6 +97,7 @@ public sealed class CavemanContextWindow
     {
         _messages.Clear();
         _seenHashes.Clear();
+        _compactedHashes.Clear();
     }
 
     // ---- Persistence ----
@@ -173,6 +176,13 @@ public sealed class CavemanContextWindow
         if (TokenCount <= MaxTokens)
             return;
 
+        // The most recent turns stay "fresh" (eligible for summarization later); everything
+        // else in the output is considered already-compacted and won't be re-summarized.
+        var recentFresh = _messages
+            .Skip(Math.Max(0, _messages.Count - KeepLastTurns))
+            .Select(m => ConversationState.Fingerprint(m.Content))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var conversation = new CavemanConversation
         {
             Format = "openai-json",
@@ -185,10 +195,22 @@ public sealed class CavemanContextWindow
             KeepLastTurnsVerbatim = KeepLastTurns,
             KeepSystemVerbatim = true,
             MaxTokens = MaxTokens,
-            TokenModel = Model
+            TokenModel = Model,
+            VerbatimContentHashes = _compactedHashes   // don't re-summarize already-compacted turns
         });
 
         _messages.Clear();
         _messages.AddRange(result.Conversation.Messages);
+
+        // Recompute the compacted set: every surviving turn that isn't one of the recent
+        // fresh turns is now (or stays) compacted.
+        var next = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var m in _messages)
+        {
+            var fp = ConversationState.Fingerprint(m.Content);
+            if (!recentFresh.Contains(fp))
+                next.Add(fp);
+        }
+        _compactedHashes = next;
     }
 }

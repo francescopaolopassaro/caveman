@@ -71,6 +71,15 @@ Kernel plugin. Everything is **additive and backward compatible**: the existing
   `ChatSummarizeResult.Trace` (per-block action: summarized / compressed / kept /
   critical / dropped / deduplicated, with sizes).
 - **Examples** — `docs/EXAMPLES.md` documents every public method with a runnable snippet.
+- **Incremental compaction** — `CavemanContextWindow` no longer re-summarizes turns it
+  already compacted: a previously compacted turn is kept as-is on later compactions
+  (still droppable under the budget), avoiding progressive quality loss. Exposed for
+  advanced use via `ChatSummarizeOptions.VerbatimContentHashes`.
+- **Hardened `CavemanSafetyGuard`** — word-boundary-aware matching replaces naive
+  substring checks, eliminating false positives (e.g. *dos* in "Windows", *rce* in
+  "commerce"/"source", *production* in "reproduction") while still catching standalone
+  acronyms (DDoS, XSS, TLS) and command strings (`rm -rf`, `> /dev/sda`). A new
+  constructor accepts extra critical/warning patterns: `new CavemanSafetyGuard(extraCritical, extraWarning)`.
 
 ### Added
 - `CavemanConversation`, `CavemanMessage`, `CavemanRole`, `CavemanConversationParser`.
@@ -87,10 +96,8 @@ Kernel plugin. Everything is **additive and backward compatible**: the existing
 ### Known limitations (planned for a future release)
 - The **default** token counter is heuristic; inject `ITokenCounter` for an exact
   provider tokenizer when budget precision matters.
-- Persistence + `DeduplicateOnAppend` cover idempotent reload and exact-duplicate
-  turns, but the context window still re-summarizes already-compacted turns on each
-  compaction (incremental "skip already-compacted" not yet wired).
-- The chat path is synchronous (no `CancellationToken`); the budget loop is best-effort.
+- The token budget loop is best-effort (shrink → compress → drop oldest); it does not
+  guarantee a globally optimal selection.
 
 [1.2.1]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.2.1
 

@@ -204,6 +204,11 @@ public class CavemanTextRank
             bool keepVerbatim = isRecent ||
                                 (msg.Role == CavemanRole.System && options.KeepSystemVerbatim);
 
+            // A turn already produced by a previous compaction: keep as-is, don't re-summarize.
+            bool frozen = !keepVerbatim &&
+                          options.VerbatimContentHashes is { Count: > 0 } hashes &&
+                          hashes.Contains(ConversationState.Fingerprint(msg.Content));
+
             var clean = options.AlreadyClean
                 ? msg.Content
                 : CavemanConversationToText.ExtractTextFromMarkdown(msg.Content, MdOptions(options));
@@ -217,7 +222,7 @@ public class CavemanTextRank
             foreach (var text in SplitIntoBlocks(clean))
             {
                 var prefix = first && options.ShowRolePrefixes && msg.RoleLabel.Length > 0 ? msg.RoleLabel : null;
-                result.Add(MakeBlock(text, iso3, funcWords, options, msg.Role, prefix, i, keepVerbatim));
+                result.Add(MakeBlock(text, iso3, funcWords, options, msg.Role, prefix, i, keepVerbatim, frozen));
                 first = false;
             }
         }
@@ -227,7 +232,7 @@ public class CavemanTextRank
 
     private ChatBlock MakeBlock(
         string text, string iso3, HashSet<string> funcWords, ChatSummarizeOptions options,
-        CavemanRole role, string? rolePrefix, int turnIndex, bool keepVerbatim)
+        CavemanRole role, string? rolePrefix, int turnIndex, bool keepVerbatim, bool freeze = false)
     {
         var block = new ChatBlock
         {
@@ -251,6 +256,9 @@ public class CavemanTextRank
             block.Protected = true;     // recency / system prompt / pinned fact: keep verbatim
             return block;
         }
+
+        if (freeze)
+            return block;               // already compacted: keep as-is, never re-summarize (still droppable)
 
         if (IsLongDiscourse(text, funcWords, iso3, options, out var sentenceCount))
         {
@@ -737,6 +745,13 @@ public sealed class ChatSummarizeOptions
 
     /// <summary>Consult <see cref="CavemanSafetyGuard"/>; security-critical blocks are kept verbatim.</summary>
     public bool RespectSafety { get; set; }
+
+    /// <summary>
+    /// Content fingerprints (see <c>ConversationState.Fingerprint</c>) of turns that were already
+    /// compacted in a previous pass. Such turns are kept as-is and never re-summarized (still
+    /// droppable under a budget). Used by <see cref="CavemanContextWindow"/> for incremental compaction.
+    /// </summary>
+    public HashSet<string>? VerbatimContentHashes { get; set; }
 
     // ---- Markdown / JSON / HTML extraction ----
 

@@ -8,6 +8,8 @@
 // </copyright>
 // <summary>Auto-disables compression for security-critical or destructive content.</summary>
 // -----------------------------------------------------------------------------
+using System.Text.RegularExpressions;
+
 namespace caveman.core.services;
 
 public enum SafetyLevel
@@ -69,48 +71,68 @@ public class CavemanSafetyGuard
         "rollback", "migration"
     };
 
+    // Pre-compiled, word-boundary-aware matchers. A boundary is asserted only on the side(s)
+    // where the pattern starts/ends with an alphanumeric char, so acronyms like "dos"/"rce"
+    // no longer match inside "dose"/"Windows"/"force"/"source", while command strings such as
+    // "rm -rf", "> /dev/sda" or ">|" still match by content.
+    private static readonly (string Pattern, Regex Rx)[] CriticalMatchers = Build(CriticalPatterns);
+    private static readonly (string Pattern, Regex Rx)[] DestructiveMatchers = Build(DestructiveCommandPatterns);
+    private static readonly (string Pattern, Regex Rx)[] WarningMatchers = Build(WarningPatterns);
+
+    private readonly (string Pattern, Regex Rx)[] _extraCritical;
+    private readonly (string Pattern, Regex Rx)[] _extraWarning;
+
+    /// <summary>Creates a guard, optionally adding extra critical and/or warning patterns.</summary>
+    public CavemanSafetyGuard(
+        IEnumerable<string>? extraCriticalPatterns = null,
+        IEnumerable<string>? extraWarningPatterns = null)
+    {
+        _extraCritical = Build(extraCriticalPatterns);
+        _extraWarning = Build(extraWarningPatterns);
+    }
+
+    private static (string, Regex)[] Build(IEnumerable<string>? patterns) =>
+        patterns is null
+            ? Array.Empty<(string, Regex)>()
+            : patterns.Where(p => !string.IsNullOrEmpty(p)).Select(p => (p, BuildMatcher(p))).ToArray();
+
+    private static Regex BuildMatcher(string pattern)
+    {
+        var body = Regex.Escape(pattern);
+        var left = char.IsLetterOrDigit(pattern[0]) ? @"(?<![A-Za-z0-9])" : string.Empty;
+        var right = char.IsLetterOrDigit(pattern[^1]) ? @"(?![A-Za-z0-9])" : string.Empty;
+        return new Regex(left + body + right, RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    }
+
     public SafetyVerdict Check(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
             return new SafetyVerdict { Level = SafetyLevel.Normal };
 
-        foreach (var pattern in CriticalPatterns)
-        {
-            if (message.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                return new SafetyVerdict
-                {
-                    Level = SafetyLevel.Critical,
-                    Reason = $"Critical security pattern detected: '{pattern}'"
-                };
-            }
-        }
+        if (FirstMatch(CriticalMatchers, message, out var p) || FirstMatch(_extraCritical, message, out p))
+            return new SafetyVerdict { Level = SafetyLevel.Critical, Reason = $"Critical security pattern detected: '{p}'" };
 
-        foreach (var pattern in DestructiveCommandPatterns)
-        {
-            if (message.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                return new SafetyVerdict
-                {
-                    Level = SafetyLevel.Critical,
-                    Reason = $"Destructive command pattern detected: '{pattern}'"
-                };
-            }
-        }
+        if (FirstMatch(DestructiveMatchers, message, out p))
+            return new SafetyVerdict { Level = SafetyLevel.Critical, Reason = $"Destructive command pattern detected: '{p}'" };
 
-        foreach (var pattern in WarningPatterns)
-        {
-            if (message.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                return new SafetyVerdict
-                {
-                    Level = SafetyLevel.Warning,
-                    Reason = $"Warning pattern detected: '{pattern}'"
-                };
-            }
-        }
+        if (FirstMatch(WarningMatchers, message, out p) || FirstMatch(_extraWarning, message, out p))
+            return new SafetyVerdict { Level = SafetyLevel.Warning, Reason = $"Warning pattern detected: '{p}'" };
 
         return new SafetyVerdict { Level = SafetyLevel.Normal };
+    }
+
+    private static bool FirstMatch((string Pattern, Regex Rx)[] matchers, string message, out string pattern)
+    {
+        foreach (var (p, rx) in matchers)
+        {
+            if (rx.IsMatch(message))
+            {
+                pattern = p;
+                return true;
+            }
+        }
+        pattern = string.Empty;
+        return false;
     }
 
     public bool ShouldCompress(string message)

@@ -455,6 +455,40 @@ public class CavemanSafetyGuardTests
         Assert.That(_safety.Check("remote code execution via RCE").Level, Is.EqualTo(SafetyLevel.Critical));
         Assert.That(_safety.Check("private key exposed in repo").Level, Is.EqualTo(SafetyLevel.Critical));
     }
+
+    // ---- Word-boundary hardening: no more substring false positives ----
+
+    [Test]
+    [TestCase("We run the app on Windows servers.")]   // "dos" inside "Windows"
+    [TestCase("Our e-commerce platform is live.")]      // "rce" inside "commerce"
+    [TestCase("Download it from the source folder.")]   // "rce" inside "source"
+    [TestCase("Please increase the dose to two pills.")] // "dos" inside "dose"
+    [TestCase("See the reproduction notes below.")]     // "production" inside "reproduction"
+    public void NoFalsePositive_OnSubstrings(string message)
+    {
+        Assert.That(_safety.Check(message).Level, Is.EqualTo(SafetyLevel.Normal), message);
+    }
+
+    [Test]
+    [TestCase("This is a DDoS attack.")]
+    [TestCase("Found an XSS vulnerability.")]
+    [TestCase("The certificate uses TLS now.")]
+    public void StillDetects_StandaloneAcronyms(string message)
+    {
+        Assert.That(_safety.Check(message).Level, Is.EqualTo(SafetyLevel.Critical), message);
+    }
+
+    [Test]
+    public void ExtraPatterns_AreHonored_AndBoundaryAware()
+    {
+        var guard = new CavemanSafetyGuard(
+            extraCriticalPatterns: new[] { "gdpr" },
+            extraWarningPatterns: new[] { "wip" });
+
+        Assert.That(guard.Check("This handles GDPR data.").Level, Is.EqualTo(SafetyLevel.Critical));
+        Assert.That(guard.Check("It is still a wip feature.").Level, Is.EqualTo(SafetyLevel.Warning));
+        Assert.That(guard.Check("the gdprx report").Level, Is.EqualTo(SafetyLevel.Normal)); // boundary: not inside a larger word
+    }
 }
 
 [TestFixture]

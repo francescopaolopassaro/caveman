@@ -1,4 +1,5 @@
 using caveman.core;
+using caveman.core.entities;
 using caveman.core.services;
 
 namespace caveman.tests;
@@ -80,5 +81,41 @@ public class CavemanAsyncPresetTraceTests
     {
         var result = _textRank.RankAndSummarizeChatDetailed(Discourse);
         Assert.That(result.Trace, Is.Empty);
+    }
+
+    // ---- Incremental skip of already-compacted turns ----
+
+    private static string SecondDiscourse =>
+        Discourse.Replace("Elia", "Marco").Replace("Valchiara", "Pineta").Replace("ombre", "stelle");
+
+    [Test]
+    public void VerbatimContentHashes_FreezesTurn_NotReSummarized()
+    {
+        string M(string c) => $"{{ \"role\": \"user\", \"content\": {System.Text.Json.JsonSerializer.Serialize(c)} }}";
+        var json = "[ " + M(Discourse) + ", " + M(SecondDiscourse) + " ]";
+
+        var frozen = new HashSet<string> { ConversationState.Fingerprint(Discourse) };
+        var result = _textRank.RankAndSummarizeChatDetailed(json, new ChatSummarizeOptions
+        {
+            ParseConversation = true,
+            VerbatimContentHashes = frozen
+        });
+
+        // The frozen turn is kept verbatim; the other long discourse is summarized.
+        Assert.That(result.Text, Does.Contain(Discourse));
+        Assert.That(result.Text, Does.Not.Contain(SecondDiscourse));
+    }
+
+    [Test]
+    public void ContextWindow_RepeatedCompaction_StaysWithinBudget()
+    {
+        var window = new CavemanContextWindow(maxTokens: 150) { KeepLastTurns = 1 };
+        for (int i = 0; i < 6; i++)
+        {
+            window.Append(CavemanRole.User, Discourse);
+            window.Append(CavemanRole.Assistant, $"Risposta breve {i}.");
+        }
+        Assert.That(window.TokenCount, Is.LessThanOrEqualTo(150));
+        Assert.That(window.MessageCount, Is.GreaterThan(0));
     }
 }
