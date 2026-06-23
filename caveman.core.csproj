@@ -2,13 +2,13 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.2.1</Version>
+  <Version>1.3.0</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction across 50+ languages. Licensed under the Caveman License (MIT + mandatory attribution to Passaro Francesco Paolo - Digitalsolutions.it). Bundled language data derived from Universal Dependencies (see NOTICE).</Description>
   <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3</PackageTags>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
-  <PackageReleaseNotes>1.2.1 (special, agent-ready): adds a structured conversation model and a multi-format parser (OpenAI/Anthropic JSON, ChatML, Gemma, Llama/Mistral, labeled transcripts). RankAndSummarizeChat gains role/turn awareness, a recency window, deduplication, safety-aware skipping, optional JSON/code preservation (KeepJson/KeepCode), post-compression and a hard token budget — all additive via ChatSummarizeOptions (backward compatible). New RankAndSummarizeChatDetailed returns token metrics + the compacted conversation (re-serializable to messages JSON). New AI-agent primitives: CavemanContextWindow (rolling, budget-bounded working memory), CavemanMemoryExtractor (durable memory distillation) and CavemanRelevanceFilter (query-focused, embedding-free context shaping). New CavemanConversationPlugin for Semantic Kernel (summarize_conversation, fit_to_budget, extract_memory, focus_conversation, estimate_tokens). Licensed under the Caveman License (MIT + mandatory attribution); bundled data under Universal Dependencies terms (see NOTICE).</PackageReleaseNotes>
+  <PackageReleaseNotes>1.3.0: content-aware compression pipeline. New CavemanContentRouter detects content type (JSON array, code, log, diff, HTML, plain text) and routes to the best compressor. New CavemanJsonCrusher compresses JSON arrays via lossless CSV/markdown-table compaction or lossy BM25 row-drop (with CCR reversibility markers). New CavemanCacheAligner detects volatile tokens (UUIDs, ISO-8601 timestamps, JWTs, hex hashes) that break LLM KV-cache reuse. New CavemanCcrStore caches dropped rows for on-demand retrieval. ICompressionService gains CompressContentAsync() (content-type-aware, backward-compatible default implementation). New CavemanContentRouterBuilder for fluent DI composition. All changes are fully additive; existing API unchanged.</PackageReleaseNotes>
   
   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <OutputType>Library</OutputType>

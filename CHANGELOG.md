@@ -2,6 +2,123 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.3.0] - 2026-06-23
+
+A **content-aware compression pipeline** release, inspired by the open-source
+[headroom](https://github.com/noritama/headroom) architecture. Every type of
+content an LLM reads now has a dedicated compressor; the new `CavemanContentRouter`
+detects the type and dispatches automatically. Everything is **fully additive**:
+existing APIs are unchanged.
+
+### Highlights
+
+- **`CavemanContentRouter`** — single entry point that detects content type
+  (JSON array, log/stacktrace, search results, git diff, HTML, code, tabular,
+  plain text) and applies the best algorithm. Includes a two-tier
+  **skip-set + result cache** (30-min TTL) and a **circuit breaker** that
+  falls back to passthrough after 3 consecutive failures. An **inflation guard**
+  reverts to the original if the output ever exceeds the input token count.
+  One-line setup via `CavemanContentRouter.FromProfile(CompressionProfile)`.
+
+- **`CavemanJsonCrusher`** — JSON array compressor with two paths:
+  - *Lossless*: renders uniform arrays as a markdown table (≤6 keys, ≤50 rows)
+    or CSV (`#schema:` header + RFC 4180 rows) when savings ≥ 15%.
+  - *Lossy*: BM25 row-drop with first-30%/last-15% anchors and anomaly
+    detection; emits a `<<ccr:HASH,dropped=N/TOTAL>>` marker so the LLM can
+    retrieve dropped rows via `CavemanCcrStore`.
+
+- **`CavemanLogCompressor`** — severity scoring (ERROR/WARN/INFO/DEBUG),
+  multi-language stack-frame detection, context windowing (±2 lines around
+  errors), conservative warning deduplication (digits → N, hex → ADDR).
+
+- **`CavemanSearchCompressor`** — parses grep/ripgrep output, groups by file,
+  scores matches by query relevance + error signal, keeps first/last anchors
+  per file; selects top-N files by aggregate score.
+
+- **`CavemanDiffCompressor`** — preserves all `+`/`-` lines; trims context to
+  `MaxContextLines` (default 2); drops pure-context hunks and respects
+  `MaxHunksPerFile` / `MaxFiles`.
+
+- **`CavemanHtmlExtractor`** — pure-regex HTML-to-text: removes scripts/styles,
+  converts block elements to newlines, decodes HTML entities. No external deps.
+
+- **`CavemanCodeCompressor`** — multi-language comment stripper (C#/Java/JS/TS/
+  Go/Rust, Python, Ruby, SQL, Shell) + blank-line collapsing. Output is always
+  a safe structural subset of the input.
+
+- **`CavemanTabularCompressor`** — CSV and markdown-table compressor: drops
+  empty/constant columns, samples rows by query relevance with first/last
+  anchors.
+
+- **`CavemanOutputShaper`** — appends verbosity-steering instructions to system
+  prompts (`SkipCeremony` / `NoRestatement` / `ConclusionsOnly` / `MinimumTokens`).
+  Byte-stable per level, idempotent, removable.
+
+- **`CavemanCacheAligner`** — detects volatile tokens (UUIDs, ISO-8601
+  datetimes, JWTs, hex hashes) in system prompts that bust the LLM KV-cache.
+
+- **`CavemanCcrStore`** — thread-safe in-memory store (5-min TTL) for dropped
+  JSON rows; keyed by 12-char SHA-256 hex prefix.
+
+- **`CavemanCompressionCache`** — two-tier O(1) cache: Tier 1 skip-set for
+  non-compressible content, Tier 2 result cache with 30-min TTL and lazy
+  eviction.
+
+- **`CavemanWasteAnalyzer`** — estimates wasted tokens from HTML noise,
+  base64 blobs, excessive whitespace, and large inline JSON. Non-destructive;
+  use alongside a compressor.
+
+- **`CavemanSharedContext`** — inter-agent compressed context store: `Put`
+  compresses + stores, `Get` serves the compressed copy by default (tokens
+  saved on every agent read), `Get(full:true)` returns the original.
+
+- **`CavemanMessageDeduplicator`** — hash-based duplicate detection across
+  conversation messages; flags re-reads (gap > 3 messages) vs. polling.
+  `RemoveDuplicates` replaces duplicates with `[duplicate of message #N]`.
+
+- **`CompressionProfile` enum** — four presets (`Light`, `Balanced`, `Agent`,
+  `Aggressive`) that pre-configure the router, JSON crusher and prose level.
+  Use `CavemanContentRouter.FromProfile(profile)` for zero-config setup.
+
+- **`ICompressionService.CompressContentAsync`** — new method on the existing
+  interface with a backward-compatible default implementation (passthrough).
+  `CavemanCompressionService` overrides it to delegate to
+  `CavemanContentRouter`.
+
+- **`CavemanContentRouterBuilder`** gains `WithProseLevel`, `WithCache`.
+
+- **Benchmark results (real GPT-4 token counts):**
+
+  | Content | NLP Semantic | Router strategy | Router savings |
+  | :--- | :--- | :--- | :--- |
+  | Prose EN | −34.8% | NlpCompression | −34.8% |
+  | Prose IT | −28.0% | NlpCompression | −28.0% |
+  | JSON array (5 rows) | −68.8% | JsonCrush:MarkdownTable | −47.7% |
+  | Git diff | −58.2% | DiffCompression | −30.1% |
+  | HTML page | −49.0% | HtmlExtract+NlpCompression | **−69.8%** |
+  | C# code | −41.0% | CodeCompression | −26.1% |
+
+- **Console v1.3.0**: new `/router`, `/router-demo`, `/output-shape <0-4>`,
+  `/waste` commands; `--benchmark` flag prints the full token-savings table and exits.
+
+### Added
+- `CavemanContentRouter`, `CavemanContentDetector`
+- `CavemanJsonCrusher`, `CavemanCcrStore`
+- `CavemanLogCompressor`, `CavemanSearchCompressor`, `CavemanDiffCompressor`
+- `CavemanHtmlExtractor`, `CavemanCodeCompressor`, `CavemanTabularCompressor`
+- `CavemanOutputShaper`, `CavemanCacheAligner`
+- `CavemanCompressionCache`, `CavemanWasteAnalyzer`
+- `CavemanSharedContext`, `CavemanMessageDeduplicator`
+- `CompressionProfile`, `VerbosityLevel` enums
+- Entity types: `RoutedCompressionResult`, `JsonCrushResult`, `LogCompressionResult`,
+  `SearchCompressionResult`, `DiffCompressionResult`, `TabularCompressionResult`,
+  `CodeCompressionResult`, `WasteAnalysis`, `VolatileFinding`, `SharedContextEntry`,
+  `DeduplicationResult`, `CachedCompressionResult`, `ContentDetectionResult`
+- `ICompressionService.CompressContentAsync` (default implementation)
+- `CavemanContentRouterBuilder.WithProseLevel`, `.WithCache`
+
+[1.3.0]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.3.0
+
 ## [1.2.1] - 2026-06-13
 
 A **special, agent-ready** release: Caveman now understands the *structure* of a

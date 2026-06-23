@@ -135,3 +135,61 @@ public sealed class CavemanContextWindowBuilder
         };
     }
 }
+
+/// <summary>
+/// Fluent builder for <see cref="CavemanContentRouter"/>. All seams are optional;
+/// defaults create a fully functional router using <see cref="CavemanCompressionService"/>
+/// and <see cref="ModelTokenizer"/>.
+/// </summary>
+public sealed class CavemanContentRouterBuilder
+{
+    private ICompressionService? _compression;
+    private ITokenCounter? _tokenCounter;
+    private CavemanCcrStore? _ccrStore;
+    private CavemanCompressionCache? _cache;
+    private int _maxOutputItems = 15;
+
+    public CavemanContentRouterBuilder WithCompressionService(ICompressionService svc)
+    {
+        _compression = svc;
+        return this;
+    }
+
+    public CavemanContentRouterBuilder WithTokenCounter(ITokenCounter tc)
+    {
+        _tokenCounter = tc;
+        return this;
+    }
+
+    public CavemanContentRouterBuilder WithCcrStore(CavemanCcrStore store)
+    {
+        _ccrStore = store;
+        return this;
+    }
+
+    public CavemanContentRouterBuilder WithCache(CavemanCompressionCache cache)
+    {
+        _cache = cache;
+        return this;
+    }
+
+    public CavemanContentRouterBuilder WithMaxOutputItems(int max)
+    {
+        _maxOutputItems = max;
+        return this;
+    }
+
+    public CavemanContentRouter Build() =>
+        new(_compression, _tokenCounter, _ccrStore,
+            new CavemanJsonCrusher(_ccrStore) { MaxOutputItems = _maxOutputItems },
+            _cache,
+            _proseLevel);
+
+    private CavemanCompressionLevel _proseLevel = CavemanCompressionLevel.Semantic;
+
+    public CavemanContentRouterBuilder WithProseLevel(CavemanCompressionLevel level)
+    {
+        _proseLevel = level;
+        return this;
+    }
+}

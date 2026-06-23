@@ -9,6 +9,7 @@
 // <summary>Abstraction over the prompt-compression engine for dependency injection / swapping.</summary>
 // -----------------------------------------------------------------------------
 using caveman.core.entities;
+using caveman.core.services;
 
 namespace caveman.core;
 
@@ -41,4 +42,21 @@ public interface ICompressionService
 
     /// <summary>Releases cached per-language data.</summary>
     void ReleaseMemory();
+
+    /// <summary>
+    /// Routes <paramref name="content"/> through the content-aware pipeline:
+    /// JSON arrays are crushed, plain prose is NLP-compressed, code/diffs/logs/HTML are passed through unchanged.
+    /// </summary>
+    Task<RoutedCompressionResult> CompressContentAsync(
+        string content,
+        string? query = null,
+        CancellationToken ct = default)
+        => Task.FromResult(new RoutedCompressionResult
+        {
+            Original = content,
+            Compressed = content,
+            StrategyUsed = "Passthrough",
+            TokensBefore = 0,
+            TokensAfter = 0
+        });
 }

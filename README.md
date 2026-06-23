@@ -14,11 +14,14 @@ It is inspired by the token-saving idea behind the Caveman plugin for Claude, bu
 
 - **Up to 70% token reduction** — slash API costs and speed up local inference.
 - **50+ languages out of the box** — language data is embedded in the assembly; nothing to download at runtime.
-- **No heavy NLP runtime** — pure lookup + heuristics over per-language word data. The only package dependency is `Microsoft.SemanticKernel` (for the optional plugins).
+- **No heavy NLP runtime** — pure lookup + heuristics; zero ML model dependencies.
 - **Three compression levels** — `Light`, `Semantic`, `Aggressive`.
-- **Fast language detection** — a streaming parser reads only the stop-word section of each language to identify the input.
+- **Content-aware routing (v1.3.0)** — auto-detects JSON arrays, diffs, logs, HTML, code, tables and applies the best algorithm for each type.
+- **JSON SmartCrusher** — lossless CSV/markdown compaction or BM25 row-drop with reversible CCR markers.
+- **Output shaping** — inject verbosity-steering instructions into system prompts to prevent preamble/restatement generation.
+- **Compression profiles** — `Light`, `Balanced`, `Agent`, `Aggressive` presets for one-line setup.
 - **Batch & custom filters** — `CompressBatchAsync()` and user-defined POS-style filters.
-- **Semantic Kernel plugins** + a suite of developer services (commit/review/stats/safety/wiki).
+- **Semantic Kernel plugins** + developer tools (commit/review/stats/safety/wiki).
 
 ---
 
@@ -79,22 +82,45 @@ Detection is backed by a tiny embedded stop-word index, so it stays fast even th
 
 ---
 
-## 📊 Compression levels
+## 📊 Benchmark — real token savings (v1.3.0)
 
-| Level | Applied logic | What is kept | Typical savings |
-| :--- | :--- | :--- | :--- |
-| **Light** | Stop-word removal | Everything except function words & punctuation | ~25–30% |
-| **Semantic** | Content selection + lemmatization | Content words, normalised to their base form | ~50% |
-| **Aggressive** | Lemmatization + generic/descriptive pruning | Core nouns/verbs in base form | ~70% |
+All numbers are GPT-4 token counts measured on real inputs with `ModelTokenizer`.
 
-### Example
+### NLP Compression (`CavemanCompressionService`)
 
-| State | Prompt | Size |
+| Content type | Orig. tokens | Light | Semantic | Aggressive |
+| :--- | ---: | :--- | :--- | :--- |
+| Prose EN | 92 | −35.9% | −34.8% | −34.8% |
+| Prose IT | 93 | −23.7% | −28.0% | **−51.6%** |
+| Prose DE | 81 | −25.9% | −28.4% | −35.8% |
+| Prose FR | 65 | −33.8% | −32.3% | −38.5% |
+| Prose ES | 51 | −27.5% | −19.6% | −27.5% |
+| JSON array | 256 | −66.8% | **−68.8%** | **−68.8%** |
+| Git diff | 196 | −51.0% | −58.2% | −58.2% |
+| Build log | 207 | −32.4% | −62.3% | −62.3% |
+| Markdown table | 158 | −60.8% | **−64.6%** | **−64.6%** |
+| HTML page | 192 | −45.3% | −49.0% | −50.0% |
+| C# source code | 249 | −41.0% | −41.0% | −41.0% |
+
+### Content Router (`CavemanContentRouter.FromProfile(Balanced)`)
+
+The router auto-detects content type and picks the best algorithm:
+
+| Content type | Orig. tokens | After | Savings | Strategy |
+| :--- | ---: | ---: | :--- | :--- |
+| Prose EN | 92 | 60 | −34.8% | NlpCompression |
+| JSON array | 256 | 134 | **−47.7%** | JsonCrush:MarkdownTable |
+| Git diff | 196 | 137 | −30.1% | DiffCompression |
+| HTML page | 192 | 58 | **−69.8%** | HtmlExtract+NlpCompression |
+| C# code | 249 | 184 | −26.1% | CodeCompression |
+
+### NLP Compression levels
+
+| Level | Applied logic | Typical savings |
 | :--- | :--- | :--- |
-| **Original** | "I would like to know if it is possible to have a margherita pizza immediately." | 100% |
-| **Light** | "like know possible have margherita pizza immediately" | ~70% |
-| **Semantic** | "know possible have margherita pizza immediately" | ~55% |
-| **Aggressive** | "know possible margherita pizza" | ~40% |
+| **Light** | Stop-word removal | ~25–35% |
+| **Semantic** | Content words + lemmatization | ~30–69% |
+| **Aggressive** | Lemmatization + generic-term pruning | ~35–70% |
 
 ---
 

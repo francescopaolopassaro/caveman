@@ -56,6 +56,7 @@ namespace caveman.core
         private readonly ILanguageDetector _detector;
         private readonly ModelTokenizer? _tokenizer;
         private readonly FunctionWordProvider _wordProvider;
+        private readonly Lazy<CavemanContentRouter> _contentRouter;
         private static readonly ConcurrentDictionary<string, WordDataFile?> _dataCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>?> _lemmaCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, HashSet<string>> _properNounCache = new(StringComparer.OrdinalIgnoreCase);
@@ -104,6 +105,7 @@ namespace caveman.core
             _wordProvider = wordProvider ?? new FunctionWordProvider();
             _detector = detector ?? new CavemanLanguageDetector(_wordProvider);
             _tokenizer = tokenizer;
+            _contentRouter = new Lazy<CavemanContentRouter>(() => new CavemanContentRouter(this, _tokenizer));
         }
 
         /// <summary>
@@ -847,6 +849,10 @@ namespace caveman.core
             _properNounCache.Clear();
             _dataCache.Clear();
         }
+
+        public Task<RoutedCompressionResult> CompressContentAsync(
+            string content, string? query = null, CancellationToken ct = default)
+            => _contentRouter.Value.RouteAsync(content, query, ct);
 
         private int CountTokensApprox(string text) =>
             text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;

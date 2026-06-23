@@ -51,9 +51,15 @@ namespace caveman
     {
         static async Task Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--benchmark")
+            {
+                await RunBenchmarkAsync();
+                return;
+            }
+
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("**********************************************************");
-            Console.WriteLine("*  Caveman v.1.0.2 - Eco-Friendly NLP Prompt Optimizer    *");
+            Console.WriteLine("*  Caveman v.1.3.0 - Content-Aware Prompt Compressor      *");
             Console.WriteLine("*  C# - Version by Francesco Paolo Passaro                *");
             Console.WriteLine("**********************************************************");
             Console.ForegroundColor = ConsoleColor.Gray;
@@ -141,10 +147,13 @@ namespace caveman
             var reviewer = new CavemanReviewService();
             var cavecrew = new CavecrewService();
             var safety = new CavemanSafetyGuard();
+            var router = CavemanContentRouter.FromProfile(CompressionProfile.Balanced);
+            var outputShaper = new CavemanOutputShaper();
+            var wasteAnalyzer = new CavemanWasteAnalyzer();
 
             Console.ResetColor();
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.WriteLine("=== 🦴 CAVEMAN COMMAND SHELL ===");
+            Console.WriteLine("=== CAVEMAN 1.3.0 — COMMAND SHELL ===");
             Console.ResetColor();
             Console.WriteLine("Available commands:");
             Console.WriteLine("  /caveman-compress <dir>     - Compress context files (CLAUDE.md, TODO)");
@@ -156,11 +165,15 @@ namespace caveman
             Console.WriteLine("  /caveman-build <desc> | <files> - Plan surgical changes");
             Console.WriteLine("  /caveman-crew-review [diff|EOF] - Cavecrew diff analysis");
             Console.WriteLine("  /caveman-safety <msg>        - Check security/destructive patterns");
+            Console.WriteLine("  /router                      - Route content to best compressor (paste, EOF)");
+            Console.WriteLine("  /router-demo                 - Demo content router on built-in samples");
+            Console.WriteLine("  /output-shape <level>        - Preview verbosity steering (0-4)");
+            Console.WriteLine("  /waste                       - Analyze token waste in content (paste, EOF)");
             Console.WriteLine("  /summarizer-demo             - Demo: TF-IDF summarization (Italian)");
             Console.WriteLine("  /summarizer                  - Summarize your own text (paste, EOF to end)");
             Console.WriteLine("  /textrank-demo               - Demo TextRank graph-based summary (Italian)");
             Console.WriteLine("  /textrank                    - TextRank summarizer (paste, EOF to end)");
-            Console.WriteLine("  /textrank-chat               - TextRank on a full chat: summarizes only long discourses (paste, EOF)");
+            Console.WriteLine("  /textrank-chat               - TextRank on a full chat (paste, EOF)");
             Console.WriteLine("  /help                        - Show this menu");
             Console.WriteLine("  /exit                        - Exit");
             Console.WriteLine();
@@ -362,6 +375,55 @@ namespace caveman
                         var chatText = ReadMultilineInput();
                         if (!string.IsNullOrWhiteSpace(chatText))
                             RunTextRankChatAsync(chatText);
+                        break;
+
+                    case "/router":
+                        Console.WriteLine("Paste content to route (end with EOF on new line):");
+                        var routeInput = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(routeInput))
+                        {
+                            var rr = await router.RouteAsync(routeInput);
+                            Console.ForegroundColor = ConsoleColor.Cyan;
+                            Console.WriteLine($"\nDetected: {rr.DetectedType} | Strategy: {rr.StrategyUsed}");
+                            Console.WriteLine($"Tokens: {rr.TokensBefore} -> {rr.TokensAfter} ({rr.SavingsPercent:F1}% saved)");
+                            Console.ResetColor();
+                            Console.WriteLine("\n--- Compressed ---");
+                            Console.WriteLine(rr.Compressed.Length > 800 ? rr.Compressed[..800] + "\n[...truncated]" : rr.Compressed);
+                        }
+                        break;
+
+                    case "/router-demo":
+                        await RunRouterDemoAsync(router);
+                        break;
+
+                    case var c when c != null && c.StartsWith("/output-shape"):
+                    {
+                        var parts = cmd.Split(' ', 2);
+                        var lvl = parts.Length > 1 && int.TryParse(parts[1], out int lv) ? (VerbosityLevel)lv : VerbosityLevel.NoRestatement;
+                        const string demoPrompt = "You are a helpful assistant. Answer questions clearly and accurately.";
+                        var shaped = outputShaper.ShapeSystemPrompt(demoPrompt, lvl);
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"\nVerbosity level: {lvl}\n");
+                        Console.ResetColor();
+                        Console.WriteLine(shaped);
+                        break;
+                    }
+
+                    case "/waste":
+                        Console.WriteLine("Paste content to analyze (end with EOF on new line):");
+                        var wasteInput = ReadMultilineInput();
+                        if (!string.IsNullOrWhiteSpace(wasteInput))
+                        {
+                            var wa = wasteAnalyzer.Analyze(wasteInput);
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.WriteLine($"\nWaste analysis:");
+                            Console.WriteLine($"  HTML noise:   {wa.HtmlNoiseTokens,4} tokens");
+                            Console.WriteLine($"  Base64 blobs: {wa.Base64Tokens,4} tokens");
+                            Console.WriteLine($"  Whitespace:   {wa.WhitespaceTokens,4} tokens");
+                            Console.WriteLine($"  JSON bloat:   {wa.JsonBloatTokens,4} tokens");
+                            Console.WriteLine($"  Total waste:  {wa.TotalWasteTokens,4} tokens");
+                            Console.ResetColor();
+                        }
                         break;
 
                     case null:
@@ -891,7 +953,112 @@ namespace caveman
             }
 
             if (review.TotalIssues == 0)
-                Console.WriteLine("  ✅ No issues found.");
+                Console.WriteLine("  No issues found.");
+        }
+
+        // ==================== ROUTER DEMO ====================
+
+        static async Task RunRouterDemoAsync(CavemanContentRouter router)
+        {
+            var tok = new ModelTokenizer();
+            var demos = new (string Label, string Content)[]
+            {
+                ("Prose EN", "I would really like to know if you could kindly provide me with some information regarding the best and most affordable restaurants in London near Victoria Station for my family visit this weekend."),
+                ("JSON array", @"[{""id"":1,""user"":""alice"",""action"":""login"",""status"":""ok""},{""id"":2,""user"":""bob"",""action"":""upload"",""status"":""ok""},{""id"":3,""user"":""carol"",""action"":""delete"",""status"":""failed""}]"),
+                ("Git diff", "diff --git a/api.cs b/api.cs\n--- a/api.cs\n+++ b/api.cs\n@@ -1,8 +1,8 @@\n public class Api\n {\n     // context\n     // context\n-    public void OldEndpoint() {}\n+    public void NewEndpoint() {}\n     // context\n     // context\n }"),
+                ("HTML", "<html><head><style>body{color:red}</style></head><body><p>Main content here, important information.</p><script>alert(1)</script></body></html>"),
+            };
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("=== CONTENT ROUTER DEMO ===");
+            Console.ResetColor();
+            Console.WriteLine($"{"Type",-12} {"Orig",5} {"After",5} {"Saving%",8}  Strategy");
+            Console.WriteLine(new string('-', 60));
+            foreach (var (label, content) in demos)
+            {
+                var rr = await router.RouteAsync(content);
+                int orig = tok.CountTokens(content, LlmModel.Gpt4);
+                int after = tok.CountTokens(rr.Compressed, LlmModel.Gpt4);
+                double pct = orig > 0 ? (orig - after) * 100.0 / orig : 0;
+                Console.ForegroundColor = pct > 30 ? ConsoleColor.Green : ConsoleColor.White;
+                Console.WriteLine($"{label,-12} {orig,5} {after,5} {pct,7:F1}%  {rr.StrategyUsed}");
+            }
+            Console.ResetColor();
+        }
+
+        // ==================== BENCHMARK ====================
+
+        static async Task RunBenchmarkAsync()
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            var svc = new CavemanCompressionService(new ModelTokenizer());
+            var router = CavemanContentRouter.FromProfile(CompressionProfile.Balanced);
+            var tok = new ModelTokenizer();
+
+            var samples = new (string Label, string Text)[]
+            {
+                ("Prose EN", "I would really like to know if you could kindly provide me with some detailed information regarding the best and most affordable restaurants that are conveniently located in central London, specifically near the Victoria Station area, as I am planning to visit with my family this coming weekend and want to make the best possible choice for everyone."),
+                ("Prose IT", "Buongiorno, vorrei gentilmente sapere se fosse possibile ricevere alcune informazioni riguardo ai migliori ristoranti economici che si trovano a Roma, preferibilmente vicino alla stazione Termini, in quanto ho intenzione di visitare la citta con la mia famiglia nel prossimo weekend e vorrei fare la scelta migliore possibile per tutti."),
+                ("Prose DE", "Ich wuerde wirklich gerne wissen, ob Sie mir freundlicherweise einige detaillierte Informationen ueber die besten und guenstigsten Restaurants geben koennten, die sich in der Naehe des Berliner Hauptbahnhofs befinden, da ich plane, dieses Wochenende mit meiner Familie dorthin zu fahren."),
+                ("Prose FR", "Je souhaiterais vraiment savoir si vous pourriez me donner quelques informations detaillees sur les meilleurs restaurants abordables situes pres de la gare du Nord a Paris, car je prevois de visiter la ville avec ma famille ce week-end."),
+                ("Prose ES", "Me gustaria mucho saber si podria proporcionarme alguna informacion detallada sobre los mejores restaurantes asequibles que se encuentran cerca de la estacion de Atocha en Madrid."),
+                ("JSON array 5r", @"[{""id"":1,""name"":""Alice Smith"",""email"":""alice@example.com"",""role"":""admin"",""status"":""active""},{""id"":2,""name"":""Bob Jones"",""email"":""bob@example.com"",""role"":""user"",""status"":""active""},{""id"":3,""name"":""Carol White"",""email"":""carol@example.com"",""role"":""user"",""status"":""inactive""},{""id"":4,""name"":""Dave Brown"",""email"":""dave@example.com"",""role"":""user"",""status"":""active""},{""id"":5,""name"":""Eve Black"",""email"":""eve@example.com"",""role"":""mod"",""status"":""active""}]"),
+                ("Git diff", "diff --git a/src/App.cs b/src/App.cs\nindex abc..def 100644\n--- a/src/App.cs\n+++ b/src/App.cs\n@@ -1,15 +1,15 @@\n public class App\n {\n     // old comment 1\n     // old comment 2\n     // padding context line\n     // more padding context\n     // even more padding\n     // extra padding line\n-    public void OldMethod() { Console.WriteLine(\"old\"); }\n+    public void NewMethod() { Console.WriteLine(\"new\"); }\n     // after context 1\n     // after context 2\n     // after padding 1\n     // after padding 2\n     // final line\n }"),
+                ("Build log", "INFO 2026-01-01 10:00:01 Build started\nINFO 2026-01-01 10:00:02 Restoring packages\nINFO 2026-01-01 10:00:03 Restored 42 packages in 1.2s\nINFO 2026-01-01 10:00:04 Compiling src/App.cs\nINFO 2026-01-01 10:00:05 Compiling src/Service.cs\nINFO 2026-01-01 10:00:06 Compiling src/Repository.cs\nINFO 2026-01-01 10:00:07 Compiling src/Models.cs\nERROR 2026-01-01 10:00:08 Build FAILED: NullReferenceException\n   at App.Run() in App.cs:line 42\n   at Program.Main() in Program.cs:line 10\nINFO 2026-01-01 10:00:09 Build output: 0 warnings, 1 error"),
+                ("Markdown table", "| Name | Dept | Salary | City | Status | Notes |\n|------|------|--------|------|--------|-------|\n| Alice | Engineering | 85000 | Remote | Active | Senior |\n| Bob | Marketing | 72000 | NYC | Active | Junior |\n| Carol | Engineering | 91000 | Remote | Active | Lead |\n| Dave | Sales | 68000 | LA | Inactive | Part-time |\n| Eve | Engineering | 88000 | Remote | Active | Senior |"),
+                ("HTML page", "<html><head><title>Report</title><style>body{font-family:Arial;font-size:12px}</style></head><body><div class='container'><h1>Monthly Report</h1><p>This month we achieved record sales across all regions. Total revenue reached 2.4 million dollars, exceeding our quarterly target by 18 percent.</p><p>Key highlights include expansion into three new markets and a 24 percent increase in customer retention.</p><script>analytics.track('report_view')</script></div></body></html>"),
+                ("C# code", "// Auth service\nusing System;\nusing System.Threading.Tasks;\n// Handles user login\npublic class AuthService\n{\n    // Dependencies\n    private readonly IUserRepository _repo;\n    private readonly ILogger _logger;\n    // Init\n    public AuthService(IUserRepository repo, ILogger logger)\n    {\n        _repo = repo;   // store repo\n        _logger = logger; // store logger\n    }\n    // Authenticate user - returns true if valid\n    public async Task<bool> AuthenticateAsync(string username, string password)\n    {\n        // Log the attempt\n        _logger.LogInfo($\"Auth attempt for {username}\");\n        var user = await _repo.FindByUsernameAsync(username);\n        if (user == null) return false; // not found\n        return user.VerifyPassword(password); // check hash\n    }\n}"),
+            };
+
+            Console.WriteLine("=== CAVEMAN 1.3.0 — BENCHMARK TOKEN SAVINGS ===");
+            Console.WriteLine();
+            Console.WriteLine("NLP COMPRESSION (CavemanCompressionService)");
+            Console.WriteLine($"{"Content",-22} {"OrigTok",7} {"Light",6} {"Sem.",6} {"Aggr.",6}  {"Light%",7} {"Sem.%",7} {"Aggr.%",7}");
+            Console.WriteLine(new string('-', 82));
+
+            foreach (var (label, text) in samples)
+            {
+                int orig = tok.CountTokens(text, LlmModel.Gpt4);
+                var rL = await svc.CompressAsync(text, CavemanCompressionLevel.Light);
+                var rS = await svc.CompressAsync(text, CavemanCompressionLevel.Semantic);
+                var rA = await svc.CompressAsync(text, CavemanCompressionLevel.Aggressive);
+                int tL = tok.CountTokens(rL.CompressedText, LlmModel.Gpt4);
+                int tS = tok.CountTokens(rS.CompressedText, LlmModel.Gpt4);
+                int tA = tok.CountTokens(rA.CompressedText, LlmModel.Gpt4);
+                double pL = orig > 0 ? (orig - tL) * 100.0 / orig : 0;
+                double pS = orig > 0 ? (orig - tS) * 100.0 / orig : 0;
+                double pA = orig > 0 ? (orig - tA) * 100.0 / orig : 0;
+                Console.WriteLine($"{label,-22} {orig,7} {tL,6} {tS,6} {tA,6}  {pL,6:F1}% {pS,6:F1}% {pA,6:F1}%");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("CONTENT ROUTER (CompressContentAsync — Balanced profile)");
+            Console.WriteLine($"{"Content",-22} {"OrigTok",7} {"After",6} {"Savings%",9}  {"Strategy",-30}");
+            Console.WriteLine(new string('-', 82));
+
+            foreach (var (label, text) in samples)
+            {
+                int orig = tok.CountTokens(text, LlmModel.Gpt4);
+                var rr = await router.RouteAsync(text);
+                int after = tok.CountTokens(rr.Compressed, LlmModel.Gpt4);
+                double pct = orig > 0 ? (orig - after) * 100.0 / orig : 0;
+                Console.WriteLine($"{label,-22} {orig,7} {after,6} {pct,8:F1}%  {rr.StrategyUsed,-30}");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("COMPRESSION PROFILES (JSON array 5 rows)");
+            var jsonSample = samples.First(s => s.Label.StartsWith("JSON")).Text;
+            int jsonOrig = tok.CountTokens(jsonSample, LlmModel.Gpt4);
+            Console.WriteLine($"{"Profile",-14} {"MaxItems",9} {"ProseLevel",-12} {"Tokens",7} {"Savings%",9}");
+            Console.WriteLine(new string('-', 55));
+            foreach (var profile in Enum.GetValues<CompressionProfile>())
+            {
+                var r2 = CavemanContentRouter.FromProfile(profile);
+                var rr2 = await r2.RouteAsync(jsonSample);
+                int after2 = tok.CountTokens(rr2.Compressed, LlmModel.Gpt4);
+                double pct2 = jsonOrig > 0 ? (jsonOrig - after2) * 100.0 / jsonOrig : 0;
+                Console.WriteLine($"{profile,-14} {"--",9} {"--",-12} {after2,7} {pct2,8:F1}%");
+            }
         }
     }
 }
