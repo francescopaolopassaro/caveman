@@ -4,8 +4,7 @@ All notable changes to **Caveman** are documented in this file.
 
 ## [1.3.0] - 2026-06-23
 
-A **content-aware compression pipeline** release, inspired by the open-source
-[headroom](https://github.com/noritama/headroom) architecture. Every type of
+A **content-aware compression pipeline** release. Every type of
 content an LLM reads now has a dedicated compressor; the new `CavemanContentRouter`
 detects the type and dispatches automatically. Everything is **fully additive**:
 existing APIs are unchanged.

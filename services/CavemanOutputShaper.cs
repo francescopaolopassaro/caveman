@@ -27,7 +27,7 @@ public sealed class CavemanOutputShaper
     private const string SentinelOpen = "<!-- caveman-verbosity-";
     private const string SentinelClose = " -->";
 
-    // Cumulative instruction blocks, port of headroom output_shaper.py verbosity levels
+    // Cumulative instruction blocks per verbosity level
     private static readonly string L1Text =
         "Skip preamble and postamble. Do not say things like \"Sure!\", \"Of course!\", " +
         "\"Great question!\", \"Certainly!\", \"I'd be happy to...\", \"Let me...\", or similar. " +
