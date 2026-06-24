@@ -33,12 +33,18 @@
     <Compile Remove="console\**" />
     <Compile Remove="tests\**" />
     <Compile Remove="scripts\**" />
+    <Compile Remove="mcp\**" />
+    <Compile Remove="copilot\**" />
     <EmbeddedResource Remove="console\**" />
     <EmbeddedResource Remove="tests\**" />
     <EmbeddedResource Remove="scripts\**" />
+    <EmbeddedResource Remove="mcp\**" />
+    <EmbeddedResource Remove="copilot\**" />
     <None Remove="console\**" />
     <None Remove="tests\**" />
     <None Remove="scripts\**" />
+    <None Remove="mcp\**" />
+    <None Remove="copilot\**" />
   </ItemGroup>
 
   <ItemGroup>

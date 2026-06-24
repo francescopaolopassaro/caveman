@@ -18,6 +18,7 @@ public class FunctionWordProvider
 {
     private static readonly ConcurrentDictionary<string, HashSet<string>> _cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, Dictionary<string, string>> _lemmaCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, HashSet<string>> _exclCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, string> _emptyLemmas = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> _empty = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Assembly _assembly = typeof(FunctionWordProvider).Assembly;
@@ -551,6 +552,51 @@ public class FunctionWordProvider
                 return s.Substring(1, s.Length - 2).Replace("''", "'");
         }
         return s;
+    }
+
+    /// <summary>
+    /// Returns words unique to this language — used by the detector's second pass
+    /// to disambiguate texts that share common words with other languages (e.g. "per",
+    /// "a", "in" appear in both English and Italian).
+    /// Returns an empty set when no exclusive-marker file is available for the language.
+    /// </summary>
+    public HashSet<string> GetExclusiveMarkers(string iso3)
+    {
+        if (string.IsNullOrEmpty(iso3))
+            return _empty;
+        return _exclCache.GetOrAdd(iso3.ToLowerInvariant(), LoadExclusiveMarkers);
+    }
+
+    private static HashSet<string> LoadExclusiveMarkers(string iso3)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var raw = _assembly.GetManifestResourceStream(
+            $"caveman.core.worddata.{iso3.ToLowerInvariant()}.excl.yaml.br");
+        if (raw == null)
+            return result;
+
+        using var br = new BrotliStream(raw, CompressionMode.Decompress);
+        using var reader = new StreamReader(br);
+
+        bool inExcl = false;
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (line.Length == 0) continue;
+            if (!char.IsWhiteSpace(line[0]))
+            {
+                inExcl = line.TrimEnd().TrimEnd(':') == "exclusive_markers";
+                continue;
+            }
+            if (!inExcl) continue;
+            var t = line.Trim();
+            if (t.Length >= 2 && t[0] == '-')
+            {
+                var w = StripQuotes(t.Substring(1).Trim());
+                if (w.Length > 0) result.Add(w);
+            }
+        }
+        return result;
     }
 
     public HashSet<string> GetAllSupportedIso3()

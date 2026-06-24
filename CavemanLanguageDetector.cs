@@ -14,27 +14,41 @@ namespace caveman.core;
 
 /// <summary>
 /// Detects the language of a text by scoring it against each supported language's
-/// stop-word list. Backed by a small embedded index, so it stays fast even though it
-/// considers every supported language. Usable standalone, without compression.
+/// stop-word list. Uses a two-pass strategy:
+/// <list type="number">
+///   <item>Raw function-word hit count per language.</item>
+///   <item>Exclusive-marker boost: if a language has words that appear in no other
+///   curated language, it wins — even a single exclusive marker beats an ambiguous
+///   multi-language tie (fixes false positives on shared words like "per", "a", "in").</item>
+/// </list>
 /// </summary>
 public class CavemanLanguageDetector : ILanguageDetector
 {
     private static readonly Regex WordSplit = new(@"\p{L}+(?:'\p{L}+)?", RegexOptions.Compiled);
     private readonly FunctionWordProvider _wordProvider;
     private readonly HashSet<string> _supportedLanguages;
+    private readonly HashSet<string> _curatedIso3s;
+
+    // Languages with curated exclusive-marker files (.excl.yaml.br).
+    private static readonly HashSet<string> CuratedSet = new(
+        new[] { "eng", "ita", "fra", "deu", "spa", "por", "nld" },
+        StringComparer.OrdinalIgnoreCase);
+
+    // A curated language is preferred over a YAML-only result when its score
+    // is at least this fraction of the best YAML score.
+    private const double CuratedPreferenceThreshold = 0.75;
 
     /// <summary>Creates a detector, optionally sharing an existing word-data provider.</summary>
     public CavemanLanguageDetector(FunctionWordProvider? wordProvider = null)
     {
         _wordProvider = wordProvider ?? new FunctionWordProvider();
         _supportedLanguages = _wordProvider.GetAllSupportedIso3();
+        _curatedIso3s = CuratedSet;
     }
 
     /// <summary>
     /// Returns the most likely language as an ISO 639-3 code (e.g. "eng", "ita"),
-    /// falling back to "eng" for empty or genuinely ambiguous input. Short inputs
-    /// (a word or two) are supported, but a single token shared by several languages
-    /// stays ambiguous and resolves to "eng".
+    /// falling back to "eng" for empty or genuinely ambiguous input.
     /// </summary>
     public string Detect(string text)
     {
@@ -45,22 +59,15 @@ public class CavemanLanguageDetector : ILanguageDetector
         if (tokens.Count == 0)
             return "eng";
 
+        // ── Pass 1: raw function-word scoring ────────────────────────────────
         var scores = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var wordCount = tokens.Count;
-
         foreach (var iso3 in _supportedLanguages)
         {
             var fw = _wordProvider.GetFunctionWords(iso3);
-            if (fw.Count == 0)
-                continue;
-
+            if (fw.Count == 0) continue;
             var hits = 0;
             foreach (var token in tokens)
-            {
-                if (fw.Contains(token))
-                    hits++;
-            }
-
+                if (fw.Contains(token)) hits++;
             if (hits > 0)
                 scores[iso3] = hits;
         }
@@ -68,16 +75,55 @@ public class CavemanLanguageDetector : ILanguageDetector
         if (scores.Count == 0)
             return "eng";
 
+        var wordCount = tokens.Count;
         var best = scores.MaxBy(kv => kv.Value);
         var bestScore = best.Value;
-        var totalFuncWords = scores.Values.Sum();
 
-        if (bestScore < 1)
+        if (bestScore < 1 || (double)bestScore / wordCount < 0.02)
             return "eng";
 
-        var ratio = (double)bestScore / wordCount;
-        if (ratio < 0.02)
-            return "eng";
+        // ── Pass 2: exclusive-marker boost ────────────────────────────────────
+        // Words unique to one language cut through ties caused by shared words.
+        var exclScores = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var iso3 in _curatedIso3s)
+        {
+            var excl = _wordProvider.GetExclusiveMarkers(iso3);
+            if (excl.Count == 0) continue;
+            var hits = 0;
+            foreach (var token in tokens)
+                if (excl.Contains(token)) hits++;
+            if (hits > 0)
+                exclScores[iso3] = hits;
+        }
+
+        if (exclScores.Count > 0)
+        {
+            var bestExcl = exclScores.MaxBy(kv => kv.Value);
+            var secondExcl = exclScores
+                .Where(kv => kv.Key != bestExcl.Key)
+                .Select(kv => (int?)kv.Value)
+                .Max() ?? 0;
+
+            if (bestExcl.Value > secondExcl)
+                return bestExcl.Key;
+        }
+
+        // ── Pass 1 winner — prefer curated over YAML-only when close ─────────
+        if (!_curatedIso3s.Contains(best.Key))
+        {
+            var bestCurated = scores
+                .Where(kv => _curatedIso3s.Contains(kv.Key))
+                .OrderByDescending(kv => kv.Value)
+                .Cast<KeyValuePair<string, int>?>()
+                .FirstOrDefault();
+
+            if (bestCurated.HasValue &&
+                bestCurated.Value.Value >= bestScore * CuratedPreferenceThreshold)
+            {
+                best = KeyValuePair.Create(bestCurated.Value.Key, bestCurated.Value.Value);
+                bestScore = best.Value;
+            }
+        }
 
         var secondBest = scores.Where(kv => kv.Key != best.Key)
             .Select(kv => (int?)kv.Value)
@@ -86,7 +132,13 @@ public class CavemanLanguageDetector : ILanguageDetector
         if (bestScore > secondBest || (bestScore == secondBest && bestScore >= 2))
             return best.Key;
 
-        return "eng";
+        // Tiebreak: prefer a curated language.
+        var tiedCurated = scores
+            .Where(kv => kv.Value == bestScore && _curatedIso3s.Contains(kv.Key))
+            .Select(kv => kv.Key)
+            .FirstOrDefault();
+
+        return tiedCurated ?? "eng";
     }
 
     /// <summary>
