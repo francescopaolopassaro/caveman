@@ -2,13 +2,13 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.3.0</Version>
+  <Version>1.3.1</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction across 50+ languages. Licensed under the Caveman License (MIT + mandatory attribution to Passaro Francesco Paolo - Digitalsolutions.it). Bundled language data derived from Universal Dependencies (see NOTICE).</Description>
   <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3</PackageTags>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
-  <PackageReleaseNotes>1.3.0: content-aware compression pipeline. New CavemanContentRouter detects content type (JSON array, code, log, diff, HTML, plain text) and routes to the best compressor. New CavemanJsonCrusher compresses JSON arrays via lossless CSV/markdown-table compaction or lossy BM25 row-drop (with CCR reversibility markers). New CavemanCacheAligner detects volatile tokens (UUIDs, ISO-8601 timestamps, JWTs, hex hashes) that break LLM KV-cache reuse. New CavemanCcrStore caches dropped rows for on-demand retrieval. ICompressionService gains CompressContentAsync() (content-type-aware, backward-compatible default implementation). New CavemanContentRouterBuilder for fluent DI composition. All changes are fully additive; existing API unchanged.</PackageReleaseNotes>
+  <PackageReleaseNotes>1.3.1: complete content-aware pipeline (replaces 1.3.0 which was missing the new services). CavemanContentRouter detects content type (JSON array, code, log, diff, HTML, tabular, plain text) and routes to the best compressor. CavemanJsonCrusher compresses JSON arrays via lossless CSV/markdown-table or lossy BM25 row-drop with CCR reversibility markers. CavemanCacheAligner detects volatile tokens (UUIDs, ISO-8601, JWTs, hex hashes) that break LLM KV-cache prefix reuse. CavemanCcrStore caches dropped rows for on-demand retrieval. CavemanCompressionCache: two-tier cache (skip + result) with configurable TTL. CavemanContentDetector, CavemanLogCompressor, CavemanSearchCompressor, CavemanDiffCompressor, CavemanHtmlExtractor, CavemanCodeCompressor, CavemanTabularCompressor, CavemanWasteAnalyzer included. ICompressionService gains CompressContentAsync() with backward-compatible default. CavemanContentRouterBuilder for fluent DI. CompressionProfile enum (Light/Balanced/Agent/Aggressive). All additive; existing API unchanged.</PackageReleaseNotes>
   
   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <OutputType>Library</OutputType>
