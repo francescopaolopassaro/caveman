@@ -2,6 +2,29 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.4.0](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.0) - 2026-06-24
+
+### Highlights
+
+- **Two-pass language detection** — `CavemanLanguageDetector` now runs a second pass after the raw stop-word scoring. It checks for *exclusive markers*: words that appear in one curated language but in no other. A single exclusive-marker hit beats an ambiguous tie between languages that share common words (`per`, `a`, `in`, `via` etc.). This eliminates the most common false-positive category (e.g. short Italian sentences detected as English or Dutch).
+- **`FunctionWordProvider.GetExclusiveMarkers(iso3)`** — new public method backed by embedded `.excl.yaml.br` files for 7 curated languages (`eng`, `ita`, `fra`, `deu`, `spa`, `por`, `nld`). Returns a `HashSet<string>` of words unique to that language; empty when no file is available.
+- **Curated-preference tiebreak** — when the raw-scoring winner is a YAML-only language and a curated language scores ≥ 75% as high, the curated language is preferred. Improves reliability on short multilingual snippets.
+- **`Caveman.Mcp` package** — new standalone NuGet (`Caveman.Mcp`) ships an MCP stdio server exposing five tools (`compress`, `detect_language`, `route_content`, `summarize`, `compress_batch`) for Claude Code, OpenCode, Cursor, Windsurf and any MCP-compatible agent. The core `Caveman` package stays dependency-free.
+
+### Added
+- `FunctionWordProvider.GetExclusiveMarkers(string iso3)` — loads `{iso3}.excl.yaml.br` from embedded resources.
+- Embedded exclusive-marker files: `eng.excl.yaml.br`, `ita.excl.yaml.br`, `fra.excl.yaml.br`, `deu.excl.yaml.br`, `spa.excl.yaml.br`, `por.excl.yaml.br`, `nld.excl.yaml.br`.
+
+### Changed
+- `CavemanLanguageDetector.Detect()` — upgraded to two-pass algorithm (exclusive-marker boost + curated-preference tiebreak). Output is backward-compatible; detection accuracy improves on ambiguous/short texts.
+- `caveman.core.csproj` — `mcp/` and `copilot/` subfolders excluded from compilation (separate packages).
+- `PackageTags` updated: added `MCP`, `Claude`, `Copilot`.
+
+### Fixed
+- False-positive detections on texts containing words shared across curated languages (e.g. Italian short sentences previously returned `eng` or `nld`).
+
+[1.4.0]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.0
+
 ## [1.3.0](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.3.0) - 2026-06-23
 
 A **content-aware compression pipeline** release
@@ -29,6 +52,18 @@ Every type of content an LLM reads now has a dedicated compressor; the new `Cave
 * **`CompressionProfile` enum** — four presets (`Light`, `Balanced`, `Agent`, `Aggressive`) that pre-configure the router, JSON crusher and prose level. Use `CavemanContentRouter.FromProfile(profile)` for zero-config setup.
 * **`ICompressionService.CompressContentAsync`** — new method on the existing interface with a backward-compatible default implementation (passthrough). `CavemanCompressionService` overrides it to delegate to `CavemanContentRouter`.
 * **`CavemanContentRouterBuilder`** — gains `WithProseLevel`... *[il testo si interrompe qui]*
+
+[1.3.0]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.3.0
+
+## [1.3.1](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.3.1) - 2026-06-23
+
+Patch release — republish of 1.3.0 with all new services correctly included in the assembly. No API changes.
+
+### Fixed
+- `CavemanContentRouter`, `CavemanJsonCrusher`, `CavemanLogCompressor`, `CavemanSearchCompressor`, `CavemanDiffCompressor`, `CavemanHtmlExtractor`, `CavemanCodeCompressor`, `CavemanTabularCompressor`, `CavemanWasteAnalyzer`, `CavemanCacheAligner`, `CavemanCcrStore`, `CavemanCompressionCache`, `CavemanSharedContext`, `CavemanMessageDeduplicator` were missing from the 1.3.0 package; all are present in 1.3.1.
+
+[1.3.1]: https://github.com/francescopaolopassaro/caveman/releases/tag/v1.3.1
+
 ## [1.2.1] - 2026-06-13
 
 A **special, agent-ready** release: Caveman now understands the *structure* of a
