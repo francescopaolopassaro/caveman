@@ -303,7 +303,7 @@ namespace caveman.core
             return tokens;
         }
 
-        private static IReadOnlyList<WordToken> ApplyLevelFilter(
+        private IReadOnlyList<WordToken> ApplyLevelFilter(
             List<WordToken> words,
             HashSet<string> functionWords,
             CavemanCompressionLevel level,
@@ -449,7 +449,7 @@ namespace caveman.core
             }).Where(w => w != null).Select(w => w!).ToList();
         }
 
-        private static IReadOnlyList<WordToken> FilterAggressive(
+        private IReadOnlyList<WordToken> FilterAggressive(
             List<WordToken> words,
             HashSet<string> functionWords,
             string iso3,
@@ -457,7 +457,9 @@ namespace caveman.core
             HashSet<string> properNouns)
         {
             var langGroup = GetLanguageGroup(iso3);
-            var genericWords = GetGenericWords(langGroup);
+            var genericWords = _wordProvider.GetGenericWords(iso3);
+            if (genericWords.Count == 0)
+                genericWords = GenericWordsFallback;
             var isProper = DetectProperNouns(words, iso3, properNouns);
 
             return words.Select((w, i) =>
@@ -517,6 +519,16 @@ namespace caveman.core
                 _ => "other"
             };
         }
+
+        // Used only when a language has no curated {iso3}.generic.yaml.br resource
+        // (see FunctionWordProvider.GetGenericWords). Kept intentionally small and
+        // English-only: per-language generic-word lists now live in worddata, not code.
+        private static readonly HashSet<string> GenericWordsFallback = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "time", "day", "year", "person", "thing", "place", "world", "life",
+            "big", "small", "new", "old", "good", "bad",
+            "now", "then", "today", "yesterday", "tomorrow", "always", "never",
+        };
 
         private static bool IsNumber(string text)
         {
@@ -613,176 +625,6 @@ namespace caveman.core
             return "CONTENT";
         }
 
-        private static HashSet<string> GetGenericWords(string langGroup)
-        {
-            return langGroup switch
-            {
-                "en" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "want", "wants", "wanted", "know", "knows", "knew", "make", "makes", "made",
-                    "get", "gets", "got", "take", "takes", "took", "taken", "give", "gives", "gave", "given",
-                    "come", "comes", "came", "go", "goes", "went", "gone", "see", "saw", "seen",
-                    "think", "thinks", "thought", "say", "says", "said", "tell", "tells", "told",
-                    "ask", "asks", "asked", "find", "finds", "found", "call", "calls", "called",
-                    "time", "times", "day", "days", "year", "years", "way", "ways", "thing", "things",
-                    "person", "people", "place", "places", "part", "parts", "world", "life",
-                    "hand", "hands", "eye", "eyes", "head", "face", "voice",
-                    "long", "short", "big", "small", "high", "low", "old", "new", "young",
-                    "good", "bad", "great", "little", "much", "many", "more", "most",
-                    "first", "last", "next", "same", "other", "another", "own",
-                    "work", "works", "worked", "working", "look", "looks", "looked", "looking",
-                    "seem", "seems", "seemed", "keep", "keeps", "kept", "let", "lets",
-                    "put", "puts", "run", "runs", "ran", "move", "moves", "moved",
-                    "help", "helps", "helped", "show", "shows", "showed", "shown",
-                    "try", "tries", "tried", "turn", "turns", "turned",
-                    "today", "yesterday", "tomorrow", "now", "then", "ago", "later",
-                    "always", "never", "often", "sometimes", "usually",
-                    "morning", "afternoon", "evening", "night",
-                    "please", "sorry", "thank", "hello", "goodbye", "welcome"
-                },
-                "romance" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "volere", "potere", "dovere", "sapere", "fare", "dire", "dare", "stare",
-                    "andare", "venire", "avere", "essere", "chiedere", "trovare",
-                    "tempo", "cosa", "modo", "parte", "volta", "caso", "giorno", "notte",
-                    "anno", "vita", "gente", "luogo", "mondo", "mano", "occhio", "testa",
-                    "persona", "persone", "casa", "nome", "parola",
-                    "grande", "piccolo", "nuovo", "vecchio", "bello", "buono", "cattivo",
-                    "lungo", "corto", "alto", "basso", "primo", "ultimo", "stesso", "altro",
-                    "molto", "poco", "tanto", "troppo", "piu", "meno",
-                    "sempre", "mai", "spesso", "ora", "poi", "dopo", "prima", "oggi", "ieri", "domani",
-                    "mattina", "mattino", "sera", "pomeriggio",
-                    "lavoro", "storia", "idea",
-                    "querer", "poder", "deber", "saber", "hacer", "decir", "dar", "estar",
-                    "ir", "venir", "haber", "ser", "tener",
-                    "tiempo", "año", "día", "noche", "vida", "persona", "casa", "mundo",
-                    "grande", "pequeño", "nuevo", "viejo", "bueno", "malo",
-                    "pouvoir", "vouloir", "devoir", "savoir", "faire", "dire", "aller", "venir",
-                    "temps", "jour", "nuit", "vie", "monde", "personne", "maison",
-                    "pode", "querer", "dever", "saber", "fazer", "dizer", "dar", "estar",
-                    "ir", "vir", "ter", "haver",
-                    "timp", "zi", "noapte", "viata", "persoana", "casa", "lume"
-                },
-                "germanic" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "sein", "haben", "werden", "können", "müssen", "wollen", "dürfen", "sollen", "mögen",
-                    "machen", "sagen", "geben", "kommen", "gehen", "sehen", "wissen", "denken",
-                    "finden", "nehmen", "tun", "lassen", "bringen", "halten", "setzen",
-                    "zeit", "jahr", "tag", "woche", "monat", "ding", "mensch", "welt",
-                    "groß", "klein", "neu", "alt", "gut", "schlecht", "schön",
-                    "viel", "wenig", "lang", "kurz", "hoch", "niedrig",
-                    "immer", "nie", "oft", "jetzt", "dann", "heute", "gestern", "morgen",
-                    "arbeit", "leben", "geschichte", "frage",
-                    "zijn", "hebben", "worden", "kunnen", "moeten", "willen", "maken", "zeggen",
-                    "geven", "komen", "gaan", "zien", "weten", "denken",
-                    "tijd", "jaar", "dag", "maand", "mens", "wereld",
-                    "groot", "klein", "nieuw", "oud", "goed",
-                    "altijd", "nooit", "vaak", "nu", "dan", "vandaag", "gisteren", "morgen"
-                },
-                "slavic" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "быть", "мочь", "сказать", "знать", "хотеть", "делать", "иметь",
-                    "время", "год", "день", "человек", "мир", "дело", "место",
-                    "большой", "маленький", "новый", "старый", "хороший", "плохой",
-                    "всегда", "никогда", "сейчас", "потом", "сегодня", "вчера", "завтра",
-                    "работа", "жизнь", "вопрос", "слово",
-                    "бути", "могти", "сказати", "знати", "хотіти", "робити", "мати",
-                    "час", "рік", "день", "людина", "світ", "справа", "місце",
-                    "великий", "малий", "новий", "старий", "добрий", "поганий",
-                    "завжди", "ніколи", "зараз", "потім", "сьогодні", "вчора", "завтра",
-                    "być", "móc", "powiedzieć", "wiedzieć", "chcieć", "robić", "mieć",
-                    "czas", "rok", "dzień", "człowiek", "świat", "rzecz", "miejsce",
-                    "duży", "mały", "nowy", "stary", "dobry", "zły",
-                    "zawsze", "nigdy", "teraz", "potem", "dzisiaj", "wczoraj", "jutro",
-                    "съм", "мога", "искам", "знам", "правя", "имам",
-                    "време", "година", "ден", "човек", "свят", "нещо", "място",
-                    "голям", "малък", "нов", "стар", "добър", "лош",
-                    "винаги", "никога", "сега", "тогава", "днес", "вчера", "утре"
-                },
-                "semitic" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "كان", "يكون", "أصبح", "قال", "يقول", "ذكر", "عمل", "يعمل",
-                    "وقت", "يوم", "سنة", "شهر", "رجل", "امرأة", "شيء", "مكان",
-                    "كبير", "صغير", "جديد", "قديم", "جيد", "سيء",
-                    "دائما", "أبدا", "الآن", "ثم", "اليوم", "أمس", "غدا",
-                    "היה", "להיות", "יש", "אמר", "עשה", "זמן", "יום", "שנה",
-                    "איש", "אשה", "דבר", "מקום",
-                    "גדול", "קטן", "חדש", "ישן", "טוב", "רע",
-                    "תמיד", "אף", "עכשיו", "אז", "היום", "אתמול", "מחר"
-                },
-                "indic" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "होना", "करना", "कहना", "जानना", "चाहना", "देना", "लेना",
-                    "समय", "दिन", "साल", "आदमी", "औरत", "चीज़", "जगह",
-                    "बड़ा", "छोटा", "नया", "पुराना", "अच्छा", "बुरा",
-                    "हमेशा", "कभी", "अब", "फिर", "आज", "कल",
-                    "হওয়া", "করা", "বলা", "জানা", "চাওয়া", "দেওয়া", "নেওয়া",
-                    "সময়", "দিন", "বছর", "লোক", "জিনিস", "জায়গা",
-                    "বড়", "ছোট", "নতুন", "পুরনো", "ভাল", "খারাপ",
-                    "সবসময়", "কখনও", "এখন", "তারপর", "আজ", "গতকাল", "আগামীকাল",
-                    "ಆಗು", "ಮಾಡು", "ಹೇಳು", "ತಿಳಿ", "ಕೊಡು", "ತೆಗೆದುಕೊಳ್ಳು",
-                    "ಸಮಯ", "ದಿನ", "ವರ್ಷ", "ವ್ಯಕ್ತಿ", "ಜನ", "ಸ್ಥಳ", "ಜೀವನ",
-                    "ದೊಡ್ಡ", "ಸಣ್ಣ", "ಹೊಸ", "ಹಳೆಯ", "ಒಳ್ಳೆಯ", "ಕೆಟ್ಟ",
-                    "ಯಾವಾಗಲೂ", "ಎಂದಿಗೂ", "ಈಗ", "ಆಗ", "ಇಂದು", "ನಾಳೆ", "ನಿನ್ನೆ",
-                    "అవు", "చేయు", "చెప్పు", "తెలియు", "ఇచ్చు", "తీసుకొను",
-                    "సమయం", "రోజు", "సంవత్సరం", "వ్యక్తి", "ప్రజలు", "చోటు", "జీవితం",
-                    "పెద్ద", "చిన్న", "కొత్త", "పాత", "మంచి", "చెడ్డ",
-                    "ఎప్పుడూ", "ఎప్పుడూ", "ఇప్పుడు", "అప్పుడు", "ఈరోజు", "రేపు", "నిన్న",
-                    "ஆகு", "செய்", "சொல்", "தெரி", "கொடு", "எடு",
-                    "நேரம்", "நாள்", "வருடம்", "நபர்", "மக்கள்", "இடம்", "வாழ்க்கை",
-                    "பெரிய", "சிறிய", "புதிய", "பழைய", "நல்ல", "கெட்ட",
-                    "எப்போதும்", "எப்போதும்", "இப்போது", "அப்போது", "இன்று", "நாளை", "நேற்று"
-                },
-                "east_asian" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "的", "了", "是", "在", "有", "和", "就", "不", "人", "我",
-                    "时间", "时候", "天", "年", "月", "日", "东西", "地方",
-                    "大", "小", "新", "旧", "好", "坏",
-                    "现在", "今天", "明天", "昨天",
-                    "こと", "する", "ある", "ない", "いる", "できる", "なる",
-                    "時間", "日", "年", "月", "人", "物", "場所",
-                    "大きい", "小さい", "新しい", "古い", "良い", "悪い",
-                    "いつも", "今", "今日", "明日", "昨日",
-                    "하다", "있다", "되다", "시간", "날", "년", "사람", "것", "곳",
-                    "크다", "작다", "새로운", "오래된", "좋다", "나쁘다",
-                    "항상", "지금", "오늘", "내일", "어제"
-                },
-                "uralic_altaic" => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "olmak", "etmek", "yapmak", "söylemek", "bilmek", "istemek", "vermek",
-                    "zaman", "gün", "yıl", "insan", "şey", "yer",
-                    "büyük", "küçük", "yeni", "eski", "iyi", "kötü",
-                    "her zaman", "hiç", "şimdi", "sonra", "bugün", "dün", "yarın",
-                    "olla", "tehdä", "sanoa", "tietää", "haluta", "antaa", "saada",
-                    "aika", "päivä", "vuosi", "ihminen", "asia", "paikka",
-                    "suuri", "pieni", "uusi", "vanha", "hyvä", "huono",
-                    "aina", "koskaan", "nyt", "sitten", "tänään", "eilen", "huomenna",
-                    "olema", "tegema", "ütlema", "teadma", "tahtma", "andma",
-                    "aeg", "päev", "aasta", "inimene", "asi", "koht",
-                    "suur", "väike", "uus", "vana", "hea", "halb",
-                    "alati", "kunagi", "nüüd", "siis", "täna", "eile", "homme",
-                                "είμαι", "έχω", "κάνω", "λέω", "θέλω", "μπορώ", "ξέρω",
-                    "χρόνος", "μέρα", "χρόνος", "άνθρωπος", "πράγμα", "μέρος",
-                    "μεγάλος", "μικρός", "νέος", "παλιός", "καλός", "κακός",
-                    "πάντα", "ποτέ", "τώρα", "τότε", "σήμερα", "χθες", "αύριο",
-                    "լինել", "ունենալ", "անել", "ասել", "ուզենալ", "կարողանալ", "գիտենալ",
-                    "ժամանակ", "օր", "տարի", "մարդ", "բան", "տեղ",
-                    "մեծ", "փոքր", "նոր", "հին", "լավ", "վատ",
-                    "միշտ", "երբեք", "հիմա", "հետո", "այսօր", "երեկ", "վաղը",
-                    "болу", "істеу", "айту", "білу", "келу", "бару", "беру", "алу",
-                    "уақыт", "күн", "жыл", "адам", "зат", "орын",
-                    "үлкен", "кіші", "жаңа", "ескі", "жақсы", "жаман",
-                    "әрқашан", "ешқашан", "қазір", "кейін", "бүгін", "кеше", "ертең"
-                },
-                _ => new(StringComparer.OrdinalIgnoreCase)
-                {
-                    "time", "day", "year", "person", "thing", "place", "world", "life",
-                    "big", "small", "new", "old", "good", "bad",
-                    "now", "then", "today", "yesterday", "tomorrow",
-                    "always", "never", "often"
-                }
-            };
-        }
 
         private WordDataFile? GetWordData(string iso3) =>
             _dataCache.GetOrAdd(iso3, key => _wordProvider.LoadWordData(key));

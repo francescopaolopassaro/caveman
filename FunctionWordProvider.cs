@@ -19,6 +19,7 @@ public class FunctionWordProvider
     private static readonly ConcurrentDictionary<string, HashSet<string>> _cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, Dictionary<string, string>> _lemmaCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, HashSet<string>> _exclCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, HashSet<string>> _genericCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, string> _emptyLemmas = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> _empty = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Assembly _assembly = typeof(FunctionWordProvider).Assembly;
@@ -589,6 +590,51 @@ public class FunctionWordProvider
                 continue;
             }
             if (!inExcl) continue;
+            var t = line.Trim();
+            if (t.Length >= 2 && t[0] == '-')
+            {
+                var w = StripQuotes(t.Substring(1).Trim());
+                if (w.Length > 0) result.Add(w);
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Returns generic/descriptive words for this language (e.g. "want", "know", "time")
+    /// that aggressive-mode compression strips in addition to function words. Loaded from
+    /// the per-language <c>{iso3}.generic.yaml.br</c> resource; returns an empty set when
+    /// no such file is available for the language.
+    /// </summary>
+    public HashSet<string> GetGenericWords(string iso3)
+    {
+        if (string.IsNullOrEmpty(iso3))
+            return _empty;
+        return _genericCache.GetOrAdd(iso3.ToLowerInvariant(), LoadGenericWords);
+    }
+
+    private static HashSet<string> LoadGenericWords(string iso3)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var raw = _assembly.GetManifestResourceStream(
+            $"caveman.core.worddata.{iso3.ToLowerInvariant()}.generic.yaml.br");
+        if (raw == null)
+            return result;
+
+        using var br = new BrotliStream(raw, CompressionMode.Decompress);
+        using var reader = new StreamReader(br);
+
+        bool inGeneric = false;
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (line.Length == 0) continue;
+            if (!char.IsWhiteSpace(line[0]))
+            {
+                inGeneric = line.TrimEnd().TrimEnd(':') == "generic_words";
+                continue;
+            }
+            if (!inGeneric) continue;
             var t = line.Trim();
             if (t.Length >= 2 && t[0] == '-')
             {
