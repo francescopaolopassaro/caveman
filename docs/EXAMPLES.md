@@ -40,12 +40,44 @@ CompressionResult[] many = await svc.CompressBatchAsync(
 // ApplyCompression(text, iso3, level[, filter]) — synchronous, explicit language.
 CompressionResult forced = svc.ApplyCompression("I gatti corrono veloci", "ita", CavemanCompressionLevel.Aggressive);
 
+// Statistical — TF-IDF word scoring instead of curated dictionaries: keeps words frequent
+// in this prompt but rare against the language's standard-corpus reference.
+CompressionResult stats = svc.ApplyCompression(
+    "Please kindly review the attached quarterly financial report before tomorrow.",
+    "eng", CavemanCompressionLevel.Statistical);
+
+// Syntactic — same content-word filtering as Aggressive, but keeps grammatical glue
+// touching a surviving word; when POS data is available for the language it also elides a
+// leading hedging/matrix clause ("Could you please kindly review…" -> "review…").
+CompressionResult syntactic = svc.ApplyCompression(
+    "Could you please kindly review the attached quarterly financial report.",
+    "eng", CavemanCompressionLevel.Syntactic);
+
 // DetectLanguage / DetectLanguageScores
 string iso3 = svc.DetectLanguage("Ich hätte gerne einen Kaffee.");          // "deu"
 IReadOnlyDictionary<string, double> scores = svc.DetectLanguageScores("Where is the station?");
 
 // Free cached per-language data (e.g. before shutdown).
 svc.ReleaseMemory();
+```
+
+### POS lookup — `FunctionWordProvider.GetPosTags` / `GetPosTag`
+
+A frequency-baseline Universal POS tagger (NOUN, VERB, ADJ, ADP, DET, …) generated offline
+from Universal Dependencies treebanks — a dictionary lookup, no runtime model. Covers 54 of
+55 mappable languages (only Kannada has no UD treebank).
+
+```csharp
+var provider = new FunctionWordProvider();
+
+// GetPosTag(word, iso3) — single-word lookup; null if the form is unknown.
+string? tag = provider.GetPosTag("entro", "ita");   // "ADP" (the preposition "by/within",
+                                                     // not the verb "entrare" — this is what
+                                                     // makes Syntactic's hedge-clause elision
+                                                     // safe on preposition/verb homographs).
+
+// GetPosTags(iso3) — the full per-language lookup table, cached after first load.
+IReadOnlyDictionary<string, string> posTags = provider.GetPosTags("eng");
 ```
 
 `CompressionResult` members: `CompressedText`, `OriginalTokens`, `CompressedTokens`,
