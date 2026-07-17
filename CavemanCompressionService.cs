@@ -25,7 +25,21 @@ namespace caveman.core
         /// <summary>Keeps content words only, normalised to their base form.</summary>
         Semantic = 2,
         /// <summary>Most aggressive: base-form content words, generic/descriptive terms pruned.</summary>
-        Aggressive = 3
+        Aggressive = 3,
+        /// <summary>
+        /// TF-IDF word scoring instead of curated dictionaries: keeps words that are frequent
+        /// in this prompt but rare across the rest of the language's standard vocabulary
+        /// (function/generic words), dropping the rest. Keeps at least one word per sentence.
+        /// </summary>
+        Statistical = 4,
+        /// <summary>
+        /// Rule-based syntactic pruning: same content-word filtering as Aggressive, but a
+        /// function word survives when it is grammatical glue directly touching a word that
+        /// itself survives (e.g. a determiner in front of its noun), so the result reads as a
+        /// terse but grammatical sentence rather than a keyword bag. Never empties a sentence
+        /// that had any content to begin with.
+        /// </summary>
+        Syntactic = 5
     }
 
     /// <summary>
@@ -49,8 +63,13 @@ namespace caveman.core
     /// </summary>
     public class CavemanCompressionService : ICompressionService
     {
+        // \p{M} (combining marks) is included alongside \p{L}: scripts like Kannada, Hindi,
+        // Tamil and Thai attach vowel signs/virama as separate Unicode Mark codepoints, not
+        // Letters, so a letters-only pattern split words apart at every combining mark
+        // (e.g. Kannada "ಪರೀಕ್ಷೆ" fragmented into "ಪರ", "ಕ", "ಷ", …). Keeping the mark
+        // attached to the preceding base letter keeps those scripts' words intact.
         private static readonly Regex WordSplit = new(
-            @"\p{L}+(?:'\p{L}+)?|\p{N}+(?:[.,]\p{N}+)?|[^\p{L}\p{N}\s]",
+            @"[\p{L}\p{M}]+(?:'[\p{L}\p{M}]+)?|\p{N}+(?:[.,]\p{N}+)?|[^\p{L}\p{M}\p{N}\s]",
             RegexOptions.Compiled);
 
         private readonly ILanguageDetector _detector;
@@ -77,9 +96,14 @@ namespace caveman.core
             "mente"
         };
 
+        // "are" was deliberately dropped from this list: it matches Italian adjectives like
+        // "regolare"/"particolare", but it *also* matches every first-conjugation -are
+        // infinitive verb ("analizzare", "parlare", …), which silently deleted the sentence's
+        // main verb in Aggressive/Syntactic compression. Losing a handful of "-are" adjectives
+        // is a far smaller quality hit than losing the verb, so the suffix stays out.
         private static readonly HashSet<string> RomanceAdjectiveSuffixes = new(StringComparer.OrdinalIgnoreCase)
         {
-            "oso", "osa", "ivo", "iva", "abile", "ibile", "ale", "are", "ese", "ista"
+            "oso", "osa", "ivo", "iva", "abile", "ibile", "ale", "ese", "ista"
         };
 
         private static readonly HashSet<string> GermanAdjectiveSuffixes = new(StringComparer.OrdinalIgnoreCase)
@@ -316,6 +340,8 @@ namespace caveman.core
                 CavemanCompressionLevel.Light => FilterLight(words, functionWords),
                 CavemanCompressionLevel.Semantic => FilterSemantic(words, functionWords, iso3, lemmas, properNouns),
                 CavemanCompressionLevel.Aggressive => FilterAggressive(words, functionWords, iso3, lemmas, properNouns),
+                CavemanCompressionLevel.Statistical => FilterStatistical(words, functionWords, iso3, lemmas, properNouns),
+                CavemanCompressionLevel.Syntactic => FilterSyntactic(words, functionWords, iso3, lemmas, properNouns),
                 _ => words
             };
         }
@@ -462,7 +488,7 @@ namespace caveman.core
                 genericWords = GenericWordsFallback;
             var isProper = DetectProperNouns(words, iso3, properNouns);
 
-            return words.Select((w, i) =>
+            var result = words.Select((w, i) =>
             {
                 if (w.IsPunctuation)
                     return null;
@@ -502,6 +528,307 @@ namespace caveman.core
 
                 return w;
             }).Where(w => w != null).Select(w => w!).ToList();
+
+            // Safety floor: a short, content-bearing prompt (e.g. a one-word imperative like
+            // "Vai."/"Go.") can have its only word classified as generic/descriptive and
+            // pruned to nothing. An empty compressed prompt is a total loss of meaning, which
+            // is worse than keeping one extra word, so fall back to the mildest available
+            // signal instead of returning nothing.
+            if (result.Count == 0 && words.Any(w => !w.IsPunctuation))
+                return FilterSemantic(words, functionWords, iso3, lemmas, properNouns);
+
+            return result;
+        }
+
+        // Sentence-ending punctuation used to split the token stream into pseudo-documents
+        // for TF-IDF (Statistical) and into clauses for verb detection (Syntactic).
+        private static readonly HashSet<string> SentenceEnders = new() { ".", "!", "?", "…" };
+
+        /// <summary>
+        /// Statistical alternative to the curated dictionaries: scores each distinct word by
+        /// TF-IDF (frequency in this prompt vs. how many of the prompt's own sentences contain
+        /// it), grounding "common" words against the language's curated function/generic word
+        /// lists exactly as a real reference corpus would. Keeps words scoring at or above the
+        /// median of the prompt's own positively-scored vocabulary, so the cut is relative to
+        /// this text rather than a fixed threshold. Never drops a sentence to nothing.
+        /// </summary>
+        private IReadOnlyList<WordToken> FilterStatistical(
+            List<WordToken> words,
+            HashSet<string> functionWords,
+            string iso3,
+            Dictionary<string, string>? lemmas,
+            HashSet<string> properNouns)
+        {
+            var genericWords = _wordProvider.GetGenericWords(iso3);
+            if (genericWords.Count == 0)
+                genericWords = GenericWordsFallback;
+            var isProper = DetectProperNouns(words, iso3, properNouns);
+            var n = words.Count;
+
+            var sentenceOf = new int[n];
+            int sentenceIdx = 0;
+            for (int i = 0; i < n; i++)
+            {
+                sentenceOf[i] = sentenceIdx;
+                if (words[i].IsPunctuation && SentenceEnders.Contains(words[i].Text))
+                    sentenceIdx++;
+            }
+            int sentenceCount = sentenceIdx + 1;
+
+            // The scoring key per token: null for punctuation/proper nouns/numbers (handled
+            // separately, never scored away), otherwise its lemma/lowercased surface form.
+            var keys = new string?[n];
+            for (int i = 0; i < n; i++)
+            {
+                if (words[i].IsPunctuation || isProper[i] || IsNumber(words[i].Text))
+                    continue;
+                keys[i] = LemmaOrLower(words[i].Text, lemmas);
+            }
+
+            var termFreq = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var docsWithTerm = new Dictionary<string, HashSet<int>>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < n; i++)
+            {
+                var k = keys[i];
+                if (k == null) continue;
+                termFreq[k] = termFreq.GetValueOrDefault(k) + 1;
+                if (!docsWithTerm.TryGetValue(k, out var set))
+                    docsWithTerm[k] = set = new HashSet<int>();
+                set.Add(sentenceOf[i]);
+            }
+
+            var scores = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (word, freq) in termFreq)
+            {
+                // Words already known to be common across the language (function/generic
+                // words) are the "standard corpus" reference: they score at the floor exactly
+                // like a naturally high document-frequency word would.
+                if (functionWords.Contains(word) || genericWords.Contains(word))
+                {
+                    scores[word] = 0.0;
+                    continue;
+                }
+
+                var df = docsWithTerm[word].Count;
+                var idf = sentenceCount > 1
+                    ? Math.Log((double)sentenceCount / (1 + df)) + 1.0
+                    : 1.0; // a single-sentence prompt has no cross-sentence signal to lean on
+                scores[word] = freq * idf;
+            }
+
+            if (scores.Count == 0)
+                return words.Where(w => !w.IsPunctuation && !IsNumber(w.Text)).ToList();
+
+            var positive = scores.Values.Where(v => v > 0).OrderBy(v => v).ToList();
+            var threshold = positive.Count > 0 ? positive[positive.Count / 2] : 0;
+
+            var keep = new bool[n];
+            var sentenceHasKeep = new bool[sentenceCount];
+            for (int i = 0; i < n; i++)
+            {
+                if (words[i].IsPunctuation) continue;
+                if (isProper[i]) { keep[i] = true; sentenceHasKeep[sentenceOf[i]] = true; continue; }
+
+                var k = keys[i];
+                if (k == null) continue;
+                if (scores.TryGetValue(k, out var score) && score > 0 && score >= threshold)
+                {
+                    keep[i] = true;
+                    sentenceHasKeep[sentenceOf[i]] = true;
+                }
+            }
+
+            // Safety floor: a sentence that scored nothing above threshold still keeps its
+            // single highest-scoring word, so compression never erases a whole sentence.
+            for (int s = 0; s < sentenceCount; s++)
+            {
+                if (sentenceHasKeep[s]) continue;
+                int bestIdx = -1;
+                double bestScore = -1;
+                for (int i = 0; i < n; i++)
+                {
+                    if (sentenceOf[i] != s || words[i].IsPunctuation || isProper[i]) continue;
+                    var k = keys[i];
+                    if (k == null) continue;
+                    if (scores.TryGetValue(k, out var sc) && sc > bestScore)
+                    {
+                        bestScore = sc;
+                        bestIdx = i;
+                    }
+                }
+                if (bestIdx >= 0) keep[bestIdx] = true;
+            }
+
+            var result = new List<WordToken>();
+            for (int i = 0; i < n; i++)
+            {
+                if (!keep[i]) continue;
+                if (isProper[i]) { result.Add(words[i]); continue; }
+                result.Add(new WordToken { Text = keys[i]!, IsPunctuation = false });
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Rule-based syntactic pruning: the same content-word filtering as Aggressive
+        /// (function words, generic words and descriptive modifiers dropped, everything else
+        /// lemmatised), except a function word survives when it is the grammatical glue
+        /// directly touching a word that itself survives — a determiner right in front of its
+        /// noun, for instance — so the result reads as a terse but grammatical sentence
+        /// instead of a keyword bag. Kept function words are never lemmatised (they keep their
+        /// surface form).
+        /// <para>
+        /// When the language has POS lookup data (<see cref="FunctionWordProvider.GetPosTags"/>,
+        /// a frequency-baseline tagger built offline from Universal Dependencies treebanks — no
+        /// runtime model), a leading hedging/matrix clause ("I kindly ask you to…", "vorrei che
+        /// tu…") is additionally elided in favour of the sentence's last verb. A first attempt
+        /// at this without real POS evidence broke on verb/preposition homographs (Italian
+        /// "entro" = "by/within" vs. 1st-person "I enter") and was removed; with a POS tag per
+        /// word this is safe, and is further restricted to only fire when every token between
+        /// two candidate verbs is grammatical glue or a descriptive modifier — never a real
+        /// content noun — so coordinated independent clauses ("I bought bread and ate cake")
+        /// are never mistaken for a hedge clause and gutted. Proper nouns are never elided.
+        /// Without POS data for the language, this step is a no-op.
+        /// </para>
+        /// </summary>
+        private IReadOnlyList<WordToken> FilterSyntactic(
+            List<WordToken> words,
+            HashSet<string> functionWords,
+            string iso3,
+            Dictionary<string, string>? lemmas,
+            HashSet<string> properNouns)
+        {
+            var langGroup = GetLanguageGroup(iso3);
+            var genericWords = _wordProvider.GetGenericWords(iso3);
+            if (genericWords.Count == 0)
+                genericWords = GenericWordsFallback;
+            var isProper = DetectProperNouns(words, iso3, properNouns);
+            var posTags = _wordProvider.GetPosTags(iso3);
+            var n = words.Count;
+
+            bool NextSurvives(int j)
+            {
+                if (j >= n || words[j].IsPunctuation) return false;
+                if (isProper[j]) return true;
+                if (IsNumber(words[j].Text)) return false;
+                var jLower = words[j].Text.ToLowerInvariant();
+                if (functionWords.Contains(jLower)) return false;
+                var jNorm = LemmaOrLower(words[j].Text, lemmas) ?? jLower;
+                if (functionWords.Contains(jNorm) || genericWords.Contains(jNorm)) return false;
+                if (IsDescriptiveWord(jNorm, langGroup)) return false;
+                return true;
+            }
+
+            bool IsGlueOrModifier(int i)
+            {
+                if (words[i].IsPunctuation || isProper[i]) return true;
+                var lower = words[i].Text.ToLowerInvariant();
+                var norm = LemmaOrLower(words[i].Text, lemmas) ?? lower;
+                return functionWords.Contains(lower) || functionWords.Contains(norm)
+                    || IsDescriptiveWord(norm, langGroup);
+            }
+
+            // elided[i]: inside a leading hedge/matrix clause the POS-gated pass below chose
+            // to drop wholesale (proper nouns are exempted and flow through normal handling).
+            var elided = new bool[n];
+            if (posTags.Count > 0)
+            {
+                int clauseStart = 0;
+                for (int i = 0; i <= n; i++)
+                {
+                    if (i < n && !(words[i].IsPunctuation && SentenceEnders.Contains(words[i].Text)))
+                        continue;
+
+                    var s = clauseStart;
+                    var e = i;
+                    clauseStart = i + 1;
+
+                    var verbIdx = new List<int>();
+                    for (int k = s; k < e; k++)
+                    {
+                        if (words[k].IsPunctuation || isProper[k]) continue;
+                        if (posTags.TryGetValue(words[k].Text.ToLowerInvariant(), out var tag) && tag == "VERB")
+                            verbIdx.Add(k);
+                    }
+                    if (verbIdx.Count < 2) continue;
+
+                    var gapsClear = true;
+                    for (int k = 0; k < verbIdx.Count - 1 && gapsClear; k++)
+                        for (int j = verbIdx[k] + 1; j < verbIdx[k + 1]; j++)
+                            if (!IsGlueOrModifier(j)) { gapsClear = false; break; }
+
+                    if (gapsClear)
+                        for (int j = s; j < verbIdx[^1]; j++)
+                            if (!isProper[j]) elided[j] = true;
+                }
+            }
+
+            // isFunc[i] marks tokens kept purely as grammatical glue: their surface form is
+            // preserved verbatim in the output pass below, never run through lemmatisation.
+            var keep = new bool[n];
+            var isFunc = new bool[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                var w = words[i];
+                if (w.IsPunctuation) continue;
+                if (elided[i]) continue;
+                if (isProper[i]) { keep[i] = true; continue; }
+                if (IsNumber(w.Text)) continue;
+
+                var lower = w.Text.ToLowerInvariant();
+                var normalized = LemmaOrLower(w.Text, lemmas) ?? lower;
+
+                if (functionWords.Contains(lower) || functionWords.Contains(normalized))
+                {
+                    keep[i] = NextSurvives(i + 1);
+                    isFunc[i] = true;
+                    continue;
+                }
+
+                if (genericWords.Contains(normalized))
+                    continue;
+
+                if (IsDescriptiveWord(normalized, langGroup))
+                    continue;
+
+                keep[i] = true;
+            }
+
+            // Safety floor per sentence: never elide a whole sentence to nothing.
+            var sentenceOf = new int[n];
+            int sentenceIdx = 0;
+            for (int i = 0; i < n; i++)
+            {
+                sentenceOf[i] = sentenceIdx;
+                if (words[i].IsPunctuation && SentenceEnders.Contains(words[i].Text))
+                    sentenceIdx++;
+            }
+            int sentenceCount = sentenceIdx + 1;
+            var sentenceHasKeep = new bool[sentenceCount];
+            for (int i = 0; i < n; i++)
+                if (keep[i]) sentenceHasKeep[sentenceOf[i]] = true;
+
+            for (int i = 0; i < n; i++)
+            {
+                if (sentenceHasKeep[sentenceOf[i]] || words[i].IsPunctuation) continue;
+                keep[i] = true;
+                sentenceHasKeep[sentenceOf[i]] = true;
+            }
+
+            var result = new List<WordToken>();
+            for (int i = 0; i < n; i++)
+            {
+                if (!keep[i]) continue;
+                var w = words[i];
+                if (isProper[i] || isFunc[i]) { result.Add(w); continue; }
+
+                var normalized = LemmaOrLower(w.Text, lemmas);
+                result.Add(normalized != null && !normalized.Equals(w.Text, StringComparison.OrdinalIgnoreCase)
+                    ? new WordToken { Text = normalized, IsPunctuation = false }
+                    : w);
+            }
+            return result;
         }
 
         private static string GetLanguageGroup(string iso3)

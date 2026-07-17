@@ -20,285 +20,19 @@ public class FunctionWordProvider
     private static readonly ConcurrentDictionary<string, Dictionary<string, string>> _lemmaCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, HashSet<string>> _exclCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, HashSet<string>> _genericCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, Dictionary<string, string>> _posCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, string> _emptyLemmas = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> _empty = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Assembly _assembly = typeof(FunctionWordProvider).Assembly;
 
-    private static readonly HashSet<string> En = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "a", "an", "the", "this", "that", "these", "those",
-        "i", "you", "he", "she", "it", "we", "they",
-        "me", "him", "her", "us", "them",
-        "my", "your", "his", "its", "our", "their",
-        "mine", "yours", "hers", "ours", "theirs",
-        "myself", "yourself", "himself", "herself", "itself", "ourselves", "themselves",
-        "who", "whom", "whose", "which", "what",
-        "in", "on", "at", "to", "for", "of", "with", "by", "from",
-        "into", "onto", "upon", "within", "without",
-        "during", "before", "after",
-        "above", "below", "between", "among", "amongst",
-        "across", "against", "around", "behind", "beneath",
-        "beside", "besides", "beyond", "inside",
-        "near", "off", "outside", "over", "past",
-        "through", "toward", "towards", "under", "underneath",
-        "via", "per",
-        "and", "or", "but", "if", "because", "although", "though",
-        "while", "whereas", "unless", "since", "so", "yet",
-        "nor", "both", "whether", "either", "neither",
-        "be", "am", "is", "are", "was", "were", "been", "being",
-        "have", "has", "had", "having",
-        "do", "does", "did", "doing", "done",
-        "will", "would", "shall", "should",
-        "can", "could", "may", "might", "must",
-        "need", "dare", "ought",
-        "not", "no", "nor", "never",
-        "as", "than",
-        "very", "too", "quite", "rather",
-        "here", "there", "where",
-        "when", "why", "how",
-        "then", "now",
-        "just", "only", "even",
-        "also", "still", "already",
-        "indeed", "however", "therefore",
-        "otherwise", "nevertheless",
-        "maybe", "perhaps",
-        "please", "yes",
-        "oh", "ah",
-        "any", "some", "every", "each", "all", "few", "many", "much", "several",
-        "no", "none", "nothing",
-        "something", "anything", "everything",
-        "someone", "anyone", "everyone",
-        "such", "same", "else", "other", "another",
-        "more", "most", "less", "least",
-        "up", "down", "out",
-        "well",
-    };
 
-    private static readonly HashSet<string> It = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "il", "lo", "la", "i", "gli", "le",
-        "un", "uno", "una",
-        "questo", "questa", "questi", "queste", "quel", "quella", "quelli", "quelle",
-        "io", "tu", "lui", "lei", "noi", "voi", "loro",
-        "mi", "ti", "si", "ci", "vi", "ne",
-        "mio", "tuo", "suo", "nostro", "vostro",
-        "mia", "tua", "sua", "nostra", "vostra",
-        "miei", "tuoi", "suoi", "nostri", "vostri",
-        "mie", "tue", "sue", "nostre", "vostre",
-        "che", "cui", "chi",
-        "in", "a", "da", "di", "con", "su", "per", "tra", "fra",
-        "del", "dello", "della", "dei", "degli", "delle",
-        "al", "allo", "alla", "ai", "agli", "alle",
-        "dal", "dallo", "dalla", "dai", "dagli", "dalle",
-        "nel", "nello", "nella", "nei", "negli", "nelle",
-        "sul", "sullo", "sulla", "sui", "sugli", "sulle",
-        "e", "ed", "o", "od", "ma",
-        "se", "come",
-        "mentre", "quando", "dove",
-        "non", "neppure", "nemmeno",
-        "sono", "sei", "e", "siamo", "siete", "sia", "siano",
-        "ho", "hai", "ha", "abbiamo", "avete", "hanno",
-        "sto", "stai", "sta", "stiamo", "state", "stanno",
-        "posso", "puoi", "puo", "possiamo", "potete", "possono",
-        "voglio", "vuoi", "vuole", "vogliamo", "volete", "vogliono",
-        "devo", "devi", "deve", "dobbiamo", "dovete", "devono",
-        "lo", "la", "li",
-        "qui", "qua", "li",
-        "gia", "piu", "meno", "molto", "poco", "troppo",
-        "anche", "pure", "ancora", "sempre", "mai",
-        "poi", "dopo", "prima", "ora", "adesso",
-        "allora", "dunque", "quindi", "inoltre",
-        "perche",
-        "fa", "fanno", "fare",
-        "essere", "avere", "stare", "potere", "volere", "dovere",
-    };
+    // Languages with a hand-curated {iso3}.fw.yaml.br resource (precise grammatical
+    // function words only — articles, pronouns, prepositions, conjunctions, auxiliaries).
+    // Loaded from data, not embedded in code: see LoadFunctionWords.
+    private static readonly HashSet<string> _curatedIso3s = new(
+        new[] { "eng", "ita", "fra", "deu", "spa", "por", "nld" },
+        StringComparer.OrdinalIgnoreCase);
 
-    private static readonly HashSet<string> Fr = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "le", "la", "les", "l",
-        "un", "une", "des",
-        "du", "de", "d",
-        "ce", "cet", "cette", "ces",
-        "mon", "ton", "son", "ma", "ta", "sa",
-        "mes", "tes", "ses", "nos", "vos", "leurs",
-        "notre", "votre",
-        "chaque", "quelques",
-        "tout", "toute", "tous", "toutes",
-        "je", "tu", "il", "elle", "on", "nous", "vous", "ils", "elles",
-        "me", "te", "se", "lui", "leur",
-        "moi", "toi", "soi", "eux",
-        "qui", "que", "quoi", "dont", "ou",
-        "a", "dans", "par", "pour", "en", "vers", "avec",
-        "sans", "sous", "sur", "chez", "entre",
-        "pendant", "depuis",
-        "et", "ou", "mais", "donc", "car", "ni",
-        "que", "lorsque", "quand", "puisque",
-        "si",
-        "suis", "es", "est", "sommes", "etes", "sont",
-        "ai", "as", "a", "avons", "avez", "ont",
-        "ete", "etre", "avoir",
-        "ne", "pas", "plus",
-        "tres", "aussi", "bien", "deja", "encore", "toujours", "jamais",
-        "alors", "puis", "ainsi", "enfin",
-        "trop", "assez", "moins", "beaucoup", "peu",
-        "oui", "non",
-        "ce", "c", "ca",
-        "y",
-    };
-
-    private static readonly HashSet<string> De = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "der", "die", "das", "den", "dem", "des",
-        "ein", "eine", "einer", "eines", "einem", "einen",
-        "mein", "dein", "sein", "ihr", "unser", "euer",
-        "meine", "deine", "seine", "ihre", "unsere", "eure",
-        "dieser", "diese", "dieses", "diesen", "diesem",
-        "ich", "du", "er", "sie", "es", "wir", "ihr", "Sie",
-        "mich", "dich", "sich", "uns", "euch",
-        "mir", "dir", "ihm", "ihr", "uns",
-        "man",
-        "in", "auf", "mit", "von", "zu", "aus", "bei", "nach",
-        "um", "durch", "fur", "gegen", "ohne",
-        "uber", "unter", "vor", "hinter", "neben", "zwischen",
-        "an", "bis", "seit",
-        "und", "oder", "aber", "denn", "weil",
-        "dass", "wenn", "als", "ob",
-        "wahrend", "nachdem", "bevor", "seitdem",
-        "bin", "bist", "ist", "sind", "seid", "war", "waren",
-        "habe", "hast", "hat", "haben", "habt",
-        "kann", "kannst", "konnen", "konnt",
-        "muss", "musst", "mussen", "musst",
-        "soll", "sollst", "sollen", "sollt",
-        "will", "willst", "wollen", "wollt",
-        "darf", "darfst", "durfen", "durft",
-        "mag", "magst", "mogen",
-        "nicht", "kein", "keine", "keinen",
-        "nichts", "nie", "niemals",
-        "sehr", "viel", "wenig", "zu", "ganz",
-        "etwas", "mehr", "weniger",
-        "schon", "noch", "immer",
-        "ja", "nein",
-        "auch", "nur",
-    };
-
-    private static readonly HashSet<string> Es = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "el", "la", "los", "las",
-        "un", "una", "unos", "unas",
-        "este", "esta", "estos", "estas",
-        "ese", "esa", "esos", "esas",
-        "aquel", "aquella", "aquellos", "aquellas",
-        "mi", "tu", "su", "nuestro", "vuestro",
-        "mis", "tus", "sus", "nuestros", "vuestros",
-        "yo", "tu", "el", "ella", "usted",
-        "nosotros", "vosotros", "ellos", "ellas", "ustedes",
-        "me", "te", "se", "nos", "os",
-        "lo", "le", "la", "les",
-        "a", "ante", "bajo", "con", "contra", "de", "desde",
-        "durante", "en", "entre", "hacia", "hasta",
-        "mediante", "para", "por", "segun", "sin", "sobre", "tras",
-        "y", "e", "o", "u", "pero", "sino",
-        "aunque", "porque", "pues", "como", "que", "si",
-        "cuando", "mientras",
-        "soy", "eres", "es", "somos", "sois", "son",
-        "he", "has", "ha", "hemos", "habeis", "han",
-        "estoy", "estas", "esta", "estamos", "estais", "estan",
-        "tengo", "tienes", "tiene", "tenemos", "teneis", "tienen",
-        "puedo", "puedes", "puede", "podemos", "podeis", "pueden",
-        "quiero", "quieres", "quiere", "queremos", "quereis", "quieren",
-        "debo", "debes", "debe", "debemos", "debeis", "deben",
-        "no", "nada", "nadie",
-        "ningun", "ninguna",
-        "nunca", "jamas",
-        "muy", "mucho", "poca", "poco",
-        "bastante", "demasiado",
-        "mas", "menos",
-        "casi", "solo", "solamente",
-        "tambien", "siempre",
-        "ya", "aun", "todavia",
-        "aqui", "ahi", "alli",
-        "bien", "mal",
-    };
-
-    private static readonly HashSet<string> Pt = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "o", "a", "os", "as",
-        "um", "uma", "uns", "umas",
-        "este", "esta", "estes", "estas",
-        "esse", "essa", "esses", "essas",
-        "aquele", "aquela", "aqueles", "aquelas",
-        "meu", "minha", "teu", "tua", "seu", "sua",
-        "nosso", "nossa", "vosso", "vossa",
-        "meus", "minhas", "teus", "tuas", "seus", "suas",
-        "nossos", "nossas", "vossos", "vossas",
-        "eu", "tu", "ele", "ela", "nos", "vos", "eles", "elas",
-        "voce", "voces",
-        "me", "te", "se", "lhe", "lhes",
-        "a", "ante", "apos", "ate", "com", "contra", "de",
-        "desde", "em", "entre", "para", "perante", "por",
-        "sem", "sob", "sobre", "tras",
-        "e", "mas", "ou", "porque", "pois", "como", "que", "se",
-        "quando", "enquanto", "embora",
-        "contudo", "entretanto", "portanto", "porem", "todavia",
-        "sou", "e", "somos", "sao",
-        "estou", "esta", "estamos", "estao",
-        "tenho", "tem", "temos", "tem",
-        "hei", "ha", "havemos", "hao",
-        "posso", "pode", "podemos", "podem",
-        "quero", "quer", "queremos", "querem",
-        "devo", "deve", "devemos", "devem",
-        "nao", "nada", "ninguem",
-        "nenhum", "nenhuma",
-        "nunca", "jamais",
-        "muito", "pouco", "bastante", "demais",
-        "mais", "menos",
-        "quase", "so", "somente",
-        "tambem", "sempre",
-        "ja", "ainda", "agora",
-    };
-
-    private static readonly HashSet<string> Nl = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "de", "het", "een",
-        "deze", "dit", "die", "dat",
-        "mijn", "jouw", "zijn", "haar", "onze", "ons", "hun", "uw",
-        "je", "zijn", "haar",
-        "ik", "jij", "je", "u", "hij", "zij", "ze", "het", "wij", "we",
-        "jullie", "ze",
-        "mij", "me", "jou", "je", "hem", "haar", "ons", "jullie", "hen", "hun",
-        "in", "op", "met", "van", "naar", "uit", "bij", "door",
-        "voor", "over", "onder", "tegen", "tussen",
-        "tijdens", "na", "langs", "om", "zonder",
-        "binnen", "buiten", "via", "per",
-        "en", "of", "maar", "want", "dus", "omdat",
-        "als", "wanneer", "terwijl", "hoewel",
-        "indien", "tenzij", "nadat", "voordat",
-        "ben", "bent", "is", "zijn", "was", "waren",
-        "heb", "hebt", "heeft", "hebben", "had", "hadden",
-        "kan", "kunt", "kunnen",
-        "moet", "moeten",
-        "mag", "mogen",
-        "wil", "wilt", "willen",
-        "zal", "zult", "zullen", "zou", "zouden",
-        "word", "wordt", "werd", "werden", "geworden",
-        "niet", "geen",
-        "niets", "niemand", "nooit",
-        "heel", "veel", "weinig", "erg",
-        "nog", "al", "reeds",
-        "pas", "slechts", "maar",
-        "net", "even",
-        "bijna", "haast",
-        "ja", "nee",
-        "ook",
-    };
-
-    private static readonly Dictionary<string, HashSet<string>> CuratedLists = new(StringComparer.OrdinalIgnoreCase)
-    {
-        { "eng", En }, { "ita", It }, { "fra", Fr },
-        { "deu", De }, { "spa", Es }, { "por", Pt }, { "nld", Nl },
-    };
-
-    private static readonly HashSet<string> _curatedIso3s;
     private static HashSet<string>? _yamlIso3s;
 
     // Detection index: iso3 -> (iso1, name, function_words). Loaded once from the
@@ -308,11 +42,6 @@ public class FunctionWordProvider
     private static readonly object _indexLock = new();
 
     private readonly record struct IndexEntry(string Iso1, string Name, HashSet<string> FunctionWords);
-
-    static FunctionWordProvider()
-    {
-        _curatedIso3s = new HashSet<string>(CuratedLists.Keys, StringComparer.OrdinalIgnoreCase);
-    }
 
     private static Dictionary<string, IndexEntry> GetIndex()
     {
@@ -402,11 +131,50 @@ public class FunctionWordProvider
 
     private HashSet<string> LoadFunctionWords(string iso3)
     {
-        if (CuratedLists.TryGetValue(iso3, out var curated))
-            return curated;
+        if (_curatedIso3s.Contains(iso3))
+        {
+            var curated = LoadCuratedFunctionWords(iso3);
+            if (curated.Count > 0)
+                return curated;
+        }
         return GetIndex().TryGetValue(iso3, out var e) && e.FunctionWords.Count > 0
             ? e.FunctionWords
             : _empty;
+    }
+
+    // Curated languages: hand-picked grammatical function words only (articles, pronouns,
+    // prepositions, conjunctions, auxiliaries) from {iso3}.fw.yaml.br — more precise than the
+    // broad YAML stop-word lists used for the other (non-curated) languages.
+    private static HashSet<string> LoadCuratedFunctionWords(string iso3)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using var raw = _assembly.GetManifestResourceStream(
+            $"caveman.core.worddata.{iso3.ToLowerInvariant()}.fw.yaml.br");
+        if (raw == null)
+            return result;
+
+        using var br = new BrotliStream(raw, CompressionMode.Decompress);
+        using var reader = new StreamReader(br);
+
+        bool inFw = false;
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (line.Length == 0) continue;
+            if (!char.IsWhiteSpace(line[0]))
+            {
+                inFw = line.TrimEnd().TrimEnd(':') == "function_words";
+                continue;
+            }
+            if (!inFw) continue;
+            var t = line.Trim();
+            if (t.Length >= 2 && t[0] == '-')
+            {
+                var w = StripQuotes(t.Substring(1).Trim());
+                if (w.Length > 0) result.Add(w);
+            }
+        }
+        return result;
     }
 
     // Per-language blob: brotli-compressed YAML, embedded as `<iso3>.yaml.br`.
@@ -601,16 +369,102 @@ public class FunctionWordProvider
     }
 
     /// <summary>
+    /// Returns a word → Universal POS tag lookup (NOUN, VERB, ADJ, ADP, DET, …) for this
+    /// language: the most frequent tag Universal Dependencies treebanks observed for each
+    /// form, generated offline by <c>scripts/import-ud-lemmas</c> from the same UD source
+    /// data already used for lemmas/verbs (a classic frequency-baseline tagger — no model,
+    /// no inference, just a dictionary lookup). Returns an empty dictionary when no
+    /// <c>{iso3}.pos.yaml.br</c> resource is available for the language.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> GetPosTags(string iso3)
+    {
+        if (string.IsNullOrEmpty(iso3))
+            return _emptyLemmas;
+        return _posCache.GetOrAdd(iso3.ToLowerInvariant(), LoadPosTags);
+    }
+
+    /// <summary>Looks up the most frequent Universal POS tag for a single word; null if unknown.</summary>
+    public string? GetPosTag(string word, string iso3)
+    {
+        if (string.IsNullOrWhiteSpace(word))
+            return null;
+        var tags = GetPosTags(iso3);
+        return tags.TryGetValue(word.Trim().ToLowerInvariant(), out var tag) ? tag : null;
+    }
+
+    private static Dictionary<string, string> LoadPosTags(string iso3)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        using var raw = _assembly.GetManifestResourceStream(
+            $"caveman.core.worddata.{iso3.ToLowerInvariant()}.pos.yaml.br");
+        if (raw == null)
+            return result;
+
+        using var br = new BrotliStream(raw, CompressionMode.Decompress);
+        using var reader = new StreamReader(br);
+
+        bool inPos = false;
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (line.Length == 0) continue;
+            if (!char.IsWhiteSpace(line[0]))
+            {
+                inPos = line.TrimEnd().TrimEnd(':') == "pos";
+                continue;
+            }
+            if (!inPos) continue;
+            if (TryParseKeyValue(line.Trim(), out var word, out var tag) && word.Length > 0 && tag.Length > 0)
+                result[word] = tag;
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Returns generic/descriptive words for this language (e.g. "want", "know", "time")
     /// that aggressive-mode compression strips in addition to function words. Loaded from
-    /// the per-language <c>{iso3}.generic.yaml.br</c> resource; returns an empty set when
-    /// no such file is available for the language.
+    /// the per-language <c>{iso3}.generic.yaml.br</c> resource when curated. For every other
+    /// language, derived from that language's own verb data instead (see
+    /// <see cref="DeriveGenericWordsFromVerbRichness"/>) rather than falling back to nothing.
     /// </summary>
     public HashSet<string> GetGenericWords(string iso3)
     {
         if (string.IsNullOrEmpty(iso3))
             return _empty;
-        return _genericCache.GetOrAdd(iso3.ToLowerInvariant(), LoadGenericWords);
+        return _genericCache.GetOrAdd(iso3.ToLowerInvariant(), key =>
+        {
+            var curated = LoadGenericWords(key);
+            return curated.Count > 0 ? curated : DeriveGenericWordsFromVerbRichness(key);
+        });
+    }
+
+    // Languages without a hand-curated generic-word list still deserve some aggressive-mode
+    // pruning depth, but guessing translations for 40+ languages risks wrongly dropping real
+    // content — the exact false-positive class this whole worddata layer exists to avoid. So
+    // instead of a hardcoded per-language list, this ranks each language's *own* verb lemmas
+    // by how many conjugated forms the worddata attests for them. Basic, high-frequency verbs
+    // ("be", "have", "go", "want", "say", …) are consistently the most richly inflected/attested
+    // ones in UD-derived data — verified against Polish worddata, where the top-ranked lemmas
+    // by form count are "być" (be), "mieć" (have), "mówić" (say), "iść" (go), "chcieć" (want):
+    // exactly the category curated generic-word lists target, but derived from data instead of
+    // a translated word list.
+    private HashSet<string> DeriveGenericWordsFromVerbRichness(string iso3)
+    {
+        var data = LoadWordData(iso3);
+        if (data?.verbs == null || data.verbs.Count < 10)
+            return _empty; // too little verb data to rank meaningfully
+
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (lemma, forms) in data.verbs
+                     .Where(kv => !string.IsNullOrEmpty(kv.Key) && kv.Value?.Count >= 4)
+                     .OrderByDescending(kv => kv.Value.Count)
+                     .Take(25))
+        {
+            result.Add(lemma);
+            foreach (var f in forms)
+                if (!string.IsNullOrEmpty(f)) result.Add(f);
+        }
+        return result;
     }
 
     private static HashSet<string> LoadGenericWords(string iso3)

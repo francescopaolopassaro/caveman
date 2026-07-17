@@ -866,6 +866,8 @@ namespace caveman
             CavemanCompressionLevel.Light => ConsoleColor.Green,
             CavemanCompressionLevel.Semantic => ConsoleColor.Yellow,
             CavemanCompressionLevel.Aggressive => ConsoleColor.Red,
+            CavemanCompressionLevel.Statistical => ConsoleColor.Cyan,
+            CavemanCompressionLevel.Syntactic => ConsoleColor.Magenta,
             _ => ConsoleColor.Gray
         };
 

@@ -2,6 +2,24 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **`Statistical` compression level** — TF-IDF word scoring as an alternative to curated dictionaries: scores each word by frequency in the prompt vs. how many of the prompt's own sentences contain it, grounding "common" words against the language's curated function/generic-word lists as the standard-corpus reference. Keeps words at/above the adaptive median score; never empties a sentence that had content.
+- **`Syntactic` compression level** — rule-based pruning: same content-word filtering as `Aggressive`, but a function word survives when it is grammatical glue directly touching a surviving word (e.g. a determiner right in front of its noun), so the result reads as a terse but grammatical sentence rather than a keyword bag.
+- `FunctionWordProvider.GetGenericWords(iso3)` — generic/filler words (e.g. "want", "know", "time") pruned in `Aggressive`/`Syntactic` mode, loaded per-language from `{iso3}.generic.yaml.br` for 9 curated languages. For every other language (40+), derived algorithmically from that language's own verb data — the most richly inflected verb lemmas are ranked as the generic set — instead of guessing translations.
+- `mcp compress`/`compress_batch` tools now accept `"statistical"` and `"syntactic"` as level values.
+- **`FunctionWordProvider.GetPosTags(iso3)` / `GetPosTag(word, iso3)`** — a Universal POS lookup (NOUN, VERB, ADJ, ADP, DET, …) per language: the most frequent tag Universal Dependencies treebanks observed for each word form. A frequency-baseline tagger, not a model — a dictionary lookup generated offline by `scripts/import-ud-lemmas` from the same UD source already used for lemmas/verbs, covering 54 of 55 mappable languages (only Kannada has no UD treebank). `Syntactic` now uses it to safely elide a leading hedging/matrix clause ("I kindly ask you to…", "vorrei che tu…") in favour of the sentence's last verb — a first attempt at this without real POS evidence broke on verb/preposition homographs (Italian "entro" = "by/within" vs. "I enter") and was rolled back; with a POS tag per word it's safe, and is further restricted to only fire when no real content noun sits between the candidate verbs, so coordinated clauses ("I bought bread and ate cake") are never mistaken for a hedge clause and gutted.
+
+### Fixed
+- **Cross-language generic-word contamination**: `Aggressive`/`Syntactic` used to prune generic words from a hardcoded list shared across a whole language *family* (e.g. Italian, Spanish, French and Portuguese all shared one "romance" bucket), so a Spanish-only filler word could be wrongly stripped from Italian text. Now loaded per-language.
+- **Silent verb loss**: the `"are"` suffix in the Romance descriptive-word heuristic matched every Italian first-conjugation infinitive verb ("analizzare", "parlare", …) in addition to its intended "-are" adjectives ("regolare", "particolare"), so `Aggressive`/`Syntactic` compression could delete a sentence's main verb. The suffix was removed from the heuristic.
+- **`Aggressive` could compress a content-bearing prompt to an empty string** (e.g. a one-word imperative like "Vai."/"Go." whose only word was itself curated as generic/filler). Added a safety floor: falls back to `Semantic`-level filtering instead of returning nothing.
+- Italian curated function words were missing the accented copula "è" (only the unaccented conjunction "e" was present).
+- `FunctionWordProvider` no longer hardcodes the 7 curated languages' function-word lists in code — loaded from `{iso3}.fw.yaml.br` embedded resources instead, matching how exclusive markers and generic words are already sourced.
+- **Tokenizer split words apart in scripts that use combining marks** (Kannada, Hindi, Tamil, Thai, …): the word-matching regex only matched `\p{L}` (Letter), but these scripts attach vowel signs/virama as separate `\p{M}` (Mark) codepoints, so e.g. Kannada "ಪರೀಕ್ಷೆ" fragmented into "ಪರ", "ಕ", "ಷ". Fixed in both `CavemanCompressionService` and `CavemanLanguageDetector`.
+- **"torta" (Italian "cake") was lemmatized to "torcere" ("to twist")**: the `import-ud-lemmas` pipeline mixed `UD_Italian-Old` (Dante-era 14th-century Italian, where "torta" is the archaic feminine participle of "torcere") into the modern-Italian corpus, letting an archaic sense outvote the modern one. `UD_Swedish-Old` had the same problem. Historical-stage treebanks (`-Old` suffix, which — unlike Ancient/Classical treebanks for other languages — share the modern language's UD name) are now excluded from every language's import.
+
 ## [1.4.0](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.0) - 2026-06-24
 
 ### Highlights

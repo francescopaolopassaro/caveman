@@ -15,7 +15,7 @@ It is inspired by the token-saving idea behind the Caveman plugin for Claude, bu
 - **Up to 70% token reduction** — slash API costs and speed up local inference.
 - **50+ languages out of the box** — language data is embedded in the assembly; nothing to download at runtime.
 - **No heavy NLP runtime** — pure lookup + heuristics; zero ML model dependencies.
-- **Three compression levels** — `Light`, `Semantic`, `Aggressive`.
+- **Five compression levels** — `Light`, `Semantic`, `Aggressive`, `Statistical` (TF-IDF), `Syntactic` (rule-based grammatical-glue pruning).
 - **Content-aware routing (v1.3.0)** — auto-detects JSON arrays, diffs, logs, HTML, code, tables and applies the best algorithm for each type.
 - **JSON SmartCrusher** — lossless CSV/markdown compaction or BM25 row-drop with reversible CCR markers.
 - **Output shaping** — inject verbosity-steering instructions into system prompts to prevent preamble/restatement generation.
@@ -121,6 +121,8 @@ The router auto-detects content type and picks the best algorithm:
 | **Light** | Stop-word removal | ~25–35% |
 | **Semantic** | Content words + lemmatization | ~30–69% |
 | **Aggressive** | Lemmatization + generic-term pruning | ~35–70% |
+| **Statistical** | TF-IDF word scoring instead of curated dictionaries — keeps words that are frequent in the prompt but rare against the language's standard-corpus reference | ~30–65% |
+| **Syntactic** | Rule-based pruning: same content-word filtering as Aggressive, but a function word survives when it's grammatical glue directly touching a surviving word (e.g. a determiner in front of its noun), so the result reads as a terse but grammatical sentence | ~25–55% |
 
 ---
 

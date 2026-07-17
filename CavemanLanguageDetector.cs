@@ -24,7 +24,9 @@ namespace caveman.core;
 /// </summary>
 public class CavemanLanguageDetector : ILanguageDetector
 {
-    private static readonly Regex WordSplit = new(@"\p{L}+(?:'\p{L}+)?", RegexOptions.Compiled);
+    // \p{M} keeps combining marks (Kannada/Hindi/Tamil/Thai vowel signs, virama, …) attached
+    // to their base letter — see the identical fix/rationale in CavemanCompressionService.
+    private static readonly Regex WordSplit = new(@"[\p{L}\p{M}]+(?:'[\p{L}\p{M}]+)?", RegexOptions.Compiled);
     private readonly FunctionWordProvider _wordProvider;
     private readonly HashSet<string> _supportedLanguages;
     private readonly HashSet<string> _curatedIso3s;
