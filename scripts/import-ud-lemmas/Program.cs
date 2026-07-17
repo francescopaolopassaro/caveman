@@ -9,6 +9,7 @@
 // <summary>Developer script: imports lemmas and verb forms from Universal Dependencies treebanks into the worddata YAML files.</summary>
 // -----------------------------------------------------------------------------
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -38,6 +39,9 @@ var keepPos = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "NOUN", "V
 
 // Skip individual .conllu files larger than this (e.g. the huge German-HDT train).
 const double MaxFileMB = 80;
+
+// Cap on individual .conllu files read per treebank repo — see the sampling note below.
+const int MaxFilesPerRepo = 200;
 
 // caveman iso3 -> UD language folder name (the part in `UD_<Name>-<Treebank>`).
 var langMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -91,6 +95,17 @@ foreach (var iso3 in targets)
     var langName = langMap[iso3];
     var repos = allRepos
         .Where(r => r.StartsWith($"UD_{langName}-", StringComparison.Ordinal))
+        // Historical-stage treebanks share the modern language's UD name but tag archaic
+        // senses that collide with common modern words — "torta" ("cake" in modern Italian)
+        // is annotated as a form of "torcere" ("twisted") throughout Dante's Divine Comedy
+        // (UD_Italian-Old), and that archaic sense was frequent enough to win the
+        // most-frequent-lemma vote. Ancient/Classical treebanks for other languages already
+        // use a distinct UD name (UD_Ancient_Greek vs UD_Greek) so they never match here;
+        // these are the naming conventions that DO silently share a modern prefix:
+        //   "-Old"  : UD_Italian-Old, UD_Swedish-Old
+        //   "PaHC"  : "Parsed Historical Corpus" — UD_Icelandic-IcePaHC, UD_Faroese-FarPaHC
+        .Where(r => !r.EndsWith("-Old", StringComparison.Ordinal))
+        .Where(r => !r.Contains("PaHC", StringComparison.Ordinal))
         .OrderBy(r => r, StringComparer.Ordinal)
         .ToList();
 
@@ -109,13 +124,27 @@ foreach (var iso3 in targets)
     // per-form PROPN vs non-PROPN occurrence counts (for a high-precision gazetteer)
     var propnCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     var nonPropnCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+    // form -> (UPOS -> count), tallied for every token regardless of `keepPos` — this is
+    // the frequency data behind a "most common tag wins" POS lookup tagger.
+    var posCounts = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
 
     foreach (var repo in repos)
     {
         var dir = Path.Combine(tmpRoot, repo);
         if (!CloneIfNeeded(repo, dir)) continue;
 
-        foreach (var file in Directory.GetFiles(dir, "*.conllu", SearchOption.AllDirectories))
+        var conlluFiles = Directory.GetFiles(dir, "*.conllu", SearchOption.AllDirectories);
+        if (conlluFiles.Length > MaxFilesPerRepo)
+        {
+            // Some treebanks (e.g. Portuguese-Bosque) ship one file per source document —
+            // thousands of tiny files. Per-file I/O overhead (and antivirus real-time
+            // scanning on Windows) makes that pathologically slow for no real data gain
+            // over a size-capped sample; take the largest files first instead of stalling.
+            Console.WriteLine($"    {repo}: {conlluFiles.Length} files > {MaxFilesPerRepo}, sampling largest {MaxFilesPerRepo}");
+            conlluFiles = conlluFiles.OrderByDescending(f => new FileInfo(f).Length).Take(MaxFilesPerRepo).ToArray();
+        }
+
+        foreach (var file in conlluFiles)
         {
             var sizeMB = new FileInfo(file).Length / 1_048_576.0;
             if (sizeMB > MaxFileMB)
@@ -123,9 +152,11 @@ foreach (var iso3 in targets)
                 Console.WriteLine($"    skip {Path.GetFileName(file)} ({sizeMB:F0} MB > {MaxFileMB} MB)");
                 continue;
             }
-            ParseConllu(file, keepPos, counts, verbForms, propnCounts, nonPropnCounts);
+            ParseConllu(file, keepPos, counts, verbForms, propnCounts, nonPropnCounts, posCounts);
         }
     }
+
+    WritePosData(iso3, posCounts);
 
     // Keep only forms that occur as a name at least as often as not — so a common
     // word that is occasionally tagged PROPN does not pollute the gazetteer.
@@ -198,17 +229,38 @@ bool CloneIfNeeded(string repo, string dir)
     }
     Console.WriteLine($"    cloning {repo} ...");
     var psi = new ProcessStartInfo("git",
-        $"clone --depth 1 --single-branch https://github.com/UniversalDependencies/{repo}.git \"{dir}\"")
+        $"clone --quiet --depth 1 --single-branch https://github.com/UniversalDependencies/{repo}.git \"{dir}\"")
     {
         RedirectStandardError = true,
         RedirectStandardOutput = true,
+        RedirectStandardInput = true, // closed immediately below: never let git wait on a prompt
         UseShellExecute = false
     };
-    var p = Process.Start(psi)!;
-    p.WaitForExit();
+    // Never let a redirected-but-unauthenticated/private repo (or any credential helper)
+    // block on an interactive prompt that nothing is there to answer.
+    psi.EnvironmentVariables["GIT_TERMINAL_PROMPT"] = "0";
+
+    using var p = Process.Start(psi)!;
+    p.StandardInput.Close();
+
+    // Drain stdout/stderr concurrently instead of waiting until after WaitForExit(): git's
+    // own progress/error output can exceed the OS pipe buffer, and a synchronous WaitForExit
+    // before anyone reads the redirected streams deadlocks — this is what caused this script
+    // to hang indefinitely on some treebanks. Reading eagerly (and asynchronously) avoids it.
+    var stderrTask = p.StandardError.ReadToEndAsync();
+    var stdoutTask = p.StandardOutput.ReadToEndAsync();
+
+    // Belt-and-braces timeout: a stalled network clone must not hang the whole batch forever.
+    if (!p.WaitForExit(TimeSpan.FromMinutes(3)))
+    {
+        Console.WriteLine($"    clone TIMED OUT after 3 min, killing {repo}");
+        try { p.Kill(entireProcessTree: true); } catch { /* best effort */ }
+        return false;
+    }
+
     if (p.ExitCode != 0)
     {
-        Console.WriteLine($"    clone FAILED: {p.StandardError.ReadToEnd().Trim()}");
+        Console.WriteLine($"    clone FAILED: {stderrTask.Result.Trim()}");
         return false;
     }
     return true;
@@ -220,7 +272,8 @@ void ParseConllu(
     Dictionary<string, Dictionary<string, int>> counts,
     Dictionary<string, HashSet<string>> verbForms,
     Dictionary<string, int> propnCounts,
-    Dictionary<string, int> nonPropnCounts)
+    Dictionary<string, int> nonPropnCounts,
+    Dictionary<string, Dictionary<string, int>> posCounts)
 {
     foreach (var line in File.ReadLines(file))
     {
@@ -239,6 +292,16 @@ void ParseConllu(
         if (!form.Any(char.IsLetter)) continue;
 
         var f = form.ToLowerInvariant();
+
+        // Every token's POS is tallied, independent of the `keep` filter below (which is
+        // scoped to lemma extraction only) — a lookup tagger needs DET/ADP/PRON/CCONJ etc.
+        // too, not just the content POS the lemma pipeline cares about.
+        if (upos.Length > 0 && upos != "_")
+        {
+            if (!posCounts.TryGetValue(f, out var ptally))
+                posCounts[f] = ptally = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            ptally[upos] = ptally.GetValueOrDefault(upos) + 1;
+        }
 
         // Track how often each form occurs as a name vs. anything else, so the
         // gazetteer can keep only forms that are *predominantly* proper nouns.
@@ -439,6 +502,40 @@ void WriteYaml(string iso3, Dictionary<string, string> udLemmas, HashSet<string>
     Console.WriteLine($"[{iso3}] lemmas: {keptLemmas}+{addedLemmas}={mergedLemmas.Count} (-{removedStopwords} sw); " +
                       $"verbs: {keptVerbs}+{addedVerbs}={mergedVerbs.Count}; " +
                       $"names: {keptProperNouns}+{addedProperNouns}={mergedProperNouns.Count} ({sizeKB:F0} KB)");
+}
+
+// Writes a "most frequent tag wins" POS lookup — a classic frequency-baseline tagger,
+// no model/inference at runtime, just a dictionary lookup. Written straight to the
+// compressed worddata/{iso3}.pos.yaml.br artifact (bypassing compile-worddata, which globs
+// worddata/*.yaml and would otherwise mis-parse "{iso3}.pos" as a bogus extra language in
+// the detection index).
+void WritePosData(string iso3, Dictionary<string, Dictionary<string, int>> posCounts)
+{
+    const int MinOccurrences = 3; // drop hapax/near-hapax forms: too little signal to trust
+
+    var sb = new StringBuilder();
+    sb.Append("iso3: ").Append(iso3).Append('\n').Append('\n');
+    sb.Append("pos:\n");
+
+    int emitted = 0;
+    foreach (var (form, tally) in posCounts.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+    {
+        var total = tally.Values.Sum();
+        if (total < MinOccurrences) continue;
+
+        var best = tally.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal).First();
+        sb.Append("  ").Append(Quote(form)).Append(": ").Append(Quote(best.Key)).Append('\n');
+        emitted++;
+    }
+
+    var path = Path.Combine(worddataDir, $"{iso3}.pos.yaml.br");
+    var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+    using (var outFile = File.Create(path))
+    using (var brotli = new BrotliStream(outFile, CompressionLevel.Optimal))
+        brotli.Write(bytes, 0, bytes.Length);
+
+    var sizeKB = new FileInfo(path).Length / 1024.0;
+    Console.WriteLine($"[{iso3}] pos: {emitted} forms tagged ({sizeKB:F0} KB compressed)");
 }
 
 static string Quote(string s) =>

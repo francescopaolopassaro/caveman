@@ -14,7 +14,8 @@ Bundled language data — Universal Dependencies
 --------------------------------------------------------------------------------
 
 The `lemmas:` and `verbs:` data (and part of `function_words:`) in the files
-under `worddata/` are derived from the Universal Dependencies (UD) treebanks,
+under `worddata/`, as well as the `{iso3}.pos.yaml.br` POS-tag lookup data,
+are derived from the Universal Dependencies (UD) treebanks,
 https://universaldependencies.org/.
 
 This data is provided under the licenses of the respective UD treebanks
@@ -52,8 +53,8 @@ Source treebanks per language (cloned from github.com/UniversalDependencies):
   hun  Hungarian   UD_Hungarian-Szeged
   hye  Armenian    UD_Armenian-ArmTDP, UD_Armenian-BSUT
   ind  Indonesian  UD_Indonesian-CSUI, UD_Indonesian-GSD, UD_Indonesian-PUD
-  isl  Icelandic   UD_Icelandic-GC, UD_Icelandic-IcePaHC, UD_Icelandic-Modern, UD_Icelandic-PUD
-  ita  Italian     UD_Italian-ISDT, UD_Italian-KIParlaForest, UD_Italian-MarkIT, UD_Italian-Old, UD_Italian-PUD, UD_Italian-ParTUT, UD_Italian-ParlaMint, UD_Italian-PoSTWITA, UD_Italian-TWITTIRO, UD_Italian-TrIttok, UD_Italian-VIT, UD_Italian-Valico
+  isl  Icelandic   UD_Icelandic-GC, UD_Icelandic-Modern, UD_Icelandic-PUD
+  ita  Italian     UD_Italian-ISDT, UD_Italian-KIParlaForest, UD_Italian-MarkIT, UD_Italian-PUD, UD_Italian-ParTUT, UD_Italian-ParlaMint, UD_Italian-PoSTWITA, UD_Italian-TWITTIRO, UD_Italian-TrIttok, UD_Italian-VIT, UD_Italian-Valico
   jpn  Japanese    UD_Japanese-BCCWJ, UD_Japanese-BCCWJLUW, UD_Japanese-GSD, UD_Japanese-GSDLUW, UD_Japanese-JDD, UD_Japanese-JDDLUW, UD_Japanese-KTC, UD_Japanese-Modern, UD_Japanese-PUD, UD_Japanese-PUDLUW
   kaz  Kazakh      UD_Kazakh-KTB
   kor  Korean      UD_Korean-GSD, UD_Korean-KSL, UD_Korean-Kaist, UD_Korean-LittlePrince, UD_Korean-PUD
@@ -73,7 +74,7 @@ Source treebanks per language (cloned from github.com/UniversalDependencies):
   spa  Spanish     UD_Spanish-AnCora, UD_Spanish-COSER, UD_Spanish-GSD, UD_Spanish-PUD, UD_Spanish-SVarT
   sqi  Albanian    UD_Albanian-STAF, UD_Albanian-TSA
   srp  Serbian     UD_Serbian-ParCoLab, UD_Serbian-SET
-  swe  Swedish     UD_Swedish-Eukalyptus, UD_Swedish-LinES, UD_Swedish-Old, UD_Swedish-PUD, UD_Swedish-SweLL, UD_Swedish-Talbanken
+  swe  Swedish     UD_Swedish-Eukalyptus, UD_Swedish-LinES, UD_Swedish-PUD, UD_Swedish-SweLL, UD_Swedish-Talbanken
   tam  Tamil       UD_Tamil-MWTT, UD_Tamil-TTB
   tha  Thai        UD_Thai-Autogramm, UD_Thai-PUD, UD_Thai-TUD
   tur  Turkish     UD_Turkish-Atis, UD_Turkish-BOUN, UD_Turkish-FrameNet, UD_Turkish-GB, UD_Turkish-IMST, UD_Turkish-Kenet, UD_Turkish-PUD, UD_Turkish-Penn, UD_Turkish-Tourism, UD_Turkish-TueCL, UD_Turkish-ULU

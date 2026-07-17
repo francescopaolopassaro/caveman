@@ -15,7 +15,8 @@ It is inspired by the token-saving idea behind the Caveman plugin for Claude, bu
 - **Up to 70% token reduction** — slash API costs and speed up local inference.
 - **50+ languages out of the box** — language data is embedded in the assembly; nothing to download at runtime.
 - **No heavy NLP runtime** — pure lookup + heuristics; zero ML model dependencies.
-- **Five compression levels** — `Light`, `Semantic`, `Aggressive`, `Statistical` (TF-IDF), `Syntactic` (rule-based grammatical-glue pruning).
+- **Five compression levels** — `Light`, `Semantic`, `Aggressive`, `Statistical` (TF-IDF), `Syntactic` (rule-based grammatical-glue pruning, POS-gated hedge-clause elision).
+- **POS lookup for 54/55 languages** — `FunctionWordProvider.GetPosTags`/`GetPosTag`: a frequency-baseline Universal POS tagger generated offline from the same Universal Dependencies treebanks as the lemma data, no runtime model.
 - **Content-aware routing (v1.3.0)** — auto-detects JSON arrays, diffs, logs, HTML, code, tables and applies the best algorithm for each type.
 - **JSON SmartCrusher** — lossless CSV/markdown compaction or BM25 row-drop with reversible CCR markers.
 - **Output shaping** — inject verbosity-steering instructions into system prompts to prevent preamble/restatement generation.
@@ -128,25 +129,34 @@ The router auto-detects content type and picks the best algorithm:
 
 ## 🌍 How it works
 
-Caveman does **not** load any NLP model at runtime. Each language is described by a `worddata/<iso3>.yaml` source file with four sections:
+Caveman does **not** load any NLP model at runtime. Each language is described by a `worddata/<iso3>.yaml` source file with four sections, plus a handful of per-language supplementary resources:
 
 - **`function_words`** — stop words, used both for compression and for language detection.
 - **`lemmas`** — `inflected form → base form` map (e.g. `studying → study`, `gatti → gatto`).
 - **`verbs`** — `base verb → [conjugated forms]`; folded into the lemma map at load time so every conjugation collapses to its base.
 - **`proper_nouns`** — a name gazetteer; capitalized tokens in it are kept verbatim (so names like `Termini` or `München` are never compressed).
 
-For shipping, these YAML sources are compiled (by `scripts/compile-worddata`) into compact embedded artifacts and a custom streaming parser keeps loading fast:
+Supplementary per-language resources (each an independent brotli blob, loaded only if the feature using it runs):
+
+| File | Contents | Coverage |
+| :--- | :--- | :--- |
+| `{iso3}.fw.yaml.br` | Hand-curated grammatical function words (articles, pronouns, prepositions, conjunctions, auxiliaries) | 7 curated languages |
+| `{iso3}.excl.yaml.br` | Exclusive markers for language-detection disambiguation | 7 curated languages |
+| `{iso3}.generic.yaml.br` | Generic/filler words pruned in `Aggressive`/`Syntactic` mode | 9 curated languages; every other language derives its own generic set algorithmically from verb-form richness instead (see `FunctionWordProvider.GetGenericWords`) |
+| `{iso3}.pos.yaml.br` | Universal POS tag lookup (NOUN, VERB, ADJ, ADP, DET, …) — the most frequent tag Universal Dependencies observed per word form | 54 of 55 mappable languages |
+
+For shipping, the main YAML sources are compiled (by `scripts/compile-worddata`) into compact embedded artifacts and a custom streaming parser keeps loading fast:
 
 1. **Detection** reads a tiny brotli-compressed index (`_index.br`) holding only the stop words of every language, and scores the input by stop-word frequency — the large per-language data is never touched.
 2. **Compression** then loads the one detected language from its brotli blob (`<iso3>.yaml.br`), decompresses + parses it once, caches it, and applies the selected level.
 
-This keeps the assembly small (~13 MB instead of ~68 MB of raw text) while loading only the language actually used.
+This keeps the assembly small (~12 MB instead of ~66 MB of raw text) while loading only the language actually used.
 
 Function words are dropped by their **surface form** before lemmatization, so a noisy lemma can never reinject a stop word.
 
 ### Language data & provenance
 
-The `lemmas` and `verbs` data are generated from the **[Universal Dependencies](https://universaldependencies.org/)** treebanks via `scripts/import-ud-lemmas`. Languages with little inflection (Chinese, Vietnamese, Thai, …) intentionally carry few or no lemma entries. See **NOTICE** for per-language attribution.
+The `lemmas`, `verbs` and `pos` data are all generated from the **[Universal Dependencies](https://universaldependencies.org/)** treebanks via `scripts/import-ud-lemmas` — a frequency-baseline POS tagger (most-frequent-tag-per-form lookup) alongside the lemma/verb extraction, no runtime model involved. Languages with little inflection (Chinese, Vietnamese, Thai, …) intentionally carry few or no lemma entries. Historical-stage treebanks that happen to share a modern language's UD name (`UD_Italian-Old`, `UD_Swedish-Old`, `UD_Icelandic-IcePaHC`, …) are excluded from every import, so archaic senses never outvote the modern one. See **NOTICE** for per-language attribution.
 
 ---
 
