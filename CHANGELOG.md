@@ -2,6 +2,20 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.4.2](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.2) - 2026-07-18
+
+Language-quality pass, ported back from the [Synthelion](https://github.com/francescopaolopassaro/Synthelion) (Python port) 1.2.0 real-text quality review — every bug below was found by compressing real sentences in Italian/English/Chinese and reading the output, not by unit-testing in the abstract.
+
+### Fixed
+- **Negation particles were being stripped as ordinary function words at every compression level** — not a fluency loss, a meaning inversion ("non c'era sensibilità" → "c'era sensibilità"). Added a small closed per-language negation-particle set (`NegationWords` in `CavemanCompressionService.cs`) folded into the existing proper-noun "always keep verbatim" pass, covering eng/ita/fra/spa/deu/por/zho. Chinese negation is a bound prefix morpheme ("不是"/"不管" are themselves dictionary words containing "不") — added prefix matching for zho so compound negations survive too.
+- **Italian "subito" (adverb, "immediately") mis-lemmatised to "subire" (verb, "to undergo")** — same class of UD homograph-contamination bug as the earlier "torta"→"torcere" fix. `LemmaOrLower` now skips a lemma substitution whenever the surface form is POS-tagged `ADV` (via the existing `FunctionWordProvider.GetPosTags`) and the lemma differs — adverbs don't meaningfully inflect, so a differing "lemma" is a contamination signal, not real morphology. Loaded for every compression level, not just `Syntactic`.
+- **Chinese had no word segmentation at all.** The shared word-splitting regex matched an entire Han-character sentence as one "token" (Chinese has no spaces), so no function word ever matched — compression and language detection both silently no-op'd beyond punctuation stripping (confirmed: `CavemanLanguageDetector.Detect()` returned `"eng"` for pure Chinese text). Added **`CavemanCjkSegmenter`** — dictionary-based segmentation via DAG construction + dynamic-programming longest-match path, the same core algorithm as jieba's non-ML dictionary mode, re-implemented rather than taken as a dependency (jieba's optional HMM unknown-word tagger, the actual ML part, is not used). Dictionary built from Caveman's own zho worddata (function words + lemma surface forms + proper nouns). Wired into both `CavemanCompressionService.Tokenize` and `CavemanLanguageDetector.Tokenize`.
+- **`worddata/zho.yaml`(`.br`), `zho.pos.yaml.br`, and `_index.br` had real mojibake corruption** — some Chinese entries were UTF-8 bytes mis-decoded as Windows-1252 at an earlier pipeline stage, then re-encoded: reversible, deterministic corruption (confirmed: round-tripping through a cp1252-encode + WHATWG-lenient-passthrough + utf-8-decode recovers exactly the original character, e.g. `0xE5,0x2C6,0xAB` → `别`). Repaired directly (same fix applied to the Synthelion Python port's copy of this data, since it inherited the corruption from here). `_index.br` also had the same corruption in 10 further languages sharing that file (ben, ell, eng, heb, hin, jpn, kor, mar, tha, vie).
+- **Language-detection data contamination** — `"john"` (an English first name) was present as a "function word" in 16 languages' `_index.br` entries (ita + 15 others); a proper noun has no legitimate place in any language's function-word list, and this alone flipped `"John bought bread and ate cake yesterday."` to detect as Italian. Also removed `"ha"`/`"e"` (real Italian words, not French) from French's `_index.br` entry, and `"ate"` from Portuguese's exclusive markers (collided with English's own "ate", defeating the exclusive-marker disambiguation pass).
+- Added `tests/caveman.tests/CavemanNegationAndZhTests.cs` (14 tests, ported from Synthelion's `test_negation_and_zh.py`) covering all of the above. Full suite: 311/311 passing.
+
+---
+
 ## [1.4.1](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.1) - 2026-07-18
 
 ### Added

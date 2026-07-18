@@ -317,17 +317,31 @@ namespace caveman.core
             };
         }
 
-        private static List<WordToken> Tokenize(string input)
+        private List<WordToken> Tokenize(string input)
         {
             var tokens = new List<WordToken>();
             var matches = WordSplit.Matches(input);
 
             foreach (Match match in matches)
             {
+                var text = match.Value;
+                bool isPunct = !char.IsLetterOrDigit(text[0]);
+
+                // Chinese has no spaces between words, so the regex above matched this
+                // whole run of Han characters as one "word" -- segment it into real words
+                // instead, or every function/negation word check downstream compares
+                // against the entire sentence and never matches.
+                if (!isPunct && text.Length > 1 && CavemanCjkSegmenter.IsHan(text[0]))
+                {
+                    foreach (var word in CavemanCjkSegmenter.SegmentHanRun(text, _wordProvider))
+                        tokens.Add(new WordToken { Text = word, IsPunctuation = false });
+                    continue;
+                }
+
                 tokens.Add(new WordToken
                 {
-                    Text = match.Value,
-                    IsPunctuation = !char.IsLetterOrDigit(match.Value[0])
+                    Text = text,
+                    IsPunctuation = isPunct
                 });
             }
 
@@ -342,13 +356,17 @@ namespace caveman.core
             Dictionary<string, string>? lemmas,
             HashSet<string> properNouns)
         {
+            // Loaded (and cached by the provider) for every level, not just Syntactic: also
+            // guards LemmaOrLower against ADV-tagged homograph-contaminated lemma entries
+            // (e.g. Italian "subito" wrongly lemmatised to "subire") at every compression level.
+            var posTags = _wordProvider.GetPosTags(iso3);
             return level switch
             {
-                CavemanCompressionLevel.Light => FilterLight(words, functionWords),
-                CavemanCompressionLevel.Semantic => FilterSemantic(words, functionWords, iso3, lemmas, properNouns),
-                CavemanCompressionLevel.Aggressive => FilterAggressive(words, functionWords, iso3, lemmas, properNouns),
-                CavemanCompressionLevel.Statistical => FilterStatistical(words, functionWords, iso3, lemmas, properNouns),
-                CavemanCompressionLevel.Syntactic => FilterSyntactic(words, functionWords, iso3, lemmas, properNouns),
+                CavemanCompressionLevel.Light => FilterLight(words, functionWords, iso3),
+                CavemanCompressionLevel.Semantic => FilterSemantic(words, functionWords, iso3, lemmas, properNouns, posTags),
+                CavemanCompressionLevel.Aggressive => FilterAggressive(words, functionWords, iso3, lemmas, properNouns, posTags),
+                CavemanCompressionLevel.Statistical => FilterStatistical(words, functionWords, iso3, lemmas, properNouns, posTags),
+                CavemanCompressionLevel.Syntactic => FilterSyntactic(words, functionWords, iso3, lemmas, properNouns, posTags),
                 _ => words
             };
         }
@@ -381,7 +399,8 @@ namespace caveman.core
 
         private static IReadOnlyList<WordToken> FilterLight(
             List<WordToken> words,
-            HashSet<string> functionWords)
+            HashSet<string> functionWords,
+            string iso3)
         {
             return words.Where(w =>
             {
@@ -389,15 +408,26 @@ namespace caveman.core
                     return false;
 
                 var lower = w.Text.ToLowerInvariant();
-                return !functionWords.Contains(lower);
+                return !functionWords.Contains(lower) || IsNegation(w.Text, iso3);
             }).ToList();
         }
 
-        private static string? LemmaOrLower(string text, Dictionary<string, string>? lemmas)
+        private static string? LemmaOrLower(string text, Dictionary<string, string>? lemmas, IReadOnlyDictionary<string, string>? posTags = null)
         {
             var lower = text.ToLowerInvariant();
             if (lemmas != null && lemmas.TryGetValue(lower, out var lemma))
+            {
+                // Found via real-text review: Italian "subito" (adverb, "immediately") was mapped
+                // to "subire" (verb, "to undergo") — the UD-derived lemma map picked the wrong
+                // homograph's lemma, same class of bug as "torta"->"torcere" fixed earlier.
+                // Adverbs don't meaningfully inflect, so a UD lemma differing from the surface
+                // form on an ADV-tagged word is a strong signal of homograph contamination rather
+                // than real morphology — skip the substitution rather than trust it.
+                if (!lemma.Equals(lower, StringComparison.OrdinalIgnoreCase)
+                    && posTags != null && posTags.TryGetValue(lower, out var tag) && tag == "ADV")
+                    return lower;
                 return lemma;
+            }
             return lower;
         }
 
@@ -408,10 +438,13 @@ namespace caveman.core
             "deu" // German (and Luxembourgish, not currently supported)
         };
 
-        // Proper-noun detection. A token is treated as a name (and kept verbatim) when
-        // it is upper-case-initial AND either:
-        //   - it is not at the start of a sentence (positional heuristic), or
-        //   - its lower-cased form is in the UD-derived name gazetteer.
+        // Proper-noun (and negation) detection. A token is treated as always-kept-verbatim when
+        // either:
+        //   - it is upper-case-initial AND (not at the start of a sentence, or its lower-cased
+        //     form is in the UD-derived name gazetteer), or
+        //   - it is a negation particle (see NegationWords) — every call site already treats a
+        //     true result here as "always keep, unlemmatised", exactly what a negation particle
+        //     needs too, so folding it in here means every filter gets the protection for free.
         // The gazetteer also re-enables protection at sentence start and for languages
         // that capitalise all common nouns (German), where the positional heuristic is off.
         private static bool[] DetectProperNouns(List<WordToken> words, string iso3, HashSet<string> properNouns)
@@ -428,6 +461,13 @@ namespace caveman.core
                 {
                     if (w.Text is "." or "!" or "?" or "…")
                         sentenceStart = true;
+                    continue;
+                }
+
+                if (IsNegation(w.Text, iso3))
+                {
+                    isProper[i] = true;
+                    sentenceStart = false;
                     continue;
                 }
 
@@ -448,7 +488,8 @@ namespace caveman.core
             HashSet<string> functionWords,
             string iso3,
             Dictionary<string, string>? lemmas,
-            HashSet<string> properNouns)
+            HashSet<string> properNouns,
+            IReadOnlyDictionary<string, string>? posTags = null)
         {
             var isProper = DetectProperNouns(words, iso3, properNouns);
             return words.Select((w, i) =>
@@ -468,7 +509,7 @@ namespace caveman.core
                 if (functionWords.Contains(w.Text.ToLowerInvariant()))
                     return null;
 
-                var normalized = LemmaOrLower(w.Text, lemmas);
+                var normalized = LemmaOrLower(w.Text, lemmas, posTags);
                 if (normalized == null)
                     return null;
 
@@ -487,7 +528,8 @@ namespace caveman.core
             HashSet<string> functionWords,
             string iso3,
             Dictionary<string, string>? lemmas,
-            HashSet<string> properNouns)
+            HashSet<string> properNouns,
+            IReadOnlyDictionary<string, string>? posTags = null)
         {
             var langGroup = GetLanguageGroup(iso3);
             var genericWords = _wordProvider.GetGenericWords(iso3);
@@ -514,7 +556,7 @@ namespace caveman.core
                 if (functionWords.Contains(w.Text.ToLowerInvariant()))
                     return null;
 
-                var normalized = LemmaOrLower(w.Text, lemmas);
+                var normalized = LemmaOrLower(w.Text, lemmas, posTags);
                 if (normalized == null)
                     return null;
 
@@ -542,7 +584,7 @@ namespace caveman.core
             // is worse than keeping one extra word, so fall back to the mildest available
             // signal instead of returning nothing.
             if (result.Count == 0 && words.Any(w => !w.IsPunctuation))
-                return FilterSemantic(words, functionWords, iso3, lemmas, properNouns);
+                return FilterSemantic(words, functionWords, iso3, lemmas, properNouns, posTags);
 
             return result;
         }
@@ -550,6 +592,45 @@ namespace caveman.core
         // Sentence-ending punctuation used to split the token stream into pseudo-documents
         // for TF-IDF (Statistical) and into clauses for verb detection (Syntactic).
         private static readonly HashSet<string> SentenceEnders = new() { ".", "!", "?", "…" };
+
+        // Negation particles are grammatically function words (curated per-language word lists
+        // correctly classify them as such) but semantically load-bearing — dropping "non"/"not"
+        // doesn't just cost fluency, it silently inverts the sentence's meaning ("non c'era
+        // sensibilità" -> "c'era sensibilità"). Found via real compressed-text review during the
+        // 1.4.2 Synthelion (Python port) quality pass: "non" was being stripped at every level.
+        // A small closed set per language (this is a fixed grammatical category, unlike
+        // open-ended function-word/lemma dictionaries, so a short in-code list here is the same
+        // kind of exception as SentenceEnders or the descriptive-suffix lists, not a "hardcoded
+        // dictionary"). Matched case-insensitively against the raw surface form, never lemmatised.
+        private static readonly Dictionary<string, HashSet<string>> NegationWords = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["eng"] = new(StringComparer.OrdinalIgnoreCase) { "not", "n't", "no", "never", "none", "nobody", "nothing", "neither", "nor" },
+            ["ita"] = new(StringComparer.OrdinalIgnoreCase) { "non", "no", "né", "neanche", "nemmeno", "manco" },
+            ["fra"] = new(StringComparer.OrdinalIgnoreCase) { "ne", "pas", "non", "jamais", "aucun", "aucune", "rien", "personne" },
+            ["spa"] = new(StringComparer.OrdinalIgnoreCase) { "no", "nunca", "jamás", "ni", "nadie", "nada", "ningún", "ninguna", "ninguno" },
+            ["deu"] = new(StringComparer.OrdinalIgnoreCase) { "nicht", "kein", "keine", "keiner", "keinem", "keinen", "keines", "nie", "niemals", "nichts", "niemand" },
+            ["por"] = new(StringComparer.OrdinalIgnoreCase) { "não", "nao", "nunca", "jamais", "nem", "nenhum", "nenhuma", "ninguém" },
+            ["zho"] = new(StringComparer.OrdinalIgnoreCase) { "不", "没", "没有", "别", "无", "非", "未", "莫" },
+        };
+
+        // Languages where negation is a bound prefix morpheme rather than a separate word:
+        // Chinese's dictionary-based segmenter legitimately merges "不" with the verb/adjective
+        // it negates when that compound is itself in the vocabulary ("不是", "不管", "不过", …) —
+        // an exact-match check against NegationWords never matches those compounds, so the whole
+        // token would be treated as an ordinary function word and stripped, silently losing the
+        // negation (found via real-text testing: "这不是我们的问题" dropped "不是" entirely at
+        // every level without this).
+        private static readonly HashSet<string> NegationPrefixLangs = new(StringComparer.OrdinalIgnoreCase) { "zho" };
+
+        private static bool IsNegation(string word, string iso3)
+        {
+            var lower = word.ToLowerInvariant();
+            if (!NegationWords.TryGetValue(iso3, out var neg))
+                return false;
+            if (neg.Contains(lower))
+                return true;
+            return NegationPrefixLangs.Contains(iso3) && neg.Any(p => lower.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+        }
 
         /// <summary>
         /// Statistical alternative to the curated dictionaries: scores each distinct word by
@@ -564,7 +645,8 @@ namespace caveman.core
             HashSet<string> functionWords,
             string iso3,
             Dictionary<string, string>? lemmas,
-            HashSet<string> properNouns)
+            HashSet<string> properNouns,
+            IReadOnlyDictionary<string, string>? posTags = null)
         {
             var genericWords = _wordProvider.GetGenericWords(iso3);
             if (genericWords.Count == 0)
@@ -589,7 +671,7 @@ namespace caveman.core
             {
                 if (words[i].IsPunctuation || isProper[i] || IsNumber(words[i].Text))
                     continue;
-                keys[i] = LemmaOrLower(words[i].Text, lemmas);
+                keys[i] = LemmaOrLower(words[i].Text, lemmas, posTags);
             }
 
             var termFreq = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -703,14 +785,15 @@ namespace caveman.core
             HashSet<string> functionWords,
             string iso3,
             Dictionary<string, string>? lemmas,
-            HashSet<string> properNouns)
+            HashSet<string> properNouns,
+            IReadOnlyDictionary<string, string>? posTags = null)
         {
             var langGroup = GetLanguageGroup(iso3);
             var genericWords = _wordProvider.GetGenericWords(iso3);
             if (genericWords.Count == 0)
                 genericWords = GenericWordsFallback;
             var isProper = DetectProperNouns(words, iso3, properNouns);
-            var posTags = _wordProvider.GetPosTags(iso3);
+            posTags ??= _wordProvider.GetPosTags(iso3);
             var n = words.Count;
 
             bool NextSurvives(int j)
@@ -720,7 +803,7 @@ namespace caveman.core
                 if (IsNumber(words[j].Text)) return false;
                 var jLower = words[j].Text.ToLowerInvariant();
                 if (functionWords.Contains(jLower)) return false;
-                var jNorm = LemmaOrLower(words[j].Text, lemmas) ?? jLower;
+                var jNorm = LemmaOrLower(words[j].Text, lemmas, posTags) ?? jLower;
                 if (functionWords.Contains(jNorm) || genericWords.Contains(jNorm)) return false;
                 if (IsDescriptiveWord(jNorm, langGroup)) return false;
                 return true;
@@ -730,7 +813,7 @@ namespace caveman.core
             {
                 if (words[i].IsPunctuation || isProper[i]) return true;
                 var lower = words[i].Text.ToLowerInvariant();
-                var norm = LemmaOrLower(words[i].Text, lemmas) ?? lower;
+                var norm = LemmaOrLower(words[i].Text, lemmas, posTags) ?? lower;
                 return functionWords.Contains(lower) || functionWords.Contains(norm)
                     || IsDescriptiveWord(norm, langGroup);
             }
@@ -784,7 +867,7 @@ namespace caveman.core
                 if (IsNumber(w.Text)) continue;
 
                 var lower = w.Text.ToLowerInvariant();
-                var normalized = LemmaOrLower(w.Text, lemmas) ?? lower;
+                var normalized = LemmaOrLower(w.Text, lemmas, posTags) ?? lower;
 
                 if (functionWords.Contains(lower) || functionWords.Contains(normalized))
                 {
@@ -830,7 +913,7 @@ namespace caveman.core
                 var w = words[i];
                 if (isProper[i] || isFunc[i]) { result.Add(w); continue; }
 
-                var normalized = LemmaOrLower(w.Text, lemmas);
+                var normalized = LemmaOrLower(w.Text, lemmas, posTags);
                 result.Add(normalized != null && !normalized.Equals(w.Text, StringComparison.OrdinalIgnoreCase)
                     ? new WordToken { Text = normalized, IsPunctuation = false }
                     : w);

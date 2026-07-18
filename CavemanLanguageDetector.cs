@@ -186,15 +186,26 @@ public class CavemanLanguageDetector : ILanguageDetector
     // (kept for backward compatibility), while the interface exposes the read-only view.
     IReadOnlyDictionary<string, double> ILanguageDetector.DetectWithScores(string input) => DetectWithScores(input);
 
-    private static List<string> Tokenize(string text)
+    // Same Han-run segmentation fix as CavemanCompressionService.Tokenize: without it, an
+    // entire Chinese sentence matches WordSplit as one token and never scores against any
+    // single-word function-word list, so Detect() always falls through to the "eng"
+    // fallback for Chinese input.
+    private List<string> Tokenize(string text)
     {
         var tokens = new List<string>();
         var matches = WordSplit.Matches(text);
         foreach (Match match in matches)
         {
             var word = match.Value.ToLowerInvariant();
-            if (word.Length >= 1)
-                tokens.Add(word);
+            if (word.Length == 0) continue;
+
+            if (word.Length > 1 && CavemanCjkSegmenter.IsHan(word[0]))
+            {
+                tokens.AddRange(CavemanCjkSegmenter.SegmentHanRun(word, _wordProvider));
+                continue;
+            }
+
+            tokens.Add(word);
         }
         return tokens;
     }
