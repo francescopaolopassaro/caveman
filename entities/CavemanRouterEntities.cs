@@ -205,6 +205,8 @@ public sealed class CodeCompressionResult
     public bool WasCompressed { get; init; }
     public string DetectedLanguage { get; init; } = string.Empty;
     public int CommentsRemoved { get; init; }
+    /// <summary>Number of function/method bodies replaced with a placeholder (0 unless <c>skeletonize: true</c> was requested).</summary>
+    public int FunctionsSkeletonized { get; init; }
     public int BlankLinesRemoved { get; init; }
 }
 

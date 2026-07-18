@@ -87,8 +87,33 @@ public sealed class CavemanCodeCompressor
         (new Regex(@"\b(class |return |import |require)\b", RegexOptions.Compiled), CStyleProfile),
     ];
 
-    /// <summary>Compresses <paramref name="code"/> by stripping comments and excess blank lines.</summary>
-    public CodeCompressionResult Compress(string code)
+    // Matches a plausible function/method signature ending in an opening brace, capturing
+    // everything up to and including that brace so the body (found by brace-depth counting,
+    // not regex — nesting can go arbitrarily deep) can be replaced with a placeholder.
+    // Intentionally conservative: control-flow blocks (if/for/while/switch/try) are excluded
+    // via the negative lookahead, since collapsing "if (x) { ... }" would remove branching
+    // logic, not implementation detail — this only targets declarations.
+    private static readonly Regex CStyleSignature = new(
+        @"^([ \t]*(?:public|private|protected|internal|static|async|virtual|override|abstract|sealed|final|export|default|fn|func|pub)?[\w<>\[\],\.\?\s]*?\b(?!if|for|while|switch|catch|using|lock|foreach)(\w+)\s*\(([^;{}]*)\)\s*(?:where[^{]*)?\{)",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+
+    // "class" is deliberately excluded: it's a container, not implementation to hide (the
+    // C-style regex has the same property for free, since a class declaration has no
+    // parentheses to match) — only leaf "def" bodies get collapsed, so a class with several
+    // methods keeps every method signature instead of vanishing into a single "...".
+    private static readonly Regex PythonDefLine = new(
+        @"^([ \t]*)(?:async\s+)?def\s+\w", RegexOptions.Compiled | RegexOptions.Multiline);
+
+    /// <summary>
+    /// Compresses <paramref name="code"/> by stripping comments and excess blank lines. When
+    /// <paramref name="skeletonize"/> is true, an additional pass replaces function/method
+    /// bodies with a placeholder, keeping only signatures. Unlike the default comment-stripping
+    /// pass (always a valid subset of the input), skeletonization is lossy by design and off
+    /// by default — opt in explicitly when you want structure/signatures but not
+    /// implementations (e.g. showing an LLM "what exists" without spending tokens on "how
+    /// it's implemented").
+    /// </summary>
+    public CodeCompressionResult Compress(string code, bool skeletonize = false)
     {
         if (string.IsNullOrWhiteSpace(code))
             return Unchanged(code ?? string.Empty);
@@ -96,6 +121,7 @@ public sealed class CavemanCodeCompressor
         var profile = DetectLanguage(code);
         var result = code;
         int commentsRemoved = 0;
+        int functionsSkeletonized = 0;
 
         // Strip XML doc-comments (///) before single-line comments
         if (profile.DocString != null)
@@ -152,6 +178,13 @@ public sealed class CavemanCodeCompressor
         }
         result = cleaned.ToString().TrimEnd();
 
+        if (skeletonize)
+        {
+            (result, functionsSkeletonized) = profile.Lang == Language.Python
+                ? SkeletonizePython(result)
+                : SkeletonizeCStyle(result);
+        }
+
         if (result.Length >= code.Length)
             return Unchanged(code);
 
@@ -162,8 +195,118 @@ public sealed class CavemanCodeCompressor
             WasCompressed = true,
             DetectedLanguage = profile.Lang.ToString(),
             CommentsRemoved = commentsRemoved,
+            FunctionsSkeletonized = functionsSkeletonized,
             BlankLinesRemoved = blanksRemoved
         };
+    }
+
+    // Replaces matched function/method bodies with a placeholder, using real brace-depth
+    // counting (not regex) to find the matching close — nesting can go arbitrarily deep, and
+    // a regex can't balance that. String/char literals are tracked so a brace inside a
+    // string ("{" for example) is never mistaken for real code structure.
+    private static (string Result, int Count) SkeletonizeCStyle(string code)
+    {
+        var sb = new StringBuilder();
+        int pos = 0;
+        int count = 0;
+
+        foreach (Match m in CStyleSignature.Matches(code))
+        {
+            if (m.Index < pos) continue; // inside a body already collapsed above — skip
+
+            int openIdx = m.Index + m.Length - 1; // the signature match ends in '{'
+            int closeIdx = FindMatchingBrace(code, openIdx);
+            if (closeIdx < 0) continue; // unbalanced (or a false-positive match) — leave as-is
+
+            // Skip trivial/near-empty bodies: nothing meaningful to collapse.
+            if (closeIdx - openIdx - 1 < 40) continue;
+
+            sb.Append(code, pos, openIdx + 1 - pos); // up to and including the opening '{'
+            sb.Append(" /* ... */ ");
+            sb.Append('}');
+            pos = closeIdx + 1;
+            count++;
+        }
+        sb.Append(code, pos, code.Length - pos);
+        return (sb.ToString(), count);
+    }
+
+    private static int FindMatchingBrace(string s, int openIdx)
+    {
+        int depth = 0;
+        bool inString = false, inChar = false;
+        for (int i = openIdx; i < s.Length; i++)
+        {
+            char c = s[i];
+            if (inString)
+            {
+                if (c == '\\') { i++; continue; }
+                if (c == '"') inString = false;
+                continue;
+            }
+            if (inChar)
+            {
+                if (c == '\\') { i++; continue; }
+                if (c == '\'') inChar = false;
+                continue;
+            }
+            if (c == '"') { inString = true; continue; }
+            if (c == '\'') { inChar = true; continue; }
+            if (c == '{') depth++;
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0) return i;
+            }
+        }
+        return -1;
+    }
+
+    // Python has no braces: a function/class body is every subsequent line indented deeper
+    // than the def/class line, until a line at the same or shallower indentation (or EOF).
+    private static readonly Regex PythonIndent = new(@"^([ \t]*)", RegexOptions.Compiled);
+
+    private static (string Result, int Count) SkeletonizePython(string code)
+    {
+        var lines = code.Split('\n');
+        var result = new List<string>();
+        int count = 0;
+        int i = 0;
+        while (i < lines.Length)
+        {
+            if (!PythonDefLine.IsMatch(lines[i]))
+            {
+                result.Add(lines[i]);
+                i++;
+                continue;
+            }
+
+            var defIndent = PythonIndent.Match(lines[i]).Groups[1].Value;
+            result.Add(lines[i]);
+            int j = i + 1;
+            var body = new List<string>();
+            while (j < lines.Length)
+            {
+                if (string.IsNullOrWhiteSpace(lines[j])) { body.Add(lines[j]); j++; continue; }
+                var lineIndent = PythonIndent.Match(lines[j]).Groups[1].Value;
+                if (lineIndent.Length <= defIndent.Length) break;
+                body.Add(lines[j]);
+                j++;
+            }
+
+            // Only collapse a real multi-statement body — a one-liner isn't worth it.
+            if (body.Count(l => !string.IsNullOrWhiteSpace(l)) >= 2)
+            {
+                result.Add(defIndent + "    ...");
+                count++;
+            }
+            else
+            {
+                result.AddRange(body);
+            }
+            i = j;
+        }
+        return (string.Join("\n", result), count);
     }
 
     private static LangProfile DetectLanguage(string code)

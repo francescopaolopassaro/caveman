@@ -139,6 +139,26 @@ string t4 = tr.RankAndSummarize(text, ratio: 0.3f, "ita");
 ISummarizer summarizer = useGraph ? new CavemanTextRank() : new CavemanSummarizer();
 string s = summarizer.Summarize(text, sentenceCount: 3);          // iso3 auto-detected
 string sLang = summarizer.Summarize(text, ratio: 0.3f, iso3: "ita");
+
+// Topic-aware summarization: segments the text first (CavemanTopicSegmenter, TextTiling-
+// style) and allocates the sentence budget proportionally across topics, so one
+// statistically dense topic can't dominate the summary and starve the others. A separate
+// method from CondenseText — existing behaviour is unchanged; use this when the input
+// covers multiple distinct topics (falls back to CondenseText otherwise).
+string topicAware = tfidf.CondenseTextTopicAware(text, sentenceCount: 4, iso3: "eng");
+
+// Topic segmentation on its own, for callers that want the segments themselves:
+var segmenter = new CavemanTopicSegmenter();
+List<TopicSegment> segments = segmenter.Segment(text, "eng");
+foreach (var seg in segments)
+    Console.WriteLine($"[{seg.StartSentence},{seg.EndSentence}) {seg.SentenceCount} sentences");
+
+// BM25+ retrieval with RM3 pseudo-relevance feedback over arbitrary text chunks (sentences,
+// conversation turns, log lines, …) — finds relevant chunks that don't literally contain the
+// query's words but share vocabulary with the chunks that do.
+var retriever = new CavemanRetriever();
+List<RetrievalResult> plain = retriever.Retrieve(chunks, query: "car", topK: 5);
+List<RetrievalResult> expanded = retriever.RetrieveWithFeedback(chunks, query: "car", topK: 5, iso3: "eng");
 ```
 
 ---
@@ -403,6 +423,25 @@ string wiki = await new CavemanWiki().GenerateAsync(
     maxFileSizeBytes: 100 * 1024,
     compressionLevel: CavemanCompressionLevel.Semantic,
     includeContents: true);
+
+// Content-aware routing: auto-detects JSON/logs/diffs/HTML/code/tables and picks the
+// best algorithm for each (see CavemanContentRouter.RouteAsync).
+var router = CavemanContentRouter.FromProfile(CompressionProfile.Balanced);
+RoutedCompressionResult routed = await router.RouteAsync(someContent, query: "optional relevance hint");
+Console.WriteLine($"{routed.StrategyUsed}: {routed.SavingsPercent:F1}% saved");
+
+// Log/stack-trace compression directly: folds repeated lines regardless of log length,
+// then (only if still over MaxTotalLines) keeps errors/summaries/warnings with context.
+var logCompressor = new CavemanLogCompressor { MaxTotalLines = 80, MinFoldRun = 3 };
+LogCompressionResult logResult = logCompressor.Compress(buildLogText);
+
+// Code compression: strips comments/blank lines by default (always a valid subset of the
+// input); pass skeletonize: true to additionally replace function/method bodies with a
+// placeholder, keeping only signatures — lossy by design, so it's opt-in.
+var codeCompressor = new CavemanCodeCompressor();
+CodeCompressionResult code = codeCompressor.Compress(sourceText);
+CodeCompressionResult skeleton = codeCompressor.Compress(sourceText, skeletonize: true);
+Console.WriteLine($"{skeleton.FunctionsSkeletonized} function bodies collapsed");
 ```
 
 ---

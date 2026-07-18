@@ -64,26 +64,79 @@ public sealed class CavemanLogCompressor
     /// <summary>Maximum warning lines to keep (default 5).</summary>
     public int MaxWarnings { get; init; } = 5;
 
+    /// <summary>
+    /// When true, a run of consecutive lines folds together if they are SimHash
+    /// near-duplicates (see <see cref="CavemanSimHash"/>), not just exact matches after
+    /// digit/hex/path normalisation. Off by default: normalisation-based exact matching is
+    /// the safer, already-proven behaviour, and fuzzy folding can occasionally group two
+    /// genuinely distinct lines that just happen to share most of their wording — opt in
+    /// when your logs have variation exact normalisation doesn't cover (e.g. reordered
+    /// key=value pairs, minor phrasing differences from a templated logger).
+    /// </summary>
+    public bool FuzzyFold { get; init; }
+
+    /// <summary>
+    /// Max Hamming distance (of 64 bits) for two lines to count as near-duplicates when
+    /// <see cref="FuzzyFold"/> is on (default 18). Calibrated empirically on templated log
+    /// lines ~10 words long: lines sharing the same template but substituting 1-2 values
+    /// (a username, an IP address) land roughly 10-20 bits apart depending on how much the
+    /// substituted value itself varies in length/shingles (e.g. "8.8.8.8" vs
+    /// "192.168.1.5"), while genuinely unrelated lines land 30+ bits apart — there is a
+    /// wide gap between the two clusters, but exactly where in that gap to draw the line
+    /// depends on your log format. This default favours folding over missing matches;
+    /// lower it if two truly distinct lines are ever grouped together.
+    /// </summary>
+    public int FuzzyFoldMaxDistance { get; init; } = 18;
+
     private enum LineLevel { Error, Warn, Info, Debug, StackFrame, Summary, Unknown }
 
     private sealed record ScoredLine(int Index, string Text, LineLevel Level, float Score);
 
-    /// <summary>Compresses log/stack-trace content. Returns the original when the content is too short to benefit.</summary>
+    /// <summary>Minimum consecutive repeats of a structurally-identical line before folding it (default 3).</summary>
+    public int MinFoldRun { get; init; } = 3;
+
+    /// <summary>
+    /// Compresses log/stack-trace content. Two independent passes:
+    /// <list type="number">
+    ///   <item>Fold consecutive structurally-identical lines (after normalising digits/hex/
+    ///   paths) into one line plus a "(repeated Nx)" count — this wins on genuinely
+    ///   repetitive logs (e.g. many identical passing-test lines) regardless of total log
+    ///   length, unlike the pass below.</item>
+    ///   <item>If the folded log still exceeds <see cref="MaxTotalLines"/>, fall back to the
+    ///   severity-scored line selection (errors/summaries/warnings kept, context preserved).</item>
+    /// </list>
+    /// Returns the original unchanged when neither pass finds anything to fold or drop.
+    /// </summary>
     public LogCompressionResult Compress(string content, string? query = null)
     {
         if (string.IsNullOrWhiteSpace(content))
             return Unchanged(content ?? string.Empty);
 
         var lines = content.Split('\n');
-        if (lines.Length <= MaxTotalLines)
-            return Unchanged(content);
+        var folded = FoldRepeatedLines(lines);
 
-        var scored = ClassifyAndScore(lines);
-        var kept = SelectLines(scored, lines.Length);
-        kept = AddContext(scored, kept, lines.Length);
+        if (folded.Count <= MaxTotalLines)
+        {
+            if (folded.Count >= lines.Length)
+                return Unchanged(content);
+
+            return new LogCompressionResult
+            {
+                Compressed = string.Join("\n", folded),
+                Original = content,
+                WasCompressed = true,
+                OriginalLines = lines.Length,
+                KeptLines = folded.Count
+            };
+        }
+
+        var foldedLines = folded.ToArray();
+        var scored = ClassifyAndScore(foldedLines);
+        var kept = SelectLines(scored, foldedLines.Length);
+        kept = AddContext(scored, kept, foldedLines.Length);
         kept = DeduplicateWarnings(kept);
 
-        if (kept.Count >= lines.Length)
+        if (kept.Count >= foldedLines.Length && folded.Count >= lines.Length)
             return Unchanged(content);
 
         var orderedIndexes = kept.Select(s => s.Index).Distinct().OrderBy(i => i).ToList();
@@ -92,7 +145,7 @@ public sealed class CavemanLogCompressor
         {
             if (i > 0 && orderedIndexes[i] > orderedIndexes[i - 1] + 1)
                 sb.AppendLine("... [lines omitted] ...");
-            sb.AppendLine(lines[orderedIndexes[i]]);
+            sb.AppendLine(foldedLines[orderedIndexes[i]]);
         }
 
         var compressed = sb.ToString().TrimEnd();
@@ -104,6 +157,51 @@ public sealed class CavemanLogCompressor
             OriginalLines = lines.Length,
             KeptLines = orderedIndexes.Count
         };
+    }
+
+    // Collapses runs of MinFoldRun+ consecutive lines that are identical once digits, hex
+    // addresses and paths are normalised to placeholders (the same normalisation already
+    // used for warning dedup) — e.g. 40 lines of "PASS test_user_42 (12ms)" fold to one line
+    // plus a repeat count instead of surviving verbatim just because the log is short.
+    private List<string> FoldRepeatedLines(string[] lines)
+    {
+        var result = new List<string>(lines.Length);
+        int i = 0;
+        while (i < lines.Length)
+        {
+            int runEnd = i + 1;
+            while (runEnd < lines.Length && SameFoldGroup(lines[i], lines[runEnd]))
+                runEnd++;
+
+            int runLength = runEnd - i;
+            if (runLength >= MinFoldRun)
+                result.Add($"{lines[i]}  (repeated {runLength}x)");
+            else
+                for (int k = i; k < runEnd; k++)
+                    result.Add(lines[k]);
+
+            i = runEnd;
+        }
+        return result;
+    }
+
+    // Two lines fold together when they're identical after digit/hex/path normalisation
+    // (the safe, exact-match default) or — only when FuzzyFold is enabled — when their
+    // SimHash fingerprints are close enough to count as near-duplicates. Both lines are
+    // compared against the run's first line, not against each other pairwise, so a run
+    // can't slowly "drift" into unrelated content one near-duplicate step at a time.
+    private bool SameFoldGroup(string a, string b)
+    {
+        if (Normalize(a) == Normalize(b)) return true;
+        return FuzzyFold && CavemanSimHash.AreNearDuplicates(a, b, FuzzyFoldMaxDistance);
+    }
+
+    private static string Normalize(string line)
+    {
+        var n = DigitNoise.Replace(line, "N");
+        n = HexNoise.Replace(n, "ADDR");
+        n = PathNoise.Replace(n, "/PATH");
+        return n;
     }
 
     private List<ScoredLine> ClassifyAndScore(string[] lines)

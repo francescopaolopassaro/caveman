@@ -19,6 +19,7 @@ public class CavemanSummarizer : ISummarizer
     private readonly CavemanTextSplitter _splitter;
     private readonly CavemanSentenceDetector _sentenceDetector;
     private readonly ICompressionService _compressionService;
+    private readonly CavemanTopicSegmenter _topicSegmenter;
 
     public CavemanSummarizer()
         : this(new FunctionWordProvider())
@@ -38,6 +39,7 @@ public class CavemanSummarizer : ISummarizer
         _splitter = new CavemanTextSplitter();
         _sentenceDetector = new CavemanSentenceDetector(_wordProvider);
         _compressionService = compressionService ?? new CavemanCompressionService(null, _wordProvider);
+        _topicSegmenter = new CavemanTopicSegmenter(_wordProvider);
     }
 
     /// <inheritdoc />
@@ -86,6 +88,86 @@ public class CavemanSummarizer : ISummarizer
 
         var count = (int)Math.Max(1, Math.Round(sentences.Length * ratio, MidpointRounding.AwayFromZero));
         return CondenseText(text, count, iso3);
+    }
+
+    /// <summary>
+    /// Topic-aware summarization: segments the text with <see cref="CavemanTopicSegmenter"/>
+    /// first, then allocates the sentence budget proportionally across topics (largest-
+    /// remainder rounding) and scores/selects sentences independently within each topic,
+    /// instead of scoring the whole document as one undifferentiated bag of sentences.
+    /// Existing behaviour (<see cref="CondenseText(string, int)"/> and its overloads) is
+    /// unchanged — this is an additional, separate method, not a replacement — because on a
+    /// single-topic document the two approaches converge and there's nothing to gain from
+    /// segmentation, while on a genuinely multi-topic document, plain TF-IDF scoring can let
+    /// one statistically dense topic dominate the whole summary and starve the others
+    /// entirely; this method guarantees every detected topic gets represented.
+    /// Falls back to <see cref="CondenseText(string, int, string)"/> when segmentation finds
+    /// no real topic structure (a single segment) — no separate code path to diverge from it.
+    /// </summary>
+    public string CondenseTextTopicAware(string text, int sentenceCount, string? iso3 = null)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        iso3 ??= _detector.Detect(text);
+
+        var segments = _topicSegmenter.Segment(text, iso3);
+        if (segments.Count <= 1)
+            return CondenseText(text, sentenceCount, iso3);
+
+        var sentences = _sentenceDetector.SplitText(text, iso3);
+        if (sentences.Length <= sentenceCount)
+            return text;
+
+        var funcWords = _wordProvider.GetFunctionWords(iso3);
+        var lemmas = LoadLemmas(iso3);
+        var properNouns = LoadProperNouns(iso3);
+
+        var budget = AllocateSegmentBudget(segments, sentenceCount);
+
+        var selectedIndexes = new List<int>();
+        for (int i = 0; i < segments.Count; i++)
+        {
+            if (budget[i] <= 0) continue;
+            var segSentences = sentences.Skip(segments[i].StartSentence).Take(segments[i].SentenceCount).ToArray();
+            if (segSentences.Length == 0) continue;
+
+            var scored = ScoreSentences(segSentences, funcWords, lemmas, properNouns);
+            var selected = SelectWithMmr(scored, Math.Min(budget[i], segSentences.Length), 0.55);
+            foreach (var s in selected)
+                selectedIndexes.Add(segments[i].StartSentence + s.Index);
+        }
+
+        var ordered = selectedIndexes.Distinct().OrderBy(i => i).ToArray();
+        var parts = new string[ordered.Length];
+        for (int i = 0; i < ordered.Length; i++)
+        {
+            var t = sentences[ordered[i]].Text.Trim();
+            parts[i] = i > 0 ? " " + t : t;
+        }
+        return string.Concat(parts).Trim();
+    }
+
+    // Largest-remainder apportionment: gives each topic segment a sentence share
+    // proportional to how much of the document it covers, then hands out the few leftover
+    // slots (from integer rounding) to the segments with the biggest fractional remainder —
+    // the standard way to round a set of proportions so they still sum to the target total.
+    private static int[] AllocateSegmentBudget(List<TopicSegment> segments, int totalBudget)
+    {
+        int totalSentences = segments.Sum(s => s.SentenceCount);
+        if (totalSentences == 0) return new int[segments.Count];
+
+        var raw = segments.Select(s => (double)s.SentenceCount / totalSentences * totalBudget).ToArray();
+        var alloc = raw.Select(r => (int)Math.Floor(r)).ToArray();
+
+        int remaining = totalBudget - alloc.Sum();
+        var byRemainder = Enumerable.Range(0, segments.Count)
+            .OrderByDescending(i => raw[i] - Math.Floor(raw[i]))
+            .ToList();
+        for (int k = 0; k < remaining && k < byRemainder.Count; k++)
+            alloc[byRemainder[k]]++;
+
+        return alloc;
     }
 
     public Task<CompressionResult> CompressWithSummaryAsync(

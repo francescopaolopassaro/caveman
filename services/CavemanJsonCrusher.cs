@@ -34,6 +34,16 @@ public sealed class CavemanJsonCrusher
     /// <summary>Maximum number of rows to keep in lossy mode (default 15).</summary>
     public int MaxOutputItems { get; init; } = 15;
 
+    /// <summary>
+    /// BM25+ lower-bound term (default 1.0). Plain BM25 can score a long row that mentions
+    /// the query term only once close to zero — the term-frequency component shrinks as
+    /// document length grows, so a genuinely relevant long row can lose to a short row that
+    /// barely mentions the term. Adding a constant floor to every non-zero term match fixes
+    /// this without needing any change to how documents are scored otherwise. Set to 0 to
+    /// recover plain BM25.
+    /// </summary>
+    public float Bm25Delta { get; init; } = 1.0f;
+
     private readonly CavemanCcrStore _ccrStore;
 
     /// <param name="ccrStore">Store for dropped rows. Defaults to <see cref="CavemanCcrStore.Instance"/>.</param>
@@ -257,7 +267,7 @@ public sealed class CavemanJsonCrusher
     // BM25
     // -------------------------------------------------------------------------
 
-    private static float[] ComputeBm25Scores(List<string[]> tokenizedDocs, string[] queryTerms)
+    private float[] ComputeBm25Scores(List<string[]> tokenizedDocs, string[] queryTerms)
     {
         int n = tokenizedDocs.Count;
         var scores = new float[n];
@@ -290,7 +300,7 @@ public sealed class CavemanJsonCrusher
                 if (!termFreqs[i].TryGetValue(term, out int tfRaw) || tfRaw == 0) continue;
                 int dfVal = df.GetValueOrDefault(term, 0);
                 float idf = MathF.Log((n - dfVal + 0.5f) / (dfVal + 0.5f) + 1f);
-                float tf = tfRaw * (k1 + 1) / (tfRaw + k1 * (1 - b + b * docLen / avgdl));
+                float tf = Bm25Delta + tfRaw * (k1 + 1) / (tfRaw + k1 * (1 - b + b * docLen / avgdl));
                 scores[i] += idf * tf;
             }
         }

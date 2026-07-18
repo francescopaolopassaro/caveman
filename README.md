@@ -83,37 +83,86 @@ Detection is backed by a tiny embedded stop-word index, so it stays fast even th
 
 ---
 
-## 📊 Benchmark — real token savings (v1.3.0)
+## 📊 Benchmark — real token savings
 
-All numbers are GPT-4 token counts measured on real inputs with `ModelTokenizer`.
+All numbers are GPT-4 token counts measured with `ModelTokenizer` on the same 11 real
+inputs, re-measured against the current codebase (language auto-detected per sample).
 
-### NLP Compression (`CavemanCompressionService`)
+### NLP Compression (`CavemanCompressionService`) — all 5 levels
 
-| Content type | Orig. tokens | Light | Semantic | Aggressive |
-| :--- | ---: | :--- | :--- | :--- |
-| Prose EN | 92 | −35.9% | −34.8% | −34.8% |
-| Prose IT | 93 | −23.7% | −28.0% | **−51.6%** |
-| Prose DE | 81 | −25.9% | −28.4% | −35.8% |
-| Prose FR | 65 | −33.8% | −32.3% | −38.5% |
-| Prose ES | 51 | −27.5% | −19.6% | −27.5% |
-| JSON array | 256 | −66.8% | **−68.8%** | **−68.8%** |
-| Git diff | 196 | −51.0% | −58.2% | −58.2% |
-| Build log | 207 | −32.4% | −62.3% | −62.3% |
-| Markdown table | 158 | −60.8% | **−64.6%** | **−64.6%** |
-| HTML page | 192 | −45.3% | −49.0% | −50.0% |
-| C# source code | 249 | −41.0% | −41.0% | −41.0% |
+| Content type | Orig. tokens | Light | Semantic | Aggressive | Statistical | Syntactic |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Prose EN | 92 | −38.0% | −40.2% | **−66.3%** | −42.4% | −57.6% |
+| Prose IT | 93 | −28.0% | −28.0% | **−46.2%** | −32.3% | −34.4% |
+| Prose DE | 81 | −25.9% | −28.4% | **−35.8%** | −33.3% | −22.2% |
+| Prose FR | 65 | −33.8% | −32.3% | **−38.5%** | **−38.5%** | −18.5% |
+| Prose ES | 51 | −27.5% | −19.6% | **−33.3%** | **−33.3%** | −23.5% |
+| JSON array | 256 | −64.8% | −65.2% | −65.2% | **−71.5%** | −65.2% |
+| Git diff | 196 | −51.0% | −58.2% | **−66.3%** | −66.3% | −60.2% |
+| Build log | 207 | −32.4% | −62.3% | **−62.3%** | **−62.3%** | −59.9% |
+| Markdown table | 158 | −60.8% | **−64.6%** | **−64.6%** | **−64.6%** | **−64.6%** |
+| HTML page | 192 | −40.1% | −44.8% | **−54.2%** | −46.4% | −49.0% |
+| C# source code | 249 | −40.6% | −42.2% | −46.6% | −41.8% | **−47.4%** |
+
+`Aggressive` wins most often (raw compression ratio), `Syntactic` trades some ratio for a
+result that still reads as a real sentence rather than a keyword bag, and `Statistical`
+occasionally beats `Aggressive` on structured/repetitive text (JSON, logs) where TF-IDF's
+own-corpus grounding out-discriminates the curated dictionaries.
 
 ### Content Router (`CavemanContentRouter.FromProfile(Balanced)`)
 
-The router auto-detects content type and picks the best algorithm:
+The router auto-detects content type and picks the best algorithm — including recognising
+when a passthrough beats compressing. The sample build log and markdown table below are
+small (10 lines / 5 rows) with no repeated lines or redundant columns, so there is nothing
+to safely cut without losing real information — both `CavemanLogCompressor` (which folds
+repeated/near-identical lines regardless of log length) and `CavemanTabularCompressor`
+(which drops empty/redundant columns and samples rows past `MaxRows`) correctly leave a
+genuinely lean input untouched rather than force a "compression" that would just be noise.
 
 | Content type | Orig. tokens | After | Savings | Strategy |
-| :--- | ---: | ---: | :--- | :--- |
-| Prose EN | 92 | 60 | −34.8% | NlpCompression |
+| :--- | ---: | ---: | ---: | :--- |
+| Prose EN | 92 | 55 | −40.2% | NlpCompression |
+| Prose IT | 93 | 67 | −28.0% | NlpCompression |
+| Prose DE | 81 | 58 | −28.4% | NlpCompression |
+| Prose FR | 65 | 44 | −32.3% | NlpCompression |
+| Prose ES | 51 | 41 | −19.6% | NlpCompression |
 | JSON array | 256 | 134 | **−47.7%** | JsonCrush:MarkdownTable |
 | Git diff | 196 | 137 | −30.1% | DiffCompression |
+| Build log | 207 | 207 | 0.0% | Passthrough |
+| Markdown table | 158 | 158 | 0.0% | Passthrough |
 | HTML page | 192 | 58 | **−69.8%** | HtmlExtract+NlpCompression |
 | C# code | 249 | 184 | −26.1% | CodeCompression |
+
+### Retrieval & structure-aware additions
+
+These aren't token-savings-per-input techniques like the tables above — they change *which*
+content survives compression, or how a document is understood before compressing it. Real,
+measured results:
+
+**Fuzzy log folding** (`CavemanLogCompressor.FuzzyFold`, SimHash-based near-duplicate
+grouping) — on a 4-line log where three lines share a template but substitute a username and
+IP address (not caught by exact-match folding, since the lines are genuinely different text):
+
+| | Tokens | Savings |
+| :--- | ---: | ---: |
+| Original (4 lines) | 65 | — |
+| `FuzzyFold = true` (3 near-duplicates folded) | 33 | **−49.2%** |
+
+**Topic-aware summarization** (`CavemanSummarizer.CondenseTextTopicAware`, TextTiling
+segmentation) — on a 3-topic, 24-sentence document (finance / weather / sports), asked for a
+4-sentence summary: plain `CondenseText` scores the whole document as one bag of sentences
+and dropped the weather topic *entirely* (0 of its 8 sentences selected); topic-aware
+allocation covered 2 of the 3 topics from the same 4-sentence budget. (The third topic was
+still missed on this document — TextTiling's boundary detection found 2 segments, not 3, on
+this particular text; segmentation quality bounds how much topic-aware summarization can
+help, it isn't a guarantee of full coverage.)
+
+**RM3 query expansion** (`CavemanRetriever.RetrieveWithFeedback`) — over 5 short documents
+about electric vehicles, weather, and baking, querying `"car"`: plain BM25+ finds the 2
+documents that literally contain "car"; RM3 additionally surfaces a third, genuinely relevant
+document ("Tesla and Rivian... vehicle models") that never uses the word "car" at all, by
+expanding the query with "battery"/"range" — vocabulary the top initial results share — while
+correctly keeping unrelated documents (weather, baking) out of the results.
 
 ### NLP Compression levels
 

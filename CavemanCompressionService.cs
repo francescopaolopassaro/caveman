@@ -86,9 +86,16 @@ namespace caveman.core
             "ly", "wise", "wards"
         };
 
+        // "al" and "ical" were deliberately dropped from this list: they catch genuinely
+        // decorative adjectives ("occasional", "additional") but just as often catch a
+        // domain-specifying adjective that IS the information ("financial"/"medical"/"legal"
+        // report are not interchangeable) — the comprehensibility test suite caught
+        // "quarterly financial report" losing "financial" in Aggressive/Syntactic mode. Same
+        // asymmetry as the Romance "-are" suffix fix: losing real content outweighs catching
+        // a few filler adjectives, so both suffixes stay out.
         private static readonly HashSet<string> EnglishAdjectiveSuffixes = new(StringComparer.OrdinalIgnoreCase)
         {
-            "ous", "al", "ive", "able", "ible", "ful", "less", "ic", "ical", "ant", "ent", "ish", "like", "some"
+            "ous", "ive", "able", "ible", "ful", "less", "ic", "ant", "ent", "ish", "like", "some"
         };
 
         private static readonly HashSet<string> RomanceAdverbSuffixes = new(StringComparer.OrdinalIgnoreCase)
