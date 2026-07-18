@@ -2,13 +2,13 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.4.0</Version>
+  <Version>1.4.1</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction across 50+ languages. Licensed under the Caveman License (MIT + mandatory attribution to Passaro Francesco Paolo - Digitalsolutions.it). Bundled language data derived from Universal Dependencies (see NOTICE).</Description>
   <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3;MCP;Claude;Copilot</PackageTags>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
-  <PackageReleaseNotes>1.4.0: two-pass language detection with exclusive-marker disambiguation. CavemanLanguageDetector now runs a second pass that checks for words unique to each language (exclusive markers), eliminating false positives caused by shared words like "per", "a", "in", "via" across English, Italian and Dutch. FunctionWordProvider gains GetExclusiveMarkers(iso3) backed by new embedded .excl.yaml.br files for 7 curated languages (eng, ita, fra, deu, spa, por, nld). Curated-preference tiebreak prefers hand-curated languages over YAML-only results when scores are close. All changes are additive and backward-compatible.</PackageReleaseNotes>
+  <PackageReleaseNotes>1.4.1: two new compression levels, Statistical (TF-IDF word scoring) and Syntactic (rule-based grammatical-glue pruning with POS-gated hedge-clause elision), plus a new frequency-baseline Universal POS tagger (FunctionWordProvider.GetPosTags/GetPosTag) covering 54/55 languages, generated offline from the same Universal Dependencies data as lemmas/verbs. New retrieval/structure primitives: CavemanRetriever (BM25+ with optional RM3 pseudo-relevance-feedback query expansion), CavemanSimHash (near-duplicate text fingerprinting) powering CavemanLogCompressor.FuzzyFold, and CavemanTopicSegmenter (TextTiling topic segmentation) powering CavemanSummarizer.CondenseTextTopicAware. CavemanCodeCompressor gains an opt-in skeletonize parameter that collapses function bodies to signatures. Several correctness fixes found via a new comprehensibility test suite: cross-language generic-word contamination in Aggressive/Syntactic, a suffix heuristic that silently deleted Italian -are verbs and English financial/medical/legal-type adjectives, historical-treebank contamination in the Italian/Swedish/Romanian/Icelandic language data (an archaic sense of a word outvoting its modern meaning), and a tokenizer bug that fragmented words in scripts using combining marks (Kannada, Hindi, Tamil, Thai, ...). All changes are additive and backward-compatible.</PackageReleaseNotes>
   
   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <OutputType>Library</OutputType>

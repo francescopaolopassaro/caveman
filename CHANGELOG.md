@@ -2,7 +2,7 @@
 
 All notable changes to **Caveman** are documented in this file.
 
-## [Unreleased]
+## [1.4.1](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.1) - 2026-07-18
 
 ### Added
 - **`Statistical` compression level** — TF-IDF word scoring as an alternative to curated dictionaries: scores each word by frequency in the prompt vs. how many of the prompt's own sentences contain it, grounding "common" words against the language's curated function/generic-word lists as the standard-corpus reference. Keeps words at/above the adaptive median score; never empties a sentence that had content.
