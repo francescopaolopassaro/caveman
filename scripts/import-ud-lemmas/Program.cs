@@ -106,6 +106,17 @@ foreach (var iso3 in targets)
         //   "PaHC"  : "Parsed Historical Corpus" — UD_Icelandic-IcePaHC, UD_Faroese-FarPaHC
         .Where(r => !r.EndsWith("-Old", StringComparison.Ordinal))
         .Where(r => !r.Contains("PaHC", StringComparison.Ordinal))
+        // Some historical treebanks give no naming hint at all: UD_Romanian-Nonstandard's
+        // README describes it as a mix of 17th-18th century biblical/folklore Romanian
+        // (1648 New Testament, Dosoftei 1673, Neculce's Chronicle 1743, Caragea's Law 1818),
+        // OCR-transliterated into the modern Latin alphabet — a Latin-script archaic corpus
+        // that can collide with modern words exactly like UD_Italian-Old did. Excluded by
+        // name since no naming pattern would catch it; found by reading treebank READMEs,
+        // not by pattern-matching, so this list only grows as further cases are found.
+        // (UD_Romanian-MolDoRo was checked too — it's Cyrillic-script Moldovan Romanian, a
+        // different script with no realistic collision risk against Latin-script forms, so
+        // it was left in.)
+        .Where(r => r != "UD_Romanian-Nonstandard")
         .OrderBy(r => r, StringComparer.Ordinal)
         .ToList();
 

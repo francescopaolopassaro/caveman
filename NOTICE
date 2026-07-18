@@ -67,7 +67,7 @@ Source treebanks per language (cloned from github.com/UniversalDependencies):
   nor  Norwegian   UD_Norwegian-Bokmaal, UD_Norwegian-Nynorsk, UD_Norwegian-NynorskLIA
   pol  Polish      UD_Polish-LFG, UD_Polish-MPDT, UD_Polish-PDB, UD_Polish-PUD
   por  Portuguese  UD_Portuguese-Bosque, UD_Portuguese-CINTIL, UD_Portuguese-DANTEStocks, UD_Portuguese-DHBB, UD_Portuguese-GSD, UD_Portuguese-PUD, UD_Portuguese-PetroGold, UD_Portuguese-PortJur, UD_Portuguese-Porttinari
-  ron  Romanian    UD_Romanian-ArT, UD_Romanian-MolDoRo, UD_Romanian-Nonstandard, UD_Romanian-RRT, UD_Romanian-SiMoNERo, UD_Romanian-TueCL
+  ron  Romanian    UD_Romanian-ArT, UD_Romanian-MolDoRo, UD_Romanian-RRT, UD_Romanian-SiMoNERo, UD_Romanian-TueCL
   rus  Russian     UD_Russian-GSD, UD_Russian-PUD, UD_Russian-Poetry, UD_Russian-SynTagRus, UD_Russian-Taiga
   slk  Slovak      UD_Slovak-SNK
   slv  Slovenian   UD_Slovenian-SSJ, UD_Slovenian-SST
