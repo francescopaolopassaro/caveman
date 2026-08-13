@@ -12,6 +12,7 @@
 
 # NuGet packages produced locally
 *.nupkg
+/artifacts/
 
 # Notes / scratch
 debug.csx

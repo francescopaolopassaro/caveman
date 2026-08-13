@@ -17,7 +17,8 @@ namespace caveman.core.services;
 /// with a two-tier cache to skip re-compression of identical content:
 /// <list type="bullet">
 ///   <item>JSON arrays → <see cref="CavemanJsonCrusher"/> (lossless CSV/table or lossy BM25 row-drop)</item>
-///   <item>Log/stack traces → <see cref="CavemanLogCompressor"/></item>
+    ///   <item>SQL → <see cref="CavemanSqlCompressor"/> (lossless whitespace collapse; optional VALUES folding)</item>
+    ///   <item>Log/stack traces → <see cref="CavemanLogCompressor"/></item>
 ///   <item>Search results → <see cref="CavemanSearchCompressor"/></item>
 ///   <item>Git diffs → <see cref="CavemanDiffCompressor"/></item>
 ///   <item>HTML → <see cref="CavemanHtmlExtractor"/> then NLP compression</item>
@@ -37,6 +38,7 @@ public sealed class CavemanContentRouter
     private readonly CavemanHtmlExtractor _htmlExtractor;
     private readonly CavemanCodeCompressor _codeCompressor;
     private readonly CavemanTabularCompressor _tabularCompressor;
+    private readonly CavemanSqlCompressor _sqlCompressor;
     private readonly CavemanCompressionCache _cache;
     private readonly CavemanCompressionLevel _proseLevel;
 
@@ -69,6 +71,7 @@ public sealed class CavemanContentRouter
         _htmlExtractor = new CavemanHtmlExtractor();
         _codeCompressor = new CavemanCodeCompressor();
         _tabularCompressor = new CavemanTabularCompressor();
+        _sqlCompressor = new CavemanSqlCompressor();
     }
 
     /// <summary>Creates a pre-configured router from a <see cref="CompressionProfile"/> preset.</summary>
@@ -136,6 +139,7 @@ public sealed class CavemanContentRouter
             RoutedCompressionResult result = detection.Type switch
             {
                 ContentType.JsonArray       => RouteJsonArray(content, query, before),
+                ContentType.Sql             => RouteSql(content, before),
                 ContentType.LogOrStacktrace => RouteLog(content, query, before),
                 ContentType.SearchResults   => RouteSearch(content, query, before),
                 ContentType.GitDiff         => RouteDiff(content, before),
@@ -175,6 +179,20 @@ public sealed class CavemanContentRouter
     }
 
     // ─── Routing methods ────────────────────────────────────────────────────
+
+    private RoutedCompressionResult RouteSql(string content, int tokensBefore)
+    {
+        var r = _sqlCompressor.Compress(content);
+        int tokensAfter = r.WasCompressed ? _tokenCounter.CountTokens(r.Compressed, LlmModel.Gpt4) : tokensBefore;
+        return new RoutedCompressionResult
+        {
+            Compressed = r.Compressed, Original = content,
+            DetectedType = ContentType.Sql,
+            StrategyUsed = r.WasCompressed ? "SqlCompression" : "Passthrough",
+            TokensBefore = tokensBefore, TokensAfter = tokensAfter,
+            CcrHash = r.CcrHash
+        };
+    }
 
     private RoutedCompressionResult RouteJsonArray(string content, string? query, int tokensBefore)
     {

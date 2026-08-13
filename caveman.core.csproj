@@ -2,13 +2,13 @@
 
   <PropertyGroup>
   <PackageId>Caveman</PackageId>
-  <Version>1.4.2</Version>
+  <Version>1.4.4</Version>
   <Authors>Francesco Paolo Passaro</Authors>
   <Company>Francesco Paolo Passaro</Company>
   <Description>NLP Prompt Compressor for LLMs. Reduces token usage by up to 70% using semantic contraction across 50+ languages. Licensed under the Caveman License (MIT + mandatory attribution to Passaro Francesco Paolo - Digitalsolutions.it). Bundled language data derived from Universal Dependencies (see NOTICE).</Description>
   <PackageTags>AI;NLP;LLM;PromptEngineering;Gemma3;MCP;Claude;Copilot</PackageTags>
   <RepositoryUrl>https://github.com/francescopaolopassaro/caveman</RepositoryUrl>
-  <PackageReleaseNotes>1.4.2: language-quality pass ported back from the Synthelion (Python port) 1.2.0 quality review. Fixed: negation particles ("non"/"not"/"ne...pas"/"no"/"nicht"/"não"/"不") were being stripped as ordinary function words at every compression level, silently inverting sentence meaning -- now protected in eng/ita/fra/spa/deu/por/zho, with prefix-aware matching for Chinese compounds ("不是"/"不管"). Fixed Italian "subito" (adverb, "immediately") being mis-lemmatised to "subire" (verb, "to undergo") via a UD homograph-contaminated lemma entry -- LemmaOrLower now skips a lemma substitution when the surface form is POS-tagged ADV and the lemma differs. Added CavemanCjkSegmenter: dictionary-based Chinese word segmentation (DAG + dynamic-programming longest-match path, jieba's non-ML dictionary algorithm re-implemented rather than taken as a dependency) -- Chinese previously had no word segmentation at all, so compression and language detection both silently no-op'd beyond punctuation stripping. Repaired real mojibake corruption (UTF-8 mis-decoded as Windows-1252 at an earlier pipeline stage) in worddata/zho.yaml(.br), zho.pos.yaml.br, and _index.br (10 further affected languages: ben, ell, eng, heb, hin, jpn, kor, mar, tha, vie). Fixed language-detection data contamination: "john" (an English name) removed from 16 languages' function-word lists, "ha"/"e" (Italian words, not French) removed from French's list, and "ate" removed from Portuguese's exclusive markers (collided with English's own "ate"). All changes are additive and backward-compatible; 14 new regression tests (311/311 total).</PackageReleaseNotes>
+  <PackageReleaseNotes>1.4.4: Synthelion 1.2.5 feature port. (1) Numeric tokens preserved across every compression level — Semantic/Aggressive/Statistical/Syntactic previously dropped ports, amounts, percentages, versions, dates and temperatures; numbers are now always retained verbatim (never lemmatised). (2) New global-IDF provider and tables: 56 per-language {iso3}.idf.br document-frequency tables (built from Wikipedia, shipped as embedded brotli like the other worddata — same tables as Synthelion 1.2.5, ~128 MB) blended 50/50 into the Statistical level's TF-IDF scoring so word importance is grounded in real-world rarity, and used by Aggressive to additionally drop words ubiquitous in &gt;50% of the reference corpus. Languages without a table fall back to the exact 1.4.3 local-only behavior. (3) SQL-aware compression: new CavemanSqlCompressor — SQL is auto-detected (ContentType.Sql) and routed away from the NLP path into a lossless whitespace/formatting collapse that protects keywords, string/numeric literals, quoted identifiers and comments; optional VALUES-tuple folding (lossy, CCR-hashed) mirrors CavemanJsonCrusher's row-drop. All changes additive and backward-compatible. Includes full 1.4.2/1.4.3 history below: 1.4.3 was a corrective re-publish of 1.4.2 (previously the 1.4.2 NuGet package was packed from a stale snapshot missing 1.4.0/1.4.1 features), carrying the language-quality pass ported back from Synthelion 1.2.0, negation-particle protection (eng/ita/fra/spa/deu/por/zho), the Italian "subito" ADV-homograph lemma fix, CavemanCjkSegmenter (jieba-style dictionary Chinese segmentation), mojibake repair in worddata/zho* and 10 further languages, and language-detection data contamination fixes ("john"/"ha"/"e"/"ate").</PackageReleaseNotes>
   
   <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <OutputType>Library</OutputType>
@@ -57,6 +57,7 @@
     <!-- Runtime artifacts produced by scripts/compile-worddata from worddata\*.yaml.
          The .yaml sources stay in the repo but are NOT embedded or packed. -->
     <EmbeddedResource Include="worddata\*.yaml.br" />
+    <EmbeddedResource Include="worddata\*.idf.br" />
     <EmbeddedResource Include="worddata\_index.br" />
   </ItemGroup>
 

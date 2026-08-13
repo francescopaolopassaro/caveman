@@ -17,6 +17,7 @@ public enum ContentType
     JsonArray,
     JsonObject,
     Code,
+    Sql,
     LogOrStacktrace,
     GitDiff,
     Html,

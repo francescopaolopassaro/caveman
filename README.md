@@ -29,7 +29,9 @@ NovaRouteAI helps developers and AI SaaS teams test, compare, and run models lik
 - **No heavy NLP runtime** — pure lookup + heuristics; zero ML model dependencies.
 - **Five compression levels** — `Light`, `Semantic`, `Aggressive`, `Statistical` (TF-IDF), `Syntactic` (rule-based grammatical-glue pruning, POS-gated hedge-clause elision).
 - **POS lookup for 54/55 languages** — `FunctionWordProvider.GetPosTags`/`GetPosTag`: a frequency-baseline Universal POS tagger generated offline from the same Universal Dependencies treebanks as the lemma data, no runtime model.
-- **Content-aware routing (v1.3.0)** — auto-detects JSON arrays, diffs, logs, HTML, code, tables and applies the best algorithm for each type.
+- **Content-aware routing (v1.3.0)** — auto-detects JSON arrays, diffs, logs, HTML, code, tables, **SQL (v1.4.4)** and applies the best algorithm for each type.
+- **SQL compression (v1.4.4)** — `CavemanSqlCompressor`: whitespace-safe SQL compaction with optional comment stripping and CCR-based value folding, dependency-free.
+- **Global-IDF statistical scoring (v1.4.4)** — 56 per-language precomputed IDF tables; `Statistical` blends local TF-IDF 50/50 with global rarity, `Aggressive` prunes words ubiquitous in their reference corpus.
 - **JSON SmartCrusher** — lossless CSV/markdown compaction or BM25 row-drop with reversible CCR markers.
 - **Output shaping** — inject verbosity-steering instructions into system prompts to prevent preamble/restatement generation.
 - **Compression profiles** — `Light`, `Balanced`, `Agent`, `Aggressive` presets for one-line setup.
@@ -144,6 +146,36 @@ genuinely lean input untouched rather than force a "compression" that would just
 | Markdown table | 158 | 158 | 0.0% | Passthrough |
 | HTML page | 192 | 58 | **−69.8%** | HtmlExtract+NlpCompression |
 | C# code | 249 | 184 | −26.1% | CodeCompression |
+| SQL | 46 | 34 | −26.1% | SqlCompression (v1.4.4) |
+
+#### SQL compression (v1.4.4)
+
+SQL is auto-detected (`ContentType.Sql`) and routed to `CavemanSqlCompressor` — a lossless,
+whitespace-safe formatting collapse that protects keywords, string/numeric literals, quoted
+identifiers, nested parentheses and comments (never breaks a statement). Optional comment
+stripping and VALUES-tuple folding (`foldValues`, lossy and CCR-hashed like JsonCrusher's
+row-drop):
+
+```csharp
+var compressor = new CavemanSqlCompressor();
+var r = compressor.Compress("SELECT  id,   name\nFROM     users\nWHERE    age > 18;");
+// r.Compressed  → "SELECT id, name FROM users WHERE age > 18;"
+
+var folded = compressor.Compress(
+    "INSERT INTO log (id,msg) VALUES (1,'a'),(2,'b'),(3,'c');",
+    foldValues: true);
+// folded.Compressed  → "INSERT INTO log (id,msg) VALUES (1,'a'),(2,'b'); -- CCR:3f2a9b1c8d4e"
+// folded.TuplesDropped → 1, folded.CcrHash → "3f2a9b1c8d4e"
+```
+
+#### Global-IDF statistical scoring (v1.4.4)
+
+56 per-language precomputed IDF tables (embedded, same data as Synthelion 1.2.5) ground
+`Statistical` word importance against real-world rarity: score = frequency ×
+(0.5·local-idf + 0.5·log((gN+1)/(gDf+1))). `Aggressive` additionally drops words present in
+more than 50% of the reference corpus. Languages without a table fall back to the exact
+local-only 1.4.3 behavior. `CavemanGlobalIdfProvider.GetShippedLanguages()` lists the shipped
+tables.
 
 ### Retrieval & structure-aware additions
 
@@ -183,8 +215,10 @@ correctly keeping unrelated documents (weather, baking) out of the results.
 | **Light** | Stop-word removal | ~25–35% |
 | **Semantic** | Content words + lemmatization | ~30–69% |
 | **Aggressive** | Lemmatization + generic-term pruning | ~35–70% |
-| **Statistical** | TF-IDF word scoring instead of curated dictionaries — keeps words that are frequent in the prompt but rare against the language's standard-corpus reference | ~30–65% |
+| **Statistical** | TF-IDF word scoring instead of curated dictionaries — keeps words that are frequent in the prompt but rare against the language's standard-corpus reference, blended 50/50 with precomputed global-IDF tables (56 languages) so rarity is measured against real-world usage, not just this prompt | ~30–65% |
 | **Syntactic** | Rule-based pruning: same content-word filtering as Aggressive, but a function word survives when it's grammatical glue directly touching a surviving word (e.g. a determiner in front of its noun), so the result reads as a terse but grammatical sentence | ~25–55% |
+
+Numbers (amounts, dates, IDs, room/gate numbers) are preserved verbatim at **every** level — they are never treated as removable noise.
 
 ---
 
@@ -205,6 +239,7 @@ Supplementary per-language resources (each an independent brotli blob, loaded on
 | `{iso3}.excl.yaml.br` | Exclusive markers for language-detection disambiguation | 7 curated languages |
 | `{iso3}.generic.yaml.br` | Generic/filler words pruned in `Aggressive`/`Syntactic` mode | 9 curated languages; every other language derives its own generic set algorithmically from verb-form richness instead (see `FunctionWordProvider.GetGenericWords`) |
 | `{iso3}.pos.yaml.br` | Universal POS tag lookup (NOUN, VERB, ADJ, ADP, DET, …) — the most frequent tag Universal Dependencies observed per word form | 54 of 55 mappable languages |
+| `{iso3}.idf.br` | Precomputed global IDF table (corpus size + lemma → document-frequency counts), shipping from Synthelion 1.2.5 and used by the `Statistical` level's global-IDF blend and the `Aggressive` ubiquity gate | 56 languages (~127 MB, embedded) |
 
 For shipping, the main YAML sources are compiled (by `scripts/compile-worddata`) into compact embedded artifacts and a custom streaming parser keeps loading fast:
 

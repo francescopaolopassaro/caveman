@@ -75,6 +75,7 @@ namespace caveman.core
         private readonly ILanguageDetector _detector;
         private readonly ModelTokenizer? _tokenizer;
         private readonly FunctionWordProvider _wordProvider;
+        private readonly CavemanGlobalIdfProvider? _globalIdf;
         private readonly Lazy<CavemanContentRouter> _contentRouter;
         private static readonly ConcurrentDictionary<string, WordDataFile?> _dataCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<string, Dictionary<string, string>?> _lemmaCache = new(StringComparer.OrdinalIgnoreCase);
@@ -130,12 +131,16 @@ namespace caveman.core
         public CavemanCompressionService(ModelTokenizer? tokenizer, FunctionWordProvider? wordProvider)
             : this(tokenizer, wordProvider, null) { }
 
+        /// <param name="tokenizer">Optional token counter; defaults to null (approximate token counting).</param>
+        /// <param name="wordProvider">Optional word-data provider; defaults to <see cref="FunctionWordProvider"/>.</param>
         /// <param name="detector">Optional language detector; defaults to <see cref="CavemanLanguageDetector"/>.</param>
-        public CavemanCompressionService(ModelTokenizer? tokenizer, FunctionWordProvider? wordProvider, ILanguageDetector? detector)
+        /// <param name="globalIdf">Optional global document-frequency provider; when a table is shipped for a language it is blended 50/50 into Statistical scoring and gates Aggressive pruning (Synthelion 1.2.5 port). Defaults to a new provider.</param>
+        public CavemanCompressionService(ModelTokenizer? tokenizer, FunctionWordProvider? wordProvider, ILanguageDetector? detector, CavemanGlobalIdfProvider? globalIdf = null)
         {
             _wordProvider = wordProvider ?? new FunctionWordProvider();
             _detector = detector ?? new CavemanLanguageDetector(_wordProvider);
             _tokenizer = tokenizer;
+            _globalIdf = globalIdf ?? new CavemanGlobalIdfProvider();
             _contentRouter = new Lazy<CavemanContentRouter>(() => new CavemanContentRouter(this, _tokenizer));
         }
 
@@ -501,8 +506,11 @@ namespace caveman.core
                 if (isProper[i])
                     return w;
 
+                // Numbers are load-bearing (ports, amounts, percentages, versions, dates,
+                // temperatures): keep them verbatim, never lemmatised, never dropped
+                // (Synthelion 1.2.5 numeric-preservation port).
                 if (IsNumber(w.Text))
-                    return null;
+                    return w;
 
                 // Drop function words by their surface form, before lemmatization:
                 // a stopword must be removed regardless of any (possibly noisy) lemma.
@@ -546,11 +554,12 @@ namespace caveman.core
                 if (isProper[i])
                     return w;
 
-                if (w.Text.Length <= 1 && !char.IsLetter(w.Text[0]))
+                if (w.Text.Length <= 1 && !char.IsLetter(w.Text[0]) && !char.IsDigit(w.Text[0]))
                     return null;
 
+                // Numbers are load-bearing: keep them verbatim, never lemmatised or dropped.
                 if (IsNumber(w.Text))
-                    return null;
+                    return w;
 
                 // Drop function words by their surface form, before lemmatization.
                 if (functionWords.Contains(w.Text.ToLowerInvariant()))
@@ -570,6 +579,14 @@ namespace caveman.core
                     return null;
 
                 if (IsDescriptiveWord(normalized, langGroup))
+                    return null;
+
+                // Synthelion 1.2.5: additionally drop a word when the global reference
+                // corpus shows it in more than 50% of documents for that language — a
+                // deliberately conservative threshold that catches words the hand-curated
+                // generic/fw lists missed without over-pruning (repeats of ubiquitous
+                // words across many unrelated texts are filler, not information).
+                if (_globalIdf != null && _globalIdf.HasData(iso3) && IsGloballyUbiquitous(normalized, iso3))
                     return null;
 
                 if (!normalized.Equals(w.Text, StringComparison.OrdinalIgnoreCase))
@@ -702,11 +719,25 @@ namespace caveman.core
                 var idf = sentenceCount > 1
                     ? Math.Log((double)sentenceCount / (1 + df)) + 1.0
                     : 1.0; // a single-sentence prompt has no cross-sentence signal to lean on
+
+                // Synthelion 1.2.5: when a global per-language document-frequency table is
+                // available, blend the local (single-prompt) IDF 50/50 with the precomputed
+                // global document frequency — same smoothed blend as the TfIdf summarizer —
+                // so word importance is grounded in real-world rarity, not just how the word
+                // happens to be distributed inside this one prompt. Falls back to the
+                // local-only score exactly as before when no table is available.
+                if (_globalIdf != null && _globalIdf.HasData(iso3))
+                {
+                    double gDf = _globalIdf.GetDocumentFrequency(word, iso3);
+                    double gN = _globalIdf.GetCorpusSize(iso3);
+                    double globalComponent = Math.Log((gN + 1) / (gDf + 1));
+                    idf = 0.5 * idf + 0.5 * globalComponent;
+                }
                 scores[word] = freq * idf;
             }
 
             if (scores.Count == 0)
-                return words.Where(w => !w.IsPunctuation && !IsNumber(w.Text)).ToList();
+                return words.Where(w => !w.IsPunctuation).ToList();
 
             var positive = scores.Values.Where(v => v > 0).OrderBy(v => v).ToList();
             var threshold = positive.Count > 0 ? positive[positive.Count / 2] : 0;
@@ -717,6 +748,9 @@ namespace caveman.core
             {
                 if (words[i].IsPunctuation) continue;
                 if (isProper[i]) { keep[i] = true; sentenceHasKeep[sentenceOf[i]] = true; continue; }
+
+                // Numbers are load-bearing and never scored away (Synthelion 1.2.5 port).
+                if (IsNumber(words[i].Text)) { keep[i] = true; sentenceHasKeep[sentenceOf[i]] = true; continue; }
 
                 var k = keys[i];
                 if (k == null) continue;
@@ -753,6 +787,8 @@ namespace caveman.core
             {
                 if (!keep[i]) continue;
                 if (isProper[i]) { result.Add(words[i]); continue; }
+                // Numbers have no scoring key (kept unconditionally); emit their original text.
+                if (IsNumber(words[i].Text)) { result.Add(words[i]); continue; }
                 result.Add(new WordToken { Text = keys[i]!, IsPunctuation = false });
             }
             return result;
@@ -800,7 +836,8 @@ namespace caveman.core
             {
                 if (j >= n || words[j].IsPunctuation) return false;
                 if (isProper[j]) return true;
-                if (IsNumber(words[j].Text)) return false;
+                // Numbers are always retained, so a function word glued to one survives too.
+                if (IsNumber(words[j].Text)) return true;
                 var jLower = words[j].Text.ToLowerInvariant();
                 if (functionWords.Contains(jLower)) return false;
                 var jNorm = LemmaOrLower(words[j].Text, lemmas, posTags) ?? jLower;
@@ -864,7 +901,8 @@ namespace caveman.core
                 if (w.IsPunctuation) continue;
                 if (elided[i]) continue;
                 if (isProper[i]) { keep[i] = true; continue; }
-                if (IsNumber(w.Text)) continue;
+                // Numbers are always retained verbatim (Synthelion 1.2.5 port).
+                if (IsNumber(w.Text)) { keep[i] = true; continue; }
 
                 var lower = w.Text.ToLowerInvariant();
                 var normalized = LemmaOrLower(w.Text, lemmas, posTags) ?? lower;
@@ -947,14 +985,34 @@ namespace caveman.core
             "now", "then", "today", "yesterday", "tomorrow", "always", "never",
         };
 
+        // Numbers are load-bearing at every compression level (ports, amounts, percentages,
+        // versions, dates, temperatures): dropping them silently corrupts the meaning of the
+        // prompt, so they are always retained verbatim, never lemmatised (Synthelion 1.2.5
+        // numeric-preservation port). Requires at least one digit so a lone "-" or "." token
+        // is not misclassified as a number.
         private static bool IsNumber(string text)
         {
+            if (text.Length == 0)
+                return false;
+            bool hasDigit = false;
             foreach (var c in text)
             {
                 if (!char.IsDigit(c) && c != '.' && c != ',' && c != '-')
                     return false;
+                if (char.IsDigit(c))
+                    hasDigit = true;
             }
-            return text.Length > 0;
+            return hasDigit;
+        }
+
+        // Score-internal helper matching Synthelion's _is_globally_ubiquitous: a word
+        // present in more than 50% of the reference corpus's documents is treated as
+        // language-wide filler that aggressive pruning may drop.
+        private bool IsGloballyUbiquitous(string word, string iso3)
+        {
+            var corpusSize = _globalIdf!.GetCorpusSize(iso3);
+            return corpusSize > 0
+                && (double)_globalIdf.GetDocumentFrequency(word, iso3) / corpusSize > 0.5;
         }
 
         private static bool IsDescriptiveWord(string lower, string langGroup)

@@ -2,6 +2,33 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.4.4](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.4) - 2026-08-13
+
+Synthelion 1.2.5 feature port (Synthelion is the Python port of Caveman; this release brings its 1.2.5 refinements back into the .NET core).
+
+### Added
+- **`CavemanGlobalIdfProvider`** — per-language precomputed global IDF tables (`*.idf.br`, 56 languages, ~127 MB, embedded resources), shipped from Synthelion 1.2.5. `GetShippedLanguages()` lists the embedded languages; `Preload()` warms the cache.
+- **Global-IDF-aware `Statistical` scoring** — the local token IDF is blended 50/50 with the precomputed global document frequency (`0.5·local + 0.5·log((gN+1)/(gDf+1))`), grounding word importance against real-world rarity instead of only the current prompt's distribution. Falls back to local-only IDF (the 1.4.1 behaviour) when no table is available for the language.
+- **Global-ubiquity gate in `Aggressive`** — a word whose document frequency exceeds 50% of its language's reference corpus is treated as too common to be informative and pruned (mirrors Synthelion `_GLOBAL_UBIQUITY_THRESHOLD`).
+- **Number preservation at every level** — numbers (amounts, dates, IDs, gate/room numbers) now survive verbatim in `Semantic`, `Aggressive`, `Statistical` and `Syntactic`, not just `Light` (previously they were dropped by design). Updated the comprehension suite to lock this in as a contract.
+- **`CavemanSqlCompressor`** — dependency-free whitespace-safe SQL compressor: collapses formatting while preserving string literals, quoted identifiers, nested parens and comments; optional comment stripping; optional `foldValues` (default off) that replaces VALUES clauses with a content-derived hash reference in the shared `CavemanCcrStore` and reports dropped tuples.
+- **`ContentType.Sql` content detection & routing** — new SQL detection mirroring Synthelion's `_looks_like_sql` (word-boundary statement + companion clause regexes, leading-statement or multi-statement scripts), checked before generic `Code`; `CavemanContentRouter` routes SQL content to the new SQL compressor.
+
+### MCP
+- `Caveman.Mcp` gains `compress_sql` (whitespace-safe SQL compression with optional comment stripping and CCR value-folding) and `idf_languages` (lists the 56 shipped global-IDF tables and checks table/corpus size per ISO 639-3).
+
+### Changed
+- `Statistical` output changes on real text (~29% of selected words), by design: common corpus-wide words (e.g. "report", "financial", "volo") can fall below the adaptive median when blended against global frequency while genuinely rare domain terms are promoted. Documented and locked in by the comprehension tests, which now carry an explicit per-case list of facts the global blend intentionally demotes at `Statistical` only.
+- `CavemanCompressionService` constructor gains an optional `CavemanGlobalIdfProvider?` parameter (default: an internal shared provider), so global-IDF tables are always available when the embedded data exists.
+
+### Fixed
+- The `Statistical` level could drop a number whose normalized lemma had no score entry (output lost "8080"/"99.50"/"8.3"); numbers are now emitted from the original token before any scoring.
+- `CavemanContentDetector.IsSql` matched clause markers only when surrounded by literal spaces, missing SQL whose keywords sit at a line start or the very beginning of the input; now uses word-boundary regexes like Synthelion.
+
+Full suite: 327/327 passing.
+
+---
+
 ## [1.4.2](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.2) - 2026-07-18
 
 Language-quality pass, ported back from the [Synthelion](https://github.com/francescopaolopassaro/Synthelion) (Python port) 1.2.0 real-text quality review — every bug below was found by compressing real sentences in Italian/English/Chinese and reading the output, not by unit-testing in the abstract.
