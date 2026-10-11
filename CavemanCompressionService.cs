@@ -9,6 +9,7 @@
 // <summary>Core compression engine: tokenization, function-word and lemma filtering, and the Light/Semantic/Aggressive compression levels.</summary>
 // -----------------------------------------------------------------------------
 using System.Collections.Concurrent;
+using System.Text;
 using System.Text.RegularExpressions;
 using caveman.core.entities;
 using caveman.core.services;
@@ -71,6 +72,23 @@ namespace caveman.core
         private static readonly Regex WordSplit = new(
             @"[\p{L}\p{M}]+(?:'[\p{L}\p{M}]+)?|\p{N}+(?:[.,]\p{N}+)?|[^\p{L}\p{M}\p{N}\s]",
             RegexOptions.Compiled);
+
+        // Structured values are isolated BEFORE the generic word tokenizer, so their internal punctuation
+        // survives: WordSplit treats '.' and ':' as standalone punctuation, so "127.0.0.1" reached the filters
+        // already split into 127 / . / 0 / . / 0 / . / 1 and every level above Light dropped the fragments - the
+        // value disappeared entirely (Synthelion 1.2.5, issue #18: 0 of 1425 structured values survived across
+        // 19 languages x 5 levels). Plain integers were already covered by IsNumber.
+        private static readonly Regex ProtectedToken = new(
+            @"https?://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+|" +
+            @"[A-Za-z0-9][A-Za-z0-9._%+\-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+|" +
+            @"(?<!\d)(?:\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:/\d{1,2})?|(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{1,4})(?!\d)|" +
+            @"(?<!\d)\d{4}-\d{2}-\d{2}(?:[T ][0-9]{2}:[0-9]{2}(?::[0-9]{2}(?:\.[0-9]+)?)?(?:Z|[+-][0-9]{2}:[0-9]{2})?)?(?!\d)|" +
+            @"(?<!\d)\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?!\d)|" +
+            @"(?<!\d)[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?[%‰°]?(?!\d)|" +   // grouped decimals: 1,234.56
+            @"(?<!\d)[+-]?\d+(?:[.,]\d+)?[%‰°](?!\d)|" +                         // 99.50%, 20%
+            @"(?<!\d)v?\d+(?:\.\d+)+(?!\d)|" +
+            @"(?<!\d)[+-]?(?:\d+(?:[.,]\d+)?)(?:[eE][+-]?\d+)?(?:[%‰°])?(?!\d)",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
 
         private readonly ILanguageDetector _detector;
         private readonly ModelTokenizer? _tokenizer;
@@ -295,6 +313,19 @@ namespace caveman.core
             if (string.IsNullOrWhiteSpace(input))
                 return new CompressionResult { CompressedText = string.Empty };
 
+            // Every filter below is a PROSE filter: it tokenizes into words and drops the low-signal ones.
+            // Punctuation is not a word, so braces, quotes, colons and operators are dropped with it - which turns
+            // JSON into unparseable text, a Python function into a list of identifiers and a SELECT into keyword
+            // soup. Structured content therefore never reaches them: it is routed to the dedicated structure-aware
+            // compressors (JSON, code, SQL, HTML, diff, tabular) that know which characters are load-bearing, and
+            // a shape nothing can compress (YAML/config) is returned unchanged rather than corrupted
+            // (Synthelion 1.2.5: every level silently destroyed JSON, Python, HTML, SQL and YAML).
+            if (!_structuredGuardBypass && _structuredGuard)
+            {
+                var guarded = TryStructured(input);
+                if (guarded != null) return guarded;
+            }
+
             var functionWords = _wordProvider.GetFunctionWords(iso3);
             var lemmas = GetLemmas(iso3);
             var properNouns = GetProperNouns(iso3);
@@ -312,7 +343,7 @@ namespace caveman.core
                 filtered = ApplyLevelFilter(words, functionWords, level, iso3, lemmas, properNouns);
             }
 
-            var compressed = string.Join(" ", filtered.Select(w => w.Text));
+            var compressed = JoinFiltered(filtered);
 
             return new CompressionResult
             {
@@ -322,12 +353,100 @@ namespace caveman.core
             };
         }
 
+        [ThreadStatic] private static bool _structuredGuardBypass;
+        private static readonly CavemanContentDetector StructuredDetector = new();
+        private static readonly Regex YamlKeyLine = new(@"^[ 	]*[\w.\-]+:(?:[ 	]|$)", RegexOptions.Compiled);
+        private static readonly Regex YamlListLine = new(@"^[ 	]*-[ 	]+\S", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Opt-out of the structured-content guard for a caller that has already classified the content and
+        /// decided prose compression is right (the router does exactly that for JSON-Schema objects, whose value
+        /// is in their descriptions). Default <c>true</c>.
+        /// </summary>
+        private bool _structuredGuard = true;
+
+        /// <summary>Enables or disables the structured-content guard (default on).</summary>
+        public CavemanCompressionService WithStructuredGuard(bool enabled) { _structuredGuard = enabled; return this; }
+
+        private static bool LooksLikeYaml(string text)
+        {
+            var lines = text.Split('\n').Where(l => l.Trim().Length > 0).ToList();
+            if (lines.Count < 3) return false;
+            var shaped = lines.Count(l => YamlKeyLine.IsMatch(l) || YamlListLine.IsMatch(l));
+            if (shaped / (double)lines.Count < 0.8) return false;
+            // prose ends sentences; a config file does not
+            var enders = lines.Count(l => { var t = l.TrimEnd(); return t.EndsWith('.') || t.EndsWith('!') || t.EndsWith('?'); });
+            return enders <= lines.Count * 0.2;
+        }
+
+        private CompressionResult? TryStructured(string input)
+        {
+            ContentType type;
+            try { type = StructuredDetector.Detect(input).Type; }
+            catch { return null; }   // detection must never break compression
+
+            var handled = type is ContentType.JsonObject or ContentType.JsonArray or ContentType.Code or ContentType.Sql
+                or ContentType.Html or ContentType.GitDiff or ContentType.Tabular;
+            if (!handled && !LooksLikeYaml(input)) return null;
+
+            if (handled)
+            {
+                _structuredGuardBypass = true;   // the router calls back into this service for prose / schema text
+                try
+                {
+                    var routed = _contentRouter.Value.Route(input);
+                    if (routed.WasCompressed())
+                    {
+                        return new CompressionResult
+                        {
+                            CompressedText = routed.Compressed,
+                            OriginalTokens = Tokenize(input).Count,
+                            CompressedTokens = Tokenize(routed.Compressed).Count,
+                        };
+                    }
+                }
+                finally { _structuredGuardBypass = false; }
+            }
+
+            // Structured, but nothing knows how to compress this shape: leaving it alone is the only safe answer.
+            var n = Tokenize(input).Count;
+            return new CompressionResult
+            {
+                CompressedText = input,
+                OriginalTokens = n,
+                CompressedTokens = n,
+                ErrorMessage = "declined: structured content with no structure-aware compressor - returned unchanged rather than corrupted",
+            };
+        }
+
         private List<WordToken> Tokenize(string input)
         {
             var tokens = new List<WordToken>();
-            var matches = WordSplit.Matches(input);
+            var cursor = 0;
 
-            foreach (Match match in matches)
+            foreach (Match m in ProtectedToken.Matches(input))
+            {
+                if (m.Index > cursor) AppendNormal(tokens, input.Substring(cursor, m.Index - cursor));
+                var value = m.Value;
+                // Sentence punctuation belongs to the sentence, not to the protected value.
+                var trailing = new StringBuilder();
+                while (value.Length > 0 && ".,!?;:".IndexOf(value[value.Length - 1]) >= 0)
+                {
+                    trailing.Insert(0, value[value.Length - 1]);
+                    value = value.Substring(0, value.Length - 1);
+                }
+                if (value.Length > 0) tokens.Add(new WordToken { Text = value, IsPunctuation = false, Protected = true });
+                if (trailing.Length > 0) AppendNormal(tokens, trailing.ToString());
+                cursor = m.Index + m.Length;
+            }
+            if (cursor < input.Length) AppendNormal(tokens, input.Substring(cursor));
+            return tokens;
+        }
+
+        private void AppendNormal(List<WordToken> tokens, string segment)
+        {
+            if (segment.Length == 0) return;
+            foreach (Match match in WordSplit.Matches(segment))
             {
                 var text = match.Value;
                 bool isPunct = !char.IsLetterOrDigit(text[0]);
@@ -343,15 +462,35 @@ namespace caveman.core
                     continue;
                 }
 
-                tokens.Add(new WordToken
-                {
-                    Text = text,
-                    IsPunctuation = isPunct
-                });
+                tokens.Add(new WordToken { Text = text, IsPunctuation = isPunct });
             }
-
-            return tokens;
         }
+
+        /// <summary>
+        /// Joins the surviving tokens without inserting spaces inside CJK runs. Chinese and Japanese are written
+        /// without spaces between words, so a plain <c>string.Join(" ")</c> inflated the output (a 37-character
+        /// Chinese sentence came back as 52) while the reported token saving described a string physically longer
+        /// than the input - and the spaced form costs a model more tokens, not fewer. A separator is still kept
+        /// between a CJK token and a Latin one (a version number, a URL) so the boundary does not disappear.
+        /// </summary>
+        internal static string JoinFiltered(IReadOnlyList<WordToken> items)
+        {
+            if (items.Count == 0) return string.Empty;
+            var sb = new StringBuilder(items[0].Text);
+            for (var i = 1; i < items.Count; i++)
+            {
+                var prev = items[i - 1].Text; var cur = items[i].Text;
+                if (!(prev.Length > 0 && cur.Length > 0 && IsCjkChar(prev[prev.Length - 1]) && IsCjkChar(cur[0])))
+                    sb.Append(' ');
+                sb.Append(cur);
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>Han, Hiragana, Katakana - scripts written without word spacing.</summary>
+        private static bool IsCjkChar(char c) =>
+            (c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF) || (c >= 0x3040 && c <= 0x309F)
+            || (c >= 0x30A0 && c <= 0x30FF) || (c >= 0xF900 && c <= 0xFAFF);
 
         private IReadOnlyList<WordToken> ApplyLevelFilter(
             List<WordToken> words,
@@ -509,7 +648,7 @@ namespace caveman.core
                 // Numbers are load-bearing (ports, amounts, percentages, versions, dates,
                 // temperatures): keep them verbatim, never lemmatised, never dropped
                 // (Synthelion 1.2.5 numeric-preservation port).
-                if (IsNumber(w.Text))
+                if (IsVerbatim(w))
                     return w;
 
                 // Drop function words by their surface form, before lemmatization:
@@ -558,7 +697,7 @@ namespace caveman.core
                     return null;
 
                 // Numbers are load-bearing: keep them verbatim, never lemmatised or dropped.
-                if (IsNumber(w.Text))
+                if (IsVerbatim(w))
                     return w;
 
                 // Drop function words by their surface form, before lemmatization.
@@ -686,7 +825,7 @@ namespace caveman.core
             var keys = new string?[n];
             for (int i = 0; i < n; i++)
             {
-                if (words[i].IsPunctuation || isProper[i] || IsNumber(words[i].Text))
+                if (words[i].IsPunctuation || isProper[i] || IsVerbatim(words[i]))
                     continue;
                 keys[i] = LemmaOrLower(words[i].Text, lemmas, posTags);
             }
@@ -750,7 +889,7 @@ namespace caveman.core
                 if (isProper[i]) { keep[i] = true; sentenceHasKeep[sentenceOf[i]] = true; continue; }
 
                 // Numbers are load-bearing and never scored away (Synthelion 1.2.5 port).
-                if (IsNumber(words[i].Text)) { keep[i] = true; sentenceHasKeep[sentenceOf[i]] = true; continue; }
+                if (IsVerbatim(words[i])) { keep[i] = true; sentenceHasKeep[sentenceOf[i]] = true; continue; }
 
                 var k = keys[i];
                 if (k == null) continue;
@@ -788,7 +927,7 @@ namespace caveman.core
                 if (!keep[i]) continue;
                 if (isProper[i]) { result.Add(words[i]); continue; }
                 // Numbers have no scoring key (kept unconditionally); emit their original text.
-                if (IsNumber(words[i].Text)) { result.Add(words[i]); continue; }
+                if (IsVerbatim(words[i])) { result.Add(words[i]); continue; }
                 result.Add(new WordToken { Text = keys[i]!, IsPunctuation = false });
             }
             return result;
@@ -837,7 +976,7 @@ namespace caveman.core
                 if (j >= n || words[j].IsPunctuation) return false;
                 if (isProper[j]) return true;
                 // Numbers are always retained, so a function word glued to one survives too.
-                if (IsNumber(words[j].Text)) return true;
+                if (IsVerbatim(words[j])) return true;
                 var jLower = words[j].Text.ToLowerInvariant();
                 if (functionWords.Contains(jLower)) return false;
                 var jNorm = LemmaOrLower(words[j].Text, lemmas, posTags) ?? jLower;
@@ -902,7 +1041,7 @@ namespace caveman.core
                 if (elided[i]) continue;
                 if (isProper[i]) { keep[i] = true; continue; }
                 // Numbers are always retained verbatim (Synthelion 1.2.5 port).
-                if (IsNumber(w.Text)) { keep[i] = true; continue; }
+                if (IsVerbatim(w)) { keep[i] = true; continue; }
 
                 var lower = w.Text.ToLowerInvariant();
                 var normalized = LemmaOrLower(w.Text, lemmas, posTags) ?? lower;
@@ -990,6 +1129,8 @@ namespace caveman.core
         // prompt, so they are always retained verbatim, never lemmatised (Synthelion 1.2.5
         // numeric-preservation port). Requires at least one digit so a lone "-" or "." token
         // is not misclassified as a number.
+        private static bool IsVerbatim(WordToken t) => t.Protected || IsNumber(t.Text);
+
         private static bool IsNumber(string text)
         {
             if (text.Length == 0)
@@ -1186,5 +1327,7 @@ namespace caveman.core
     {
         public string Text { get; init; } = string.Empty;
         public bool IsPunctuation { get; init; }
+        /// <summary>A structured value (URL, e-mail, IP, ISO date, version, ...) kept verbatim at every level.</summary>
+        public bool Protected { get; init; }
     }
 }

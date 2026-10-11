@@ -66,6 +66,59 @@ public sealed class CavemanContentDetector
     private static readonly string[] CodeIndicators =
         ["{", "}", ";", "=>", "->", "def ", "function ", "class ", "import ", "#include", "public ", "private "];
 
+    // The indicators above are brace-and-semicolon shaped, so a language that uses neither scored at most 1
+    // ("def ") and fell through to PlainText - Python is the common case, but the gap covers every
+    // indentation-based syntax. These additions are chosen to be rare in prose: operators and literals
+    // rather than words, so a sentence about "how to import the class" cannot accumulate them.
+    // (Synthelion 1.2.5, issue #19: a Python snippet was labelled PlainText with confidence 1.0 and the prose
+    // compressor stripped its operators - "price = base - (base * discount)" came back as "price base base discount".)
+    private static readonly string[] CodeIndicatorsExtra =
+    [
+        "elif ", "lambda ", "self.", "__init__", "print(", "None", "True", "False", "!=", "==", "+=", "()", "):",
+        // Shell and Ruby: shebangs, block keywords, sigils.
+        "#!/", "fi\n", "esac", "done", "do\n", "end\n", "puts ", "$(", "${", "nil", "attr_", "||", "&&",
+        // Declaration keywords from languages the original list predates.
+        "fn ", "func ", "let ", "const ", "var ", "val ", "impl ", "struct ", "package ", "export ", "async ",
+    ];
+
+    // Block shape: a colon-terminated line followed by an indented one. Prose writes exactly that when
+    // introducing a bulleted list, so the shape alone is not enough - the indented line must be a statement
+    // (assignment, call, return, or a nested conditional), which a list item is not.
+    private static readonly Regex CodeBlock = new(@":\s*\n[ \t]{2,}\S", RegexOptions.Compiled | RegexOptions.Multiline);
+    private static readonly Regex CodeStmtLine = new(
+        @"^[ \t]{2,}.*?(?:[\w.]+\s*=\s*\S|\w+\([^)]*\)|\breturn\b|\bif\b.*:)", RegexOptions.Compiled | RegexOptions.Multiline);
+    // Ruby, shell and others indent under `def foo(x)`, `do`, `then` with no colon at all: count indented
+    // statement lines directly - two or more is a body, and prose indents list items, not assignments and calls.
+    private static readonly Regex CodeIndentedStmt = new(
+        @"^[ \t]{2,}(?:[\w.@$]+\s*=\s*\S|[\w.@$]+\([^)]*\)|return\b|puts\b|echo\b|[\w.]+\.\w+\()",
+        RegexOptions.Compiled | RegexOptions.Multiline);
+    private static readonly Regex CodeAssign = new(@"^\s*[\w.]+\s*=\s*\S", RegexOptions.Compiled | RegexOptions.Multiline);
+    private static readonly Regex CodeCall = new(@"\w+\([^)]*\)", RegexOptions.Compiled);
+    // A package __init__.py is a file of imports: the indicator lists test for presence, so twenty-five imports
+    // scored the same as a sentence containing the word "import". Counting statements separates them.
+    private static readonly Regex CodeImportStmt = new(@"^\s*(?:from [\w.]+ )?import [\w*(]", RegexOptions.Compiled | RegexOptions.Multiline);
+
+    // Well above the detection threshold: at this level the content is code beyond reasonable doubt, and the
+    // word-spotting heuristics (log levels, HTML markers, SQL keywords - which source files contain constantly,
+    // in strings, comments and docstrings) must not get to claim it first. Real source files score 15-25,
+    // prose that merely mentions code scores 0-3.
+    private const int StrongCodeScore = 12;
+    private const int CodeThreshold = 4;
+
+    /// <summary>Structural evidence that <paramref name="content"/> is source code.</summary>
+    internal static int CodeScore(string content)
+    {
+        var score = CodeIndicators.Count(ind => content.Contains(ind, StringComparison.Ordinal));
+        score += CodeIndicatorsExtra.Count(ind => content.Contains(ind, StringComparison.Ordinal));
+        if (CodeBlock.IsMatch(content) && CodeStmtLine.IsMatch(content)) score += 3;
+        else if (CodeIndentedStmt.Matches(content).Count >= 2) score += 3;
+        if (CodeAssign.Matches(content).Count >= 2) score += 1;
+        if (CodeCall.Matches(content).Count >= 2) score += 1;
+        var imports = CodeImportStmt.Matches(content).Count;
+        if (imports >= 3) score += 3; else if (imports >= 1) score += 1;
+        return score;
+    }
+
     /// <summary>Classifies <paramref name="content"/> and returns the best-guess <see cref="ContentDetectionResult"/>.</summary>
     public ContentDetectionResult Detect(string content)
     {
@@ -99,6 +152,11 @@ public sealed class CavemanContentDetector
             catch (JsonException) { }
         }
 
+        // 2b — Overwhelming code evidence settles it before the weaker word-spotting heuristics get a turn.
+        // The margin is wide (threshold 3, this gate 12) so genuinely mixed content still falls through to them.
+        if (CodeScore(content) >= StrongCodeScore)
+            return new ContentDetectionResult { Type = ContentType.Code, Confidence = 0.75f };
+
         // 3 — SQL (dedicated whitespace-safe compressor; checked early so multi-statement
         // SQL never falls through to log/search/tabular/code heuristics)
         if (IsSql(content))
@@ -119,7 +177,10 @@ public sealed class CavemanContentDetector
         int logHits = LogLevelLine.Matches(content).Count;
         if (content.Contains("Traceback (most recent call last)", StringComparison.Ordinal)) stackHits += 3;
         // Require either stack frames OR a high density of log-level keywords (≥5 to avoid false positives on prose)
-        if (stackHits >= 3 || (stackHits >= 1 && logHits >= 2) || logHits >= 5)
+        // Source files mention ERROR and WARN in strings and comments all the time: let strong code evidence win
+        // where the log signal is only just over the line.
+        if ((stackHits >= 3 || (stackHits >= 1 && logHits >= 2) || logHits >= 5)
+            && !(stackHits < 2 && logHits < 5 && CodeScore(content) >= 8))
             return new ContentDetectionResult { Type = ContentType.LogOrStacktrace, Confidence = 0.85f };
 
         // 7 — Search Results (numbered list, URLs, or grep/ripgrep format)
@@ -134,12 +195,13 @@ public sealed class CavemanContentDetector
         bool isMdTable = firstLine.TrimStart().StartsWith('|') && firstLine.TrimEnd().EndsWith('|');
         bool isCsv = !isMdTable && (firstLine.Contains(',') || firstLine.Contains('\t') || firstLine.Contains(';'))
                      && content.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length >= 3;
+        // a first line like "def f(a, b):" has commas too - code is not a CSV table
+        if (isCsv && CodeScore(content) >= CodeThreshold) isCsv = false;
         if (isMdTable || isCsv)
             return new ContentDetectionResult { Type = ContentType.Tabular, Confidence = 0.72f };
 
         // 9 — Code
-        int codeMatches = CodeIndicators.Count(ind => content.Contains(ind, StringComparison.Ordinal));
-        if (codeMatches >= 4)
+        if (CodeScore(content) >= CodeThreshold)
             return new ContentDetectionResult { Type = ContentType.Code, Confidence = 0.70f };
 
         // 10 — Plain text fallback

@@ -2,6 +2,25 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.4.5](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.5) - 2026-10-11
+
+Synthelion 1.2.5 fix port, part two. Every item below was found in Synthelion by measuring real output, and every one applied to the .NET core too.
+
+### Fixed
+- **Structured values were destroyed by the prose compressor** (Synthelion #18). `WordSplit` treated `.` and `:` as standalone punctuation, so `127.0.0.1` reached the filters already split into `127 . 0 . 0 . 1` and every level above `Light` dropped the fragments. A new `ProtectedToken` matcher isolates URLs, e-mails, IPv4 (with port/CIDR), IPv6, ISO dates and timestamps, dotted versions, grouped decimals (`1,234.56`) and percentages (`99.50%`) *before* the word tokenizer; `WordToken.Protected` is honoured by all five filters (including `Statistical`'s per-sentence selection). Trailing sentence punctuation is returned to the sentence instead of being absorbed into the value. A signed number (`-5`) is now one token.
+- **Chinese and Japanese output was longer than the input.** `string.Join(" ")` put a space between every CJK token; Chinese and Japanese are written without spaces, so the result was physically longer than what went in while the reported saving described a shorter string (and the spaced form costs a model more tokens). Han/Hiragana/Katakana runs are now joined without a separator, and a separator is kept between a CJK token and a Latin one (a version, a URL). Korean keeps its spaces.
+- **Source code was routed to the prose compressor** (Synthelion #19). `CavemanContentDetector` scored code by braces and semicolons, so a Python snippet counted 1 against a threshold of 4 and fell through to `PlainText`; the word filters then stripped the operators (`price = base - (base * discount)` came back as `price base base discount`). Detection now weighs operators and literals (`==`, `+=`, `elif`, `self.`, `lambda`, shell/Ruby sigils, declaration keywords), a block-shape signal gated on the indented line being a statement (prose indents list items, not assignments), indented statement bodies without a colon (Ruby, shell) and import statements counted rather than merely detected. A score of 12 or more settles it before the weaker word-spotting heuristics (log levels, HTML markers, SQL keywords - which source files contain constantly) can claim it; a source file mentioning ERROR twice is no longer sent to the log compressor; a first line like `def f(a, b):` is no longer read as a CSV header.
+- **Comment stripping cut inside string literals** (Synthelion #19). The regex stripper turned `"redis://localhost:6379"` into `"redis:`, `"color: #ff0000"` into `"color: ` and let `"src/**/*.js"` open a block comment that swallowed the code after it, leaving the file syntactically broken. New `CavemanCommentStripper` is a single left-to-right scan that tracks string literals (quotes, backticks, triple-quoted and C# verbatim strings, SQL `''` escapes) for C-style, Python, Ruby, SQL and shell. Python keeps `//` (floor division) and only removes a triple-quoted string in statement position (a docstring); shell `#` starts a comment only at a word start (`${#items[@]}` is kept) and the shebang is preserved.
+- **Every prose compression level silently destroyed structured content** (Synthelion 1.2.5). `ApplyCompression` now detects JSON, code, SQL, HTML, diffs and tables and routes them to the dedicated structure-aware compressors instead of the word filters. A shape nothing can compress (YAML and config files) is returned unchanged with an explanatory `ErrorMessage` - "compress it properly or leave it alone" are the only two honest outcomes. A conservative YAML heuristic (several key/list-shaped lines, no sentence-ending punctuation) keeps prose with a colon ("Note: this matters") compressing normally. `CavemanCompressionService.WithStructuredGuard(false)` is the opt-out for a caller that already decided prose is right; the router uses an internal bypass so it cannot recurse.
+
+### Testing
+- New suites: `CavemanSynthelion125FixesTests` (structured values x 5 levels x 2 languages, trailing punctuation, CJK length), `CavemanCodeRoutingTests` (detection, string-aware stripping per language), `CavemanStructuredGuardTests` (JSON/Python/SQL/YAML/HTML x 5 levels). `ChineseCompressionActuallySegmentsWords` now asserts token accounting instead of counting spaces. Full suite: 449/449 passing.
+
+### Not ported
+- Synthelion's prompt-cache reorder inside `compress_for_context` / `compress_conversation` and its already-compressed LRU apply to MCP tools that Caveman.Mcp does not expose; `CavemanCacheAligner` remains available as a standalone service.
+
+---
+
 ## [1.4.4](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.4) - 2026-08-13
 
 Synthelion 1.2.5 feature port (Synthelion is the Python port of Caveman; this release brings its 1.2.5 refinements back into the .NET core).

@@ -141,9 +141,13 @@ namespace caveman.tests
         public void ChineseCompressionActuallySegmentsWords()
         {
             var outText = Compressed("我们不能接受这个方案，因为它不安全。", "zho", CavemanCompressionLevel.Semantic);
-            // more than one token in the output proves segmentation happened (the pre-fix
-            // behaviour collapsed the whole sentence into one blob).
-            Assert.That(outText.Split(' ').Length, Is.GreaterThan(1));
+            // Segmentation is proven by the token accounting: the pre-fix behaviour collapsed the whole
+            // sentence into one blob, so nothing could be filtered. (Output has no spaces between Han
+            // tokens - a spaced rendering was LONGER than the input, see CavemanSynthelion125FixesTests.)
+            var r = _compressor.ApplyCompression("我们不能接受这个方案，因为它不安全。", "zho", CavemanCompressionLevel.Semantic);
+            Assert.That(r.CompressedTokens, Is.LessThan(r.OriginalTokens));
+            Assert.That(r.OriginalTokens, Is.GreaterThan(3));
+            Assert.That(outText, Does.Contain("不"), "negation must survive");
         }
 
         [Test]

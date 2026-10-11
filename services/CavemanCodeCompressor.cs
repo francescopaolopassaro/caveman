@@ -123,37 +123,11 @@ public sealed class CavemanCodeCompressor
         int commentsRemoved = 0;
         int functionsSkeletonized = 0;
 
-        // Strip XML doc-comments (///) before single-line comments
-        if (profile.DocString != null)
+        // Strip every comment with a string-aware scan (a comment marker inside a string literal is not a
+        // comment: "redis://host", "color: #fff" and "src/**/*.js" used to be cut apart by the regex stripper).
         {
             int before = CountLines(result);
-            result = profile.DocString.Replace(result, string.Empty);
-            commentsRemoved += before - CountLines(result);
-        }
-
-        // Strip block comments
-        if (profile.BlockComment != null)
-        {
-            int before = CountLines(result);
-            result = profile.BlockComment.Replace(result, string.Empty);
-            commentsRemoved += before - CountLines(result);
-        }
-
-        // Strip single-line comments (but preserve shebang lines)
-        if (profile.Lang != Language.Shell)
-        {
-            int before = CountLines(result);
-            result = profile.LineComment.Replace(result, string.Empty);
-            commentsRemoved += before - CountLines(result);
-        }
-        else
-        {
-            // Shell: preserve shebang (#!) on first line
-            var lines = result.Split('\n');
-            int before = lines.Length;
-            for (int i = (lines.Length > 0 && lines[0].StartsWith("#!") ? 1 : 0); i < lines.Length; i++)
-                lines[i] = profile.LineComment.Replace(lines[i], string.Empty);
-            result = string.Join('\n', lines);
+            result = CavemanCommentStripper.Strip(result, DialectOf(profile.Lang));
             commentsRemoved += before - CountLines(result);
         }
 
@@ -199,6 +173,15 @@ public sealed class CavemanCodeCompressor
             BlankLinesRemoved = blanksRemoved
         };
     }
+
+    private static CavemanCommentStripper.Dialect DialectOf(Language lang) => lang switch
+    {
+        Language.Python => CavemanCommentStripper.Dialect.Python,
+        Language.Ruby => CavemanCommentStripper.Dialect.Ruby,
+        Language.Sql => CavemanCommentStripper.Dialect.Sql,
+        Language.Shell => CavemanCommentStripper.Dialect.Shell,
+        _ => CavemanCommentStripper.Dialect.CStyle,
+    };
 
     // Replaces matched function/method bodies with a placeholder, using real brace-depth
     // counting (not regex) to find the matching close — nesting can go arbitrarily deep, and

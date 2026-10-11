@@ -1,12 +1,30 @@
-# 🦴 Caveman — Prompt Compressor for LLMs
+<p align="center">
+  <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="120" alt="Caveman"/>
+</p>
+
+<h1 align="center">🦴 Caveman</h1>
+
+<p align="center"><b>Fewer tokens. Safer prompts. Provable compliance.</b><br/>
+The .NET toolkit that compresses, protects and governs what you send to an LLM - 50+ languages, no model to download, no API call.</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/Caveman"><img src="https://img.shields.io/nuget/v/Caveman.svg?label=Caveman&logo=nuget" alt="Caveman"/></a>
+  <a href="https://www.nuget.org/packages/Caveman.Mcp"><img src="https://img.shields.io/nuget/v/Caveman.Mcp.svg?label=Caveman.Mcp&logo=nuget" alt="Caveman.Mcp"/></a>
+  <a href="https://www.nuget.org/packages/Caveman.SemanticKernel"><img src="https://img.shields.io/nuget/v/Caveman.SemanticKernel.svg?label=SemanticKernel&logo=nuget" alt="Caveman.SemanticKernel"/></a>
+  <a href="https://www.nuget.org/packages/Caveman.PrivacyGuard"><img src="https://img.shields.io/nuget/v/Caveman.PrivacyGuard.svg?label=PrivacyGuard&logo=nuget" alt="Caveman.PrivacyGuard"/></a>
+  <a href="https://www.nuget.org/packages/Caveman.Compliance"><img src="https://img.shields.io/nuget/v/Caveman.Compliance.svg?label=Compliance&logo=nuget" alt="Caveman.Compliance"/></a>
+  <a href="https://www.nuget.org/packages/CavemanML"><img src="https://img.shields.io/nuget/v/CavemanML.svg?label=CavemanML&logo=nuget" alt="CavemanML"/></a>
+  <img src="https://img.shields.io/badge/.NET-8%20%7C%209-512BD4?logo=dotnet" alt=".NET"/>
+  <img src="https://img.shields.io/badge/languages-50%2B-2e7d32" alt="50+ languages"/>
+</p>
 
 <img width="1197" height="766" alt="caveman_splash" src="https://github.com/user-attachments/assets/4b534140-c519-423f-b918-e705565a039f" />
 
-**Caveman** is a self-contained C# library that drastically reduces the number of tokens in your LLM prompts (Gemma 3, Llama, GPT-4, …). It strips grammatical "noise" (articles, prepositions, conjunctions, auxiliaries) and normalises inflected words to their base form, keeping the semantic payload intact.
+> "Why use many tokens when few tokens do trick?" - A caveman (and your wallet).
 
-> "Why use many tokens when few tokens do trick?" — A caveman (and your wallet).
+Caveman started as a prompt compressor and grew into a small family of packages that cover the whole life of a prompt: **shrink it** (Caveman), **clean it** (PrivacyGuard), **govern it** (Compliance) and **plug it into your tools** (MCP, Semantic Kernel, Copilot). Every package is independent - take only what you need.
 
-It is inspired by the token-saving idea behind the Caveman plugin for Claude, but it is an independent implementation written from scratch — **no porting and no runtime NLP-model dependency**.
+It is an independent implementation written from scratch (inspired by the token-saving idea behind the Caveman plugin for Claude): **pure lookup + heuristics, zero runtime ML dependency** - and an optional ML tier, [`CavemanML`](#-the-caveman-family), for when you want learned compression and learned PII detection.
 
 ---
 
@@ -22,28 +40,107 @@ NovaRouteAI helps developers and AI SaaS teams test, compare, and run models lik
 
 ---
 
+## 📦 The Caveman family
+
+Every NuGet package published by the Caveman projects, with its icon, what it is for, and how to get it.
+
+| | Package | Version | What it is | Install |
+|:-:|:--|:-:|:--|:--|
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[Caveman](https://www.nuget.org/packages/Caveman)** <br/>*core library* · `net8.0` | `1.4.5` | The prompt compressor: 5 compression levels over 50+ languages, content router (JSON, logs, diffs, HTML, SQL, code, tables), retrieval, summarizers, agent memory, cost and energy estimators. Language data embedded, nothing to download. | `dotnet add package Caveman` |
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[Caveman.Mcp](https://www.nuget.org/packages/Caveman.Mcp)** <br/>*MCP server* · `net8.0` | `1.4.5` | Model Context Protocol server exposing Caveman to **Claude Code, OpenCode, Cursor, Windsurf** and any MCP client: `compress`, `compress_batch`, `compress_sql`, `detect_language`, `route_content`, `summarize`, `retrieve`, `skeletonize_code`, `near_duplicate`, `idf_languages`. | `dotnet tool install -g Caveman.Mcp` |
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[Caveman.SemanticKernel](https://www.nuget.org/packages/Caveman.SemanticKernel)** <br/>*plugins* · `net8.0` | `1.4.5` | Eight Semantic Kernel plugins - `TokenOptimizer`, `CavemanRouter`, `CavemanRetrieval`, `CavemanSummarization`, `CavemanConversation`, `CavemanOutput`, `CavemanServices`, `CavemanWiki` - so the *model* can manage its own context window. | `dotnet add package Caveman.SemanticKernel` |
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[Caveman.PrivacyGuard](https://www.nuget.org/packages/Caveman.PrivacyGuard)** <br/>*PII engine* · `net8.0` `netstandard2.0` | `1.3.1` | Enterprise PII & privacy analyzer: **32 countries**, checksum- and context-confirmed detection, reversible masking sessions, streaming and document masking, prompt-injection guard, AI-transparency notice, GDPR / AI Act / NIS2 / PCI-DSS flags. | `dotnet add package Caveman.PrivacyGuard` |
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[Caveman.PrivacyGuard.Mcp](https://www.nuget.org/packages/Caveman.PrivacyGuard.Mcp)** <br/>*MCP server* · `net8.0` | `1.3.1` | PrivacyGuard as MCP tools: `analyze_text`, `mask_text`, `restore_text`, `mask_stream`, `mask_document`, `session_summary`, `check_prompt_injection`, `get_ai_transparency_notice`. | `dotnet tool install -g Caveman.PrivacyGuard.Mcp` |
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[Caveman.Compliance](https://www.nuget.org/packages/Caveman.Compliance)** <br/>*governance* · `net9.0` | `1.0.0` | The AI compliance gate: 19 controls with risk / action / scope, EU AI Act · GDPR · NIS 2 · ISO 42001 **traceability matrix**, hash-chained **audit trail** (Art. 12), and **technical file, DPIA, FRIA and executive report** as JSON and **PDF**. | `dotnet add package Caveman.Compliance` |
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[CavemanML](https://www.nuget.org/packages/CavemanML)** <br/>*learned models* · `net8.0` | `1.0.0` | The optional ML tier, in **pure C#** (no torch, no onnxruntime, no native code): **SynthelionML** learned per-token prompt compression (39 languages, 70% target) and **PrivacyGuardML** learned PII confirmation for PrivacyGuard. Models come from Hugging Face ([Synthelion](https://huggingface.co/digitalsolutionsai/Synthelion), [PrivacyGuardML](https://huggingface.co/digitalsolutionsai/PrivacyGuardML)), are downloaded once, SHA-256 checked and managed locally, then run offline. | `dotnet add package CavemanML` |
+| <img src="https://raw.githubusercontent.com/francescopaolopassaro/caveman/main/caveman-icon.png" width="40"/> | **[CavemanML.Cli](https://www.nuget.org/packages/CavemanML.Cli)** <br/>*dotnet tool* · `net8.0` | `1.0.0` | `caveman-ml`: install, `verify`, `update` and `remove` the models; `compress` a prompt and detect `pii` from the shell. | `dotnet tool install -g CavemanML.Cli` |
+
+### Companions in the ecosystem
+
+| Project | What it is |
+|:--|:--|
+| **[Stilo.Documents](https://www.nuget.org/packages/Stilo.Documents)** `1.2.0` | The managed PDF / DOCX / HTML engine that renders the Compliance documents (and the rest of the [Stilo](https://github.com/francescopaolopassaro/Stilo) suite: editor, reports, spell-check). 1.2.0 ships the new flow layout - real glyph metrics, wrapping, tables that paginate by row with repeated headers, accents and € in PDF. |
+| **[Synthelion](https://github.com/francescopaolopassaro/Synthelion)** | The Python port of Caveman (PyPI): the same engine plus proxy, dashboard, EnterpriseGuard and the compliance engine that `Caveman.Compliance` ports. Fixes found there flow back here. |
+| **Caveman.Copilot** | Visual Studio 2022 extension (VSIX, not on NuGet): *Compress with Caveman* from the Extensions menu (Ctrl+Shift+K). |
+| `caveman.console` | Interactive console demos for the summarizers and the conversation tools. |
+| `scripts/` | Language-data tooling: import lemmas / verbs / POS from Universal Dependencies, compile and validate the embedded `worddata`. |
+
+### Which package do I need?
+
+| I want to... | Use |
+|:--|:--|
+| cut the token bill of my prompts | **Caveman** |
+| give Claude Code / Cursor / OpenCode token compression | **Caveman.Mcp** |
+| let a Semantic Kernel agent compress and manage its own context | **Caveman.SemanticKernel** |
+| keep personal data out of what I send to a model | **Caveman.PrivacyGuard** (or its MCP server for agents) |
+| prove to an auditor what the gateway did and why | **Caveman.Compliance** |
+| learned (not rule-based) compression / PII detection | **CavemanML** (+ `CavemanML.Cli` to manage the models) |
+
+```
+              ┌────────────────────────── your app / agent / gateway ──────────────────────────┐
+ prompt ──▶   │  PrivacyGuard  ──▶  Caveman (compress)  ──▶  LLM  ──▶  Compliance (screen out)  │ ──▶ answer
+              └─────────┬───────────────────┬─────────────────────────────────┬────────────────┘
+                 mask / restore PII    −up to 70% tokens        audit trail · technical file · DPIA · FRIA (PDF)
+```
+
+---
+
+## 🧭 Areas of Caveman
+
+| Area | What you get | Where |
+|:--|:--|:--|
+| 🗜️ **Compression** | `Light` · `Semantic` · `Aggressive` · `Statistical` (TF-IDF + global IDF) · `Syntactic` (POS-gated glue pruning), batch & custom filters, negation-safe, number- and value-preserving; learned **SynthelionML** compression on top | Caveman · CavemanML |
+| 🌍 **50+ languages** | Detection (two-pass, exclusive markers), lemmas, verbs, POS for 54/55 languages, Chinese word segmentation, scripts with combining marks | Caveman |
+| 🧭 **Content router** | Detects JSON arrays/objects, logs & stack traces, grep results, git diffs, HTML, **SQL**, **code**, CSV/Markdown tables and applies the right compressor, with cache, circuit breaker and inflation guard | Caveman |
+| 🛡️ **Structure safety** | Structured values (IP, version, date, URL, e-mail) kept verbatim; JSON/code/SQL/HTML routed to structure-aware compressors; YAML/config returned unchanged instead of corrupted; string-aware comment stripping | Caveman 1.4.5 |
+| 🔎 **Retrieval** | BM25+ ranking, RM3 pseudo-relevance feedback, near-duplicate detection (SimHash), TextTiling topic segmentation | Caveman · MCP · SK |
+| ✂️ **Summarization** | TF-IDF and TextRank summarizers, topic-aware condensation, whole-conversation ranking and role/turn-aware formats | Caveman · MCP · SK |
+| 🧠 **Agent memory** | Token-budgeted context window, durable memory extraction, long-term recall, persistence stores | Caveman · SK |
+| 💸 **Cost & energy** | Pluggable token counters, USD/EUR savings, mWh and CO₂ estimates | Caveman |
+| 🧰 **Developer tools** | Commit-message and PR-review generators, project wiki, safety guard, stats tracker, micro-agents | Caveman · SK |
+| 🔐 **Privacy** | 32-country PII detection, reversible masking, streaming and file masking, prompt-injection guard, AI-transparency notice, optional learned confirmation | PrivacyGuard · CavemanML |
+| ⚖️ **Compliance** | Rule registry, traceability matrix, tamper-evident audit trail, technical file / DPIA / FRIA / executive report (JSON + PDF) | Compliance |
+| 🔌 **Integrations** | MCP (Claude Code, OpenCode, Cursor, Windsurf), Semantic Kernel, Visual Studio Copilot | Mcp · SK · Copilot |
+
+---
+
+## 🆕 What's new
+
+* **Caveman 1.4.5** - structured values survive every compression level (IPs, URLs, versions, dates, e-mails); Chinese/Japanese output no longer longer than the input; Python/Ruby/shell detected as code; comment stripping never cuts inside strings; JSON/code/SQL/HTML routed to their own compressors and YAML returned untouched. 449 tests.
+* **CavemanML 1.0.0** - new package: SynthelionML (learned prompt compression) and PrivacyGuardML (learned PII confirmation) in pure C#, verified against the PyTorch reference, with local model management (download, SHA-256 verify, update check, remove) and the `caveman-ml` tool.
+* **Caveman.PrivacyGuard 1.4.0** - optional ML confirmation tier (`IMlEntityDetector`); 1.3.1 before it: false-positive hardening - a failed checksum is never detected or masked, bare numbers need a context keyword (`requires_context`), short keywords match as whole words.
+* **Caveman.Compliance 1.0.0** - new package: the compliance engine, traceability, audit chain and PDF documents.
+* **Stilo.Documents 1.2.0** - a real HTML→PDF layout engine behind the Compliance PDFs.
+* Every package now ships the Caveman icon on NuGet.
+
+---
+
 ## ✨ Highlights
 
 - **Up to 70% token reduction** — slash API costs and speed up local inference.
 - **50+ languages out of the box** — language data is embedded in the assembly; nothing to download at runtime.
-- **No heavy NLP runtime** — pure lookup + heuristics; zero ML model dependencies.
+- **No heavy NLP runtime** — pure lookup + heuristics; zero ML model dependencies in the core.
 - **Five compression levels** — `Light`, `Semantic`, `Aggressive`, `Statistical` (TF-IDF), `Syntactic` (rule-based grammatical-glue pruning, POS-gated hedge-clause elision).
 - **POS lookup for 54/55 languages** — `FunctionWordProvider.GetPosTags`/`GetPosTag`: a frequency-baseline Universal POS tagger generated offline from the same Universal Dependencies treebanks as the lemma data, no runtime model.
 - **Content-aware routing (v1.3.0)** — auto-detects JSON arrays, diffs, logs, HTML, code, tables, **SQL (v1.4.4)** and applies the best algorithm for each type.
+- **Never corrupts structure (v1.4.5)** — values like `127.0.0.1`, `v2.3.1`, `2026-10-11`, URLs and e-mails are kept verbatim; JSON, code, SQL and HTML go to structure-aware compressors; YAML/config is returned unchanged.
 - **SQL compression (v1.4.4)** — `CavemanSqlCompressor`: whitespace-safe SQL compaction with optional comment stripping and CCR-based value folding, dependency-free.
 - **Global-IDF statistical scoring (v1.4.4)** — 56 per-language precomputed IDF tables; `Statistical` blends local TF-IDF 50/50 with global rarity, `Aggressive` prunes words ubiquitous in their reference corpus.
 - **JSON SmartCrusher** — lossless CSV/markdown compaction or BM25 row-drop with reversible CCR markers.
 - **Output shaping** — inject verbosity-steering instructions into system prompts to prevent preamble/restatement generation.
 - **Compression profiles** — `Light`, `Balanced`, `Agent`, `Aggressive` presets for one-line setup.
 - **Batch & custom filters** — `CompressBatchAsync()` and user-defined POS-style filters.
-- **Semantic Kernel plugins** + developer tools (commit/review/stats/safety/wiki).
+- **Semantic Kernel plugins**, an **MCP server**, **PrivacyGuard** and **Compliance** — see the family table above.
 
 ---
 
 ## 🛠️ Installation
 
 ```bash
-dotnet add package Caveman
+dotnet add package Caveman                    # the compressor
+dotnet add package Caveman.PrivacyGuard       # + PII masking (optional)
+dotnet add package Caveman.Compliance         # + governance, audit trail and PDF documents (optional)
+dotnet tool install -g Caveman.Mcp            # + MCP server for Claude Code / Cursor / OpenCode (optional)
 ```
 
 That's it — all language data ships inside the package. There are **no models to install**.

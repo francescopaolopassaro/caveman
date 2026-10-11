@@ -46,7 +46,7 @@ namespace caveman.tests
         [TestCase("The server listens on port 8080.", "8080")]
         [TestCase("The invoice total is $99.50 with 20% VAT.", "99.50")]
         [TestCase("Support PHP version 8.3 until 2026.", "8.3")]
-        [TestCase("The temperature fell to -5 degrees.", " 5 ")]
+        [TestCase("The temperature fell to -5 degrees.", "-5")]
         [TestCase("Release scheduled for 2026-08-12.", "2026")]
         public void Test_AllLevels_PreserveNumericTokens(string input, string expectedFragment)
         {
