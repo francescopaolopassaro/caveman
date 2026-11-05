@@ -78,7 +78,15 @@ namespace caveman.core
         // already split into 127 / . / 0 / . / 0 / . / 1 and every level above Light dropped the fragments - the
         // value disappeared entirely (Synthelion 1.2.5, issue #18: 0 of 1425 structured values survived across
         // 19 languages x 5 levels). Plain integers were already covered by IsNumber.
+        // An inline JSON-object example embedded in prose (e.g. "answer with {"foo":"bar"}") is a single
+        // WordSplit-level token stream like every other sentence: the filters see "{", "foo", ":", "bar", "}"
+        // as ordinary punctuation/words and drop or lemmatise them like any other content, so the literal
+        // shape the model was told to reproduce never survives compression. Isolating a brace-balanced
+        // (up to one level of nesting) span that contains at least one quoted string keeps it verbatim,
+        // the same way a URL or an IP address is kept verbatim, without touching whole-document JSON
+        // (arrays/documents), which the content router already routes to CavemanJsonCrusher.
         private static readonly Regex ProtectedToken = new(
+            @"\{(?=[^{}]*"")(?:[^{}]|\{[^{}]*\})*\}|" +
             @"https?://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+|" +
             @"[A-Za-z0-9][A-Za-z0-9._%+\-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+|" +
             @"(?<!\d)(?:\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:/\d{1,2})?|(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{1,4})(?!\d)|" +

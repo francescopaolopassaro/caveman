@@ -2,6 +2,14 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.4.6](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.6) - 2026-11-05
+
+### Fixed
+- **An inline JSON example embedded in prose was torn apart by the prose compressor.** A common prompt-engineering pattern tells the model "answer with an object shaped like `{"foo":"bar"}`"; `WordSplit` saw `{`, `foo`, `:`, `bar`, `}` as ordinary punctuation and words, so the literal shape the model had to reproduce did not survive `Light` and above - at `Semantic` it came back as bare words with no braces, quotes or colons left, and the model had no signal left that a JSON object was expected at all. `ProtectedToken` now also matches a brace-balanced span (up to one level of nesting) that contains at least one quoted string, the same way a URL or IP address is isolated before the word tokenizer. Braces used for anything else (a quoteless aside, a set-builder notation) are unaffected and still compress as prose.
+
+### Testing
+- New tests in `CavemanSynthelion125FixesTests`: `InlineJsonExampleEmbeddedInProse_SurvivesEveryLevel` (all 5 levels), `CurlyBraceTextWithoutQuotes_IsNotTreatedAsProtected`. Full suite: 482/482 passing.
+
 ## [1.4.5](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.5) - 2026-10-11
 
 Synthelion 1.2.5 fix port, part two. Every item below was found in Synthelion by measuring real output, and every one applied to the .NET core too.

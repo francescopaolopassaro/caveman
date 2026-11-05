@@ -57,6 +57,25 @@ namespace caveman.tests
         }
 
         [Test]
+        public void InlineJsonExampleEmbeddedInProse_SurvivesEveryLevel(
+            [ValueSource(nameof(AllLevels))] CavemanCompressionLevel level)
+        {
+            const string json = "{\"descrizione\":\"testo\",\"colonne\":[{\"nome\":\"colonna\",\"descrizione\":\"testo\"}]}";
+            var text = "Rispondi esclusivamente con un oggetto JSON della forma " + json + " senza aggiungere altro testo prima o dopo.";
+            var r = _compressor.ApplyCompression(text, "ita", level);
+            Assert.That(r.CompressedText, Does.Contain(json), $"{level}: {r.CompressedText}");
+        }
+
+        [Test]
+        public void CurlyBraceTextWithoutQuotes_IsNotTreatedAsProtected()
+        {
+            var r = _compressor.ApplyCompression(
+                "Nella formula {x più y} si somma il primo valore con il secondo per ottenere il totale finale.",
+                "ita", CavemanCompressionLevel.Aggressive);
+            Assert.That(r.CompressedText, Does.Not.Contain("{x più y}"), "no quotes inside: not a JSON-looking span, must still be compressed as prose");
+        }
+
+        [Test]
         public void TrailingSentencePunctuation_IsNotAbsorbedIntoTheValue()
         {
             var r = _compressor.ApplyCompression("The host is 10.0.0.1.", "eng", CavemanCompressionLevel.Light);
