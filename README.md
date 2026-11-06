@@ -26,20 +26,6 @@ Caveman started as a prompt compressor and grew into a small family of packages 
 
 It is an independent implementation written from scratch (inspired by the token-saving idea behind the Caveman plugin for Claude): **pure lookup + heuristics, zero runtime ML dependency** - and an optional ML tier, [`CavemanML`](#-the-caveman-family), for when you want learned compression and learned PII detection.
 
----
-
-## Technology Partnership
-
-<img src="https://www.digitalsolutions.it/img/partners/novaroutelogo.png" alt="NovaRouteAI" height="180" style="max-width: 100%; height: auto; min-height: 180px; max-height: 190px;">
-
-**[NovaRouteAI](https://novarouteai.com/?ref=synthelion)** — Build with Chinese AI models through one simple API.
-
-NovaRouteAI helps developers and AI SaaS teams test, compare, and run models like DeepSeek, Qwen, Doubao, Kimi, and GLM without managing multiple provider accounts. Start with test credits and optimize your cost per successful task.
-
-[Click here to know NovaRouteAI](https://novarouteai.com/?ref=synthelion)
-
----
-
 ## 📦 The Caveman family
 
 Every NuGet package published by the Caveman projects, with its icon, what it is for, and how to get it.
