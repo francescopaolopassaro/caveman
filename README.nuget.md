@@ -40,6 +40,7 @@ compressors.
 | Keep dictionaries | Per-language negations and query words (54 languages) are never removed; Italian and English ship more than 1500 each |
 | Numbers and dates | Words next to a number or a date are kept, so limits such as more than 65 or after 2022 survive |
 | Markup tags | XML/HTML-style tags are protected tokens and survive compression verbatim |
+| Smaller package | About 68 MB instead of 149 MB: very rare terms are no longer listed in the frequency tables |
 
 ## What was new in 1.5.0
 

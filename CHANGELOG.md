@@ -8,6 +8,9 @@ All notable changes to **Caveman** are documented in this file.
 - **Keep dictionaries** (`worddata/{iso3}.keep.yaml.br`, 56 languages, sources in `worddata-src/keep`, compiled with `scripts/compile-keep.mjs`) and `MeaningWordProvider`: per-language `negations` and `query_words`. Negations are curated for 16 languages; query words combine curated lists (Italian and English: more than 1500 each) with words derived from the part-of-speech and frequency data of every language (numerals, adverbs, adpositions, conjunctions, pronouns, determiners that are not ubiquitous).
 - **Numbers and dates protect their neighbours.** Any word up to two positions before and one after a number, date, percentage or other protected value is kept at every compression level, so "more than 65 years", "at least 3" and "after 2022" keep their limit.
 
+### Changed
+- **Smaller package.** The embedded document-frequency tables (`worddata/{iso3}.idf.br`) no longer carry terms that appear in fewer than 6 reference documents (hapax-like noise and typos). The package goes from about 149 MB to about 68 MB. A term that is no longer listed is scored as unknown, the same as any term outside the reference corpus; compression output was compared before and after on 72 samples (12 texts in 11 languages, every compression level) and is identical.
+
 ### Fixed
 - **Meaning-bearing words are no longer stripped.** Negations and temporal, relational, interrogative and quantifier words are kept at every level. A request such as "how many records after 2022" used to be reduced to "records 2022", silently changing the filter.
 - **Markup tags survive compression.** XML/HTML-style tags are isolated as protected tokens, like URLs and numbers. Before, a tag such as the one wrapping a model reasoning block lost its angle brackets and left the bare word, which a model then imitated in its own answers.
