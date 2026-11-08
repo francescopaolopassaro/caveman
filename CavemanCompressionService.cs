@@ -87,6 +87,7 @@ namespace caveman.core
         // (arrays/documents), which the content router already routes to CavemanJsonCrusher.
         private static readonly Regex ProtectedToken = new(
             @"\{(?=[^{}]*"")(?:[^{}]|\{[^{}]*\})*\}|" +
+            @"</?[A-Za-z][A-Za-z0-9_\-]*(?:\s[^<>\r\n]*)?/?>|" +
             @"https?://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+|" +
             @"[A-Za-z0-9][A-Za-z0-9._%+\-]*@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+|" +
             @"(?<!\d)(?:\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:/\d{1,2})?|(?:[0-9A-Fa-f]{1,4}:){2,7}[0-9A-Fa-f]{1,4})(?!\d)|" +
@@ -560,7 +561,7 @@ namespace caveman.core
                     return false;
 
                 var lower = w.Text.ToLowerInvariant();
-                return !functionWords.Contains(lower) || IsNegation(w.Text, iso3);
+                return !functionWords.Contains(lower) || IsMeaningBearing(w.Text, iso3);
             }).ToList();
         }
 
@@ -594,7 +595,7 @@ namespace caveman.core
         // either:
         //   - it is upper-case-initial AND (not at the start of a sentence, or its lower-cased
         //     form is in the UD-derived name gazetteer), or
-        //   - it is a negation particle (see NegationWords) — every call site already treats a
+        //   - it is a negation particle (see MeaningWordProvider) — every call site already treats a
         //     true result here as "always keep, unlemmatised", exactly what a negation particle
         //     needs too, so folding it in here means every filter gets the protection for free.
         // The gazetteer also re-enables protection at sentence start and for languages
@@ -616,7 +617,7 @@ namespace caveman.core
                     continue;
                 }
 
-                if (IsNegation(w.Text, iso3))
+                if (IsMeaningBearing(w.Text, iso3))
                 {
                     isProper[i] = true;
                     sentenceStart = false;
@@ -632,6 +633,19 @@ namespace caveman.core
                 }
                 sentenceStart = false;
             }
+
+            for (int i = 0; i < words.Count; i++)
+            {
+                if (words[i].IsPunctuation || !IsVerbatim(words[i]))
+                    continue;
+
+                for (int j = Math.Max(0, i - 2); j <= Math.Min(words.Count - 1, i + 1); j++)
+                {
+                    if (!words[j].IsPunctuation)
+                        isProper[j] = true;
+                }
+            }
+
             return isProper;
         }
 
@@ -757,44 +771,8 @@ namespace caveman.core
         // for TF-IDF (Statistical) and into clauses for verb detection (Syntactic).
         private static readonly HashSet<string> SentenceEnders = new() { ".", "!", "?", "…" };
 
-        // Negation particles are grammatically function words (curated per-language word lists
-        // correctly classify them as such) but semantically load-bearing — dropping "non"/"not"
-        // doesn't just cost fluency, it silently inverts the sentence's meaning ("non c'era
-        // sensibilità" -> "c'era sensibilità"). Found via real compressed-text review during the
-        // 1.4.2 Synthelion (Python port) quality pass: "non" was being stripped at every level.
-        // A small closed set per language (this is a fixed grammatical category, unlike
-        // open-ended function-word/lemma dictionaries, so a short in-code list here is the same
-        // kind of exception as SentenceEnders or the descriptive-suffix lists, not a "hardcoded
-        // dictionary"). Matched case-insensitively against the raw surface form, never lemmatised.
-        private static readonly Dictionary<string, HashSet<string>> NegationWords = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["eng"] = new(StringComparer.OrdinalIgnoreCase) { "not", "n't", "no", "never", "none", "nobody", "nothing", "neither", "nor" },
-            ["ita"] = new(StringComparer.OrdinalIgnoreCase) { "non", "no", "né", "neanche", "nemmeno", "manco" },
-            ["fra"] = new(StringComparer.OrdinalIgnoreCase) { "ne", "pas", "non", "jamais", "aucun", "aucune", "rien", "personne" },
-            ["spa"] = new(StringComparer.OrdinalIgnoreCase) { "no", "nunca", "jamás", "ni", "nadie", "nada", "ningún", "ninguna", "ninguno" },
-            ["deu"] = new(StringComparer.OrdinalIgnoreCase) { "nicht", "kein", "keine", "keiner", "keinem", "keinen", "keines", "nie", "niemals", "nichts", "niemand" },
-            ["por"] = new(StringComparer.OrdinalIgnoreCase) { "não", "nao", "nunca", "jamais", "nem", "nenhum", "nenhuma", "ninguém" },
-            ["zho"] = new(StringComparer.OrdinalIgnoreCase) { "不", "没", "没有", "别", "无", "非", "未", "莫" },
-        };
-
-        // Languages where negation is a bound prefix morpheme rather than a separate word:
-        // Chinese's dictionary-based segmenter legitimately merges "不" with the verb/adjective
-        // it negates when that compound is itself in the vocabulary ("不是", "不管", "不过", …) —
-        // an exact-match check against NegationWords never matches those compounds, so the whole
-        // token would be treated as an ordinary function word and stripped, silently losing the
-        // negation (found via real-text testing: "这不是我们的问题" dropped "不是" entirely at
-        // every level without this).
-        private static readonly HashSet<string> NegationPrefixLangs = new(StringComparer.OrdinalIgnoreCase) { "zho" };
-
-        private static bool IsNegation(string word, string iso3)
-        {
-            var lower = word.ToLowerInvariant();
-            if (!NegationWords.TryGetValue(iso3, out var neg))
-                return false;
-            if (neg.Contains(lower))
-                return true;
-            return NegationPrefixLangs.Contains(iso3) && neg.Any(p => lower.StartsWith(p, StringComparison.OrdinalIgnoreCase));
-        }
+        private static bool IsMeaningBearing(string word, string iso3) =>
+            MeaningWordProvider.Get(iso3).IsMeaningBearing(word);
 
         /// <summary>
         /// Statistical alternative to the curated dictionaries: scores each distinct word by

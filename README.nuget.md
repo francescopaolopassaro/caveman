@@ -4,7 +4,7 @@ NLP prompt compressor for LLMs. It reduces the tokens of prompts, chats and tool
 a network call and without embeddings: it uses language data (function words, lemmas, proper nouns) that ships
 inside the package, for 50+ languages.
 
-Version 1.5.0 targets .NET 10.
+Version 1.5.1 targets .NET 10.
 
 ## Install
 
@@ -33,7 +33,15 @@ Numbers, dates, identifiers, IP addresses, versions and similar values are kept 
 JSON, code, SQL, XML, HTML and YAML never go through the word filters: they are routed to structure-aware
 compressors.
 
-## What is new in 1.5.0
+## What is new in 1.5.1
+
+| Feature | Summary |
+| :--- | :--- |
+| Keep dictionaries | Per-language negations and query words (54 languages) are never removed; Italian and English ship more than 1500 each |
+| Numbers and dates | Words next to a number or a date are kept, so limits such as more than 65 or after 2022 survive |
+| Markup tags | XML/HTML-style tags are protected tokens and survive compression verbatim |
+
+## What was new in 1.5.0
 
 | Feature | Summary |
 | :--- | :--- |

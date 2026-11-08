@@ -92,6 +92,7 @@ Every NuGet package published by the Caveman projects, with its icon, what it is
 
 ## 🆕 What's new
 
+* **Caveman 1.5.1** - negations and query vocabulary (interrogatives, quantifiers, comparisons, time and range words, numerals, aggregation and sorting words) come from per-language keep dictionaries and are never removed; words next to numbers and dates are kept; XML/HTML-style tags survive compression verbatim.
 * **Caveman 1.5.0** - new `CavemanSemanticCache` (answer a paraphrased query from a previous answer, in every supported language, with no embeddings and no extra model call); chats no longer lose JSON, XML, HTML, Markdown, SQL and code - they are **compressed** (still valid) instead of stripped; **tool calls and tool results are never removed or altered** (OpenAI-compatible, Anthropic, Bedrock Converse, Gemini, Cohere and text formats of Qwen, DeepSeek, Mistral, Llama, GLM); new `ToStrictAlternation()` and `ToConverseMessagesJson()` for APIs with strict message rules (Amazon Bedrock Converse, Nova); XML content type; token counting for Gemini, Qwen, DeepSeek, Grok, GLM, Spark, Mistral, Nova, Kimi, Ernie and Cohere Command. **Now targets .NET 10.**
 * **Caveman.PrivacyGuard 1.5.0** - far fewer false positives (negative context: a number next to "invoice", "order" or "article code" is no longer a phone number) and new detections: printed IBAN, IP addresses, URLs, monetary amounts, dates of birth, document protocol numbers; fixed the Italian VAT checksum. **Targets .NET 10** (and netstandard2.0).
 * **Caveman.SemanticKernel 1.5.0 / Caveman.Mcp 1.5.0** - `CavemanSemanticCachePlugin`, MCP `semantic_cache_*` tools, and `compact_messages` for chats with tool calls.
@@ -135,7 +136,7 @@ dotnet tool install -g Caveman.Mcp            # + MCP server for Claude Code / C
 
 That's it — all language data ships inside the package. There are **no models to install**.
 
-Caveman 1.5.0 and the packages of the family target **.NET 10**.
+Caveman 1.5.1 and the packages of the family target **.NET 10**.
 
 > 📖 **Looking for a usage example of a specific method?** See
 > [`docs/EXAMPLES.md`](docs/EXAMPLES.md) — a runnable snippet for every public API.
