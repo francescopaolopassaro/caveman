@@ -22,7 +22,9 @@ public enum ContentType
     GitDiff,
     Html,
     SearchResults,
-    Tabular
+    Tabular,
+    /// <summary>Well-formed XML that is not HTML (configs, SOAP, SVG, project files...).</summary>
+    Xml
 }
 
 /// <summary>Outcome of content-type detection.</summary>

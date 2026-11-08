@@ -206,22 +206,108 @@ public class CavemanTextRank : ISummarizer
 
     private List<ChatBlock> BuildBlocksFromFlat(string conversation, ChatSummarizeOptions options)
     {
-        var clean = options.AlreadyClean
-            ? conversation
-            : CavemanConversationToText.ExtractTextFromMarkdown(conversation, MdOptions(options));
-
         var result = new List<ChatBlock>();
-        if (string.IsNullOrWhiteSpace(clean))
-            return result;
-
-        var iso3 = options.Iso3 ?? _detector.Detect(clean);
-        var funcWords = _wordProvider.GetFunctionWords(iso3);
+        var segments = options.CompressStructured && !options.AlreadyClean
+            ? SegmentStructured(conversation, options)
+            : new List<Seg>
+            {
+                new(options.AlreadyClean ? conversation : CavemanConversationToText.ExtractTextFromMarkdown(conversation, MdOptions(options)), false)
+            };
 
         int order = 0;
-        foreach (var text in SplitIntoBlocks(clean))
-            result.Add(MakeBlock(text, iso3, funcWords, options, CavemanRole.Unknown, null, order++, keepVerbatim: false));
+        foreach (var seg in segments)
+        {
+            if (string.IsNullOrWhiteSpace(seg.Text))
+                continue;
+            if (seg.Structured)
+            {
+                result.Add(MakeStructuredBlock(seg.Text, options, CavemanRole.Unknown, null, order++, keepVerbatim: false));
+                continue;
+            }
+
+            var iso3 = options.Iso3 ?? _detector.Detect(seg.Text);
+            var funcWords = _wordProvider.GetFunctionWords(iso3);
+            foreach (var text in SplitIntoBlocks(seg.Text))
+                result.Add(MakeBlock(text, iso3, funcWords, options, CavemanRole.Unknown, null, order++, keepVerbatim: false));
+        }
 
         return result;
+    }
+
+    // ---- Structured content (fenced blocks, JSON / XML / HTML documents) is compressed, never removed ----
+
+    private readonly record struct Seg(string Text, bool Structured);
+
+    private static readonly Regex FenceRx = new(
+        @"```[ \t]*([^\s`]*)[^\n]*\n(.*?)\n?[ \t]*```", RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private readonly CavemanStructuredCompressor _structured = new();
+
+    /// <summary>
+    /// Splits a message into prose and structured segments. Structured segments (fenced blocks, standalone
+    /// JSON / XML / HTML paragraphs) are compressed in place by <see cref="CavemanStructuredCompressor"/>;
+    /// prose goes through the usual Markdown cleanup.
+    /// </summary>
+    private List<Seg> SegmentStructured(string raw, ChatSummarizeOptions o)
+    {
+        var segs = new List<Seg>();
+        int pos = 0;
+        foreach (Match m in FenceRx.Matches(raw))
+        {
+            AddProseSegments(raw.Substring(pos, m.Index - pos), o, segs);
+            var tag = m.Groups[1].Value;
+            var body = m.Groups[2].Value;
+            // KeepCode: source code in fences stays verbatim (JSON/XML/HTML/SQL/Markdown are lossless to compact).
+            var compressed = o.KeepCode && _structured.IsSourceCode(tag) ? body : _structured.Compress(body, tag);
+            segs.Add(new Seg("```" + tag + "\n" + compressed + "\n```", true));
+            pos = m.Index + m.Length;
+        }
+        AddProseSegments(raw.Substring(pos), o, segs);
+        return segs;
+    }
+
+    private void AddProseSegments(string prose, ChatSummarizeOptions o, List<Seg> segs)
+    {
+        if (string.IsNullOrWhiteSpace(prose))
+            return;
+
+        var buffer = new List<string>();
+        void Flush()
+        {
+            if (buffer.Count == 0) return;
+            var clean = CavemanConversationToText.ExtractTextFromMarkdown(string.Join("\n\n", buffer), MdOptions(o));
+            if (!string.IsNullOrWhiteSpace(clean)) segs.Add(new Seg(clean, false));
+            buffer.Clear();
+        }
+
+        foreach (var para in Regex.Split(prose, @"\n\s*\n"))
+        {
+            if (para.Trim().Length == 0) continue;
+            if (_structured.LooksStructured(para))
+            {
+                Flush();
+                segs.Add(new Seg(_structured.Compress(para.Trim()), true));
+            }
+            else buffer.Add(para);
+        }
+        Flush();
+    }
+
+    private static ChatBlock MakeStructuredBlock(
+        string text, ChatSummarizeOptions options, CavemanRole role, string? rolePrefix, int turnIndex, bool keepVerbatim)
+    {
+        var block = new ChatBlock
+        {
+            Iso3 = options.Iso3 ?? "eng",
+            Original = text,
+            Rendered = text,
+            Role = role,
+            RolePrefix = rolePrefix,
+            TurnIndex = turnIndex,
+            Structured = true,
+            Protected = keepVerbatim // the sentence ranker never touches it; only the budget may drop it, oldest first
+        };
+        return block;
     }
 
     private List<ChatBlock> BuildBlocksFromConversation(CavemanConversation conv, ChatSummarizeOptions options)
@@ -236,7 +322,9 @@ public class CavemanTextRank : ISummarizer
         {
             var msg = conv.Messages[i];
             bool isRecent = i >= recencyFrom;
-            bool keepVerbatim = isRecent ||
+            // Tool calls / tool results of an agentic exchange are never removed, summarized or compressed.
+            bool tool = msg.HasToolData;
+            bool keepVerbatim = isRecent || tool ||
                                 (msg.Role == CavemanRole.System && options.KeepSystemVerbatim);
 
             // A turn already produced by a previous compaction: keep as-is, don't re-summarize.
@@ -244,21 +332,52 @@ public class CavemanTextRank : ISummarizer
                           options.VerbatimContentHashes is { Count: > 0 } hashes &&
                           hashes.Contains(ConversationState.Fingerprint(msg.Content));
 
-            var clean = options.AlreadyClean
-                ? msg.Content
-                : CavemanConversationToText.ExtractTextFromMarkdown(msg.Content, MdOptions(options));
-            if (string.IsNullOrWhiteSpace(clean))
-                continue;
-
-            var iso3 = options.Iso3 ?? _detector.Detect(clean);
-            var funcWords = _wordProvider.GetFunctionWords(iso3);
+            List<Seg> segments;
+            if (tool)
+                segments = new List<Seg> { new(msg.Content, false) };
+            else if (options.CompressStructured && !options.AlreadyClean && !keepVerbatim && !frozen)
+                segments = SegmentStructured(msg.Content, options);
+            else
+                segments = new List<Seg>
+                {
+                    new(options.AlreadyClean ? msg.Content : CavemanConversationToText.ExtractTextFromMarkdown(msg.Content, MdOptions(options)), false)
+                };
 
             bool first = true;
-            foreach (var text in SplitIntoBlocks(clean))
+            int before = result.Count;
+            foreach (var seg in segments)
             {
+                if (string.IsNullOrWhiteSpace(seg.Text))
+                    continue;
+
                 var prefix = first && options.ShowRolePrefixes && msg.RoleLabel.Length > 0 ? msg.RoleLabel : null;
-                result.Add(MakeBlock(text, iso3, funcWords, options, msg.Role, prefix, i, keepVerbatim, frozen));
-                first = false;
+                if (seg.Structured)
+                {
+                    result.Add(MakeStructuredBlock(seg.Text, options, msg.Role, prefix, i, keepVerbatim));
+                    first = false;
+                    continue;
+                }
+
+                var iso3 = options.Iso3 ?? _detector.Detect(seg.Text);
+                var funcWords = _wordProvider.GetFunctionWords(iso3);
+                foreach (var text in SplitIntoBlocks(seg.Text))
+                {
+                    prefix = first && options.ShowRolePrefixes && msg.RoleLabel.Length > 0 ? msg.RoleLabel : null;
+                    result.Add(MakeBlock(text, iso3, funcWords, options, msg.Role, prefix, i, keepVerbatim, frozen));
+                    first = false;
+                }
+            }
+
+            if (tool)
+            {
+                if (result.Count == before)
+                    result.Add(new ChatBlock { Original = "[tool]", Rendered = "[tool]", Role = msg.Role, TurnIndex = i, Protected = true });
+                foreach (var b in result.Skip(before))
+                {
+                    b.Tool = true;
+                    b.Protected = true;
+                    b.RawJson = msg.RawJson;
+                }
             }
         }
 
@@ -335,7 +454,7 @@ public class CavemanTextRank : ISummarizer
         foreach (var b in blocks)
         {
             ct.ThrowIfCancellationRequested();
-            if (b.Protected || b.Dropped)
+            if (b.Protected || b.Dropped || b.Structured)
                 continue;
 
             if (b.IsDiscourse)
@@ -381,7 +500,7 @@ public class CavemanTextRank : ISummarizer
 
             // 2) Caveman-compress (aggressively) the largest not-yet-compressed block.
             var compress = blocks
-                .Where(b => !b.Protected && !b.Dropped && !b.Compressed)
+                .Where(b => !b.Protected && !b.Dropped && !b.Compressed && !b.Structured)
                 .OrderByDescending(b => b.Rendered.Length)
                 .FirstOrDefault();
             if (compress != null)
@@ -409,6 +528,8 @@ public class CavemanTextRank : ISummarizer
         int removed = 0;
         foreach (var b in blocks)
         {
+            if (b.Tool)
+                continue; // a tool call / result is never deduplicated away
             var key = Regex.Replace(b.Original, @"\s+", " ").Trim().ToLowerInvariant();
             if (key.Length == 0)
                 continue;
@@ -462,6 +583,8 @@ public class CavemanTextRank : ISummarizer
             string action =
                 b.Dropped ? (b.DroppedByBudget ? "dropped" : "deduplicated") :
                 b.Critical ? "critical" :
+                b.Tool ? "tool-kept" :
+                b.Structured ? (b.Protected ? "kept" : "structured-compressed") :
                 b.Summarized ? (b.Compressed ? "summarized+compressed" : "summarized") :
                 b.Compressed ? "compressed" :
                 "kept";
@@ -488,7 +611,8 @@ public class CavemanTextRank : ISummarizer
                 group.Select(b => b.Rendered.Trim()).Where(t => t.Length > 0));
             if (content.Length == 0)
                 continue;
-            conv.Messages.Add(new CavemanMessage(group.First().Role, content));
+            // A tool exchange comes back as the original message, byte for byte.
+            conv.Messages.Add(new CavemanMessage(group.First().Role, content) { RawJson = group.First().RawJson });
         }
         return conv;
     }
@@ -515,6 +639,11 @@ public class CavemanTextRank : ISummarizer
         public bool Critical;
         public bool Summarized;
         public bool Compressed;
+        /// <summary>Fenced block / JSON / XML / HTML document already compacted by the structured compressor.</summary>
+        public bool Structured;
+        /// <summary>Part of a tool call / tool result message: never dropped, deduplicated or altered.</summary>
+        public bool Tool;
+        public string? RawJson;
         public bool Dropped;
         public bool DroppedByBudget;
         public string? RolePrefix;
@@ -798,6 +927,12 @@ public sealed class ChatSummarizeOptions
 
     /// <summary>Extract the inner text from HTML (default); when false HTML is left untouched.</summary>
     public bool ExtractHtml { get; set; } = true;
+
+    /// <summary>
+    /// Compress structured content (fenced code, JSON, XML, HTML, Markdown, SQL) instead of stripping it from the chat
+    /// (default). JSON stays valid JSON, XML stays well-formed; set to false for the legacy "strip" behaviour.
+    /// </summary>
+    public bool CompressStructured { get; set; } = true;
 
     // ---- Extra compression of the kept text ----
 

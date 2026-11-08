@@ -2,6 +2,31 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.5.0](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.5.0) - 2026-11-08
+
+### Added
+- **`CavemanSemanticCache`** - an algorithmic, embedding-free semantic cache for agents: a paraphrase of an earlier query is answered from the cache instead of a new model call. Queries are normalized with the Caveman word data (function words and lemmas of every supported language, Chinese through the built-in segmenter) and compared with the Jaccard index of their token sets. Numbers, file names, paths, identifiers and quoted strings must match exactly, so "delete `Program.cs`" never hits "delete `Startup.cs`". Options (`SimilarityThreshold`, `MaxEntries`, `Ttl`, `Language`, `UseLemmas`, `MinTokenLength`), LRU eviction, TTL, thread-safe, `Stats` (hits, misses, hit rate, characters saved).
+- **`CavemanStructuredCompressor`** - compresses JSON (minified, still valid), XML (well-formed), HTML (`<pre>`/`<script>`/`<style>` untouched), Markdown, source code, SQL and YAML-like text without ever removing them.
+- **XML content type** (`ContentType.Xml`): detection in `CavemanContentDetector`, a router branch (`XmlCompression`) and structured-guard handling in `CavemanCompressionService`.
+- **Chats keep structured content**: `ChatSummarizeOptions.CompressStructured` (default `true`). Fenced blocks and standalone JSON / XML / HTML paragraphs are compressed in place and are not touched by the sentence ranker; `KeepCode` keeps source code in fences verbatim.
+- **Tool calls are never removed.** `CavemanMessage.RawJson` / `HasToolData`: messages carrying tool data are kept whole by summarizing, budget trimming and de-duplication and are re-emitted unchanged by `ToMessagesJson()`. Recognized: OpenAI-compatible `tool_calls` / `function_call` / `role: tool` (OpenAI, DeepSeek, Qwen, Grok, GLM, Spark, Mistral, Kimi, Ernie), Anthropic `tool_use` / `tool_result`, Bedrock Converse `toolUse` / `toolResult`, Gemini `functionCall` / `functionResponse`, Cohere `tool_results`, GLM `observation`, Llama `ipython`, and the text markers of Qwen / Hermes, Claude XML, Mistral, DeepSeek, Llama 3.1 and Qwen-Agent.
+- **More chat formats parsed**: Gemini `{ "contents": [ { "role", "parts" } ] }` and Cohere `{ "chat_history": [ ... ] }`.
+- **`CavemanConversation.ToStrictAlternation(out systemPrompt)`** and **`ToConverseMessagesJson(out systemPrompt)`**: payloads that satisfy strict chat APIs such as Amazon Bedrock Converse (Nova, Claude, Llama) - system prompt separate, only `user` / `assistant`, same-role turns merged (parallel tool results become one user turn), first turn `user`, no empty turn. OpenAI-style and Anthropic tool messages are mapped to `toolUse` / `toolResult` with the same ids.
+- **`LlmModelParser.Parse(name)`** and new `LlmModel` families with token counting: Gemini, Qwen, DeepSeek, Grok, GLM / Z.ai, Spark, Mistral, Amazon Nova, Kimi, Ernie, Cohere Command (any version name maps to its family; unknown names fall back to GPT-4).
+
+### Changed
+- **Framework: .NET 10.** The package now targets `net10.0`.
+- **Chats no longer strip JSON, code and HTML by default.** They are compressed (see `CompressStructured`). Set `CompressStructured = false` for the previous behaviour.
+- `ToMessagesJson()` no longer escapes backticks, quotes and angle brackets as `\uXXXX`; the JSON is the same, shorter and readable.
+- Stale comment in `CavemanContentRouter` ("Code -> passthrough") corrected.
+
+### Fixed
+- A tool call or tool result in a chat was flattened to a text note (`[tool_use]`) and could be dropped by compaction; the exchange now comes back identical, so the call/result pair stays valid.
+- A recent or system turn containing a fenced block or JSON used to lose it; it is now kept verbatim.
+
+### Testing
+- 55 new tests (cache across 8 languages plus Chinese and Japanese, structured compressors, tool preservation for every provider shape, Converse mapping, model parsing). Full suite: 537/537 passing on .NET 10.
+
 ## [1.4.6](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.4.6) - 2026-11-05
 
 ### Fixed

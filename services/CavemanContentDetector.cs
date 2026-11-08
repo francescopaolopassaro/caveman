@@ -119,6 +119,19 @@ public sealed class CavemanContentDetector
         return score;
     }
 
+    private static bool IsXml(string trimmed)
+    {
+        var head = trimmed.Length > 2000 ? trimmed[..2000].ToLowerInvariant() : trimmed.ToLowerInvariant();
+        if (HtmlMarkers.Count(m => head.Contains(m)) >= 2) return false; // HTML wins when it looks like HTML
+        if (trimmed.EndsWith('>') == false) return false;
+        try
+        {
+            System.Xml.Linq.XDocument.Parse(trimmed);
+            return true;
+        }
+        catch (System.Xml.XmlException) { return false; }
+    }
+
     /// <summary>Classifies <paramref name="content"/> and returns the best-guess <see cref="ContentDetectionResult"/>.</summary>
     public ContentDetectionResult Detect(string content)
     {
@@ -166,6 +179,10 @@ public sealed class CavemanContentDetector
         if (trimmed.StartsWith("diff --git", StringComparison.Ordinal) ||
             DiffPlusMinusLine.Matches(content).Count >= 5)
             return new ContentDetectionResult { Type = ContentType.GitDiff, Confidence = 0.92f };
+
+        // 4b — XML (well-formed, not HTML): an XML declaration, or a parseable document that has no HTML markers
+        if (first == '<' && IsXml(trimmed))
+            return new ContentDetectionResult { Type = ContentType.Xml, Confidence = 0.9f };
 
         // 5 — HTML
         var probe = content.Length > 2000 ? content[..2000].ToLowerInvariant() : content.ToLowerInvariant();

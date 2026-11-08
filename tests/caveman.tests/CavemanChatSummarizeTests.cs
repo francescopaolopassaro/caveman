@@ -40,7 +40,7 @@ public class CavemanChatSummarizeTests
             Discourse,
             "{ \"tool\": \"search\", \"hits\": 3 }");
 
-        var result = _textRank.RankAndSummarizeChat(chat);
+        var result = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { CompressStructured = false });
 
         // Keyword / service-result line is kept verbatim (it is not a discourse).
         Assert.That(result, Does.Contain("I.5 - Stemma, gonfalone, sigillo"));
@@ -98,7 +98,7 @@ public class CavemanChatSummarizeTests
             "",
             "![logo del comune](https://example.org/logo.png)");
 
-        var result = _textRank.RankAndSummarizeChat(markdown);
+        var result = _textRank.RankAndSummarizeChat(markdown, new ChatSummarizeOptions { CompressStructured = false });
 
         // The embedded discourse is retained (its subject survives) but compressed.
         Assert.That(result, Does.Contain("Elia"), "the embedded discourse must be retained");
@@ -143,7 +143,7 @@ public class CavemanChatSummarizeTests
 
         Assert.That(lineCount, Is.GreaterThanOrEqualTo(4000), "generator must produce at least 4000 lines");
 
-        var result = _textRank.RankAndSummarizeChat(chat);
+        var result = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { CompressStructured = false });
 
         Assert.That(result, Is.Not.Empty);
 
@@ -272,7 +272,7 @@ public class CavemanChatSummarizeTests
     {
         var chat = "Ecco la soluzione:\n\n```csharp\nvar x = Compute();\nConsole.WriteLine(x);\n```";
 
-        var stripped = _textRank.RankAndSummarizeChat(chat);
+        var stripped = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { CompressStructured = false });
         var kept = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { KeepCode = true });
 
         Assert.That(stripped, Does.Not.Contain("Console.WriteLine"));
@@ -284,7 +284,7 @@ public class CavemanChatSummarizeTests
     {
         var chat = "Risultato del tool:\n\n```json\n{ \"city\": \"Roma\", \"temp\": 30 }\n```";
 
-        var stripped = _textRank.RankAndSummarizeChat(chat);
+        var stripped = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { CompressStructured = false });
         var kept = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { KeepJson = true });
 
         Assert.That(stripped, Does.Not.Contain("city"));
@@ -355,8 +355,8 @@ public class CavemanChatSummarizeTests
         var chat = string.Join("\n\n", "## I.5 - Stemma, gonfalone, sigillo", Discourse, "{ \"k\": 1 }");
 
         // The legacy string overload and the detailed method must agree on the text.
-        var legacy = _textRank.RankAndSummarizeChat(chat);
-        var detailed = _textRank.RankAndSummarizeChatDetailed(chat);
+        var legacy = _textRank.RankAndSummarizeChat(chat, new ChatSummarizeOptions { CompressStructured = false });
+        var detailed = _textRank.RankAndSummarizeChatDetailed(chat, new ChatSummarizeOptions { CompressStructured = false });
 
         Assert.That(detailed.Text, Is.EqualTo(legacy));
         Assert.That(legacy, Does.Contain("I.5 - Stemma, gonfalone, sigillo"));

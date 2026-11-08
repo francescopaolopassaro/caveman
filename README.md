@@ -92,6 +92,9 @@ Every NuGet package published by the Caveman projects, with its icon, what it is
 
 ## 🆕 What's new
 
+* **Caveman 1.5.0** - new `CavemanSemanticCache` (answer a paraphrased query from a previous answer, in every supported language, with no embeddings and no extra model call); chats no longer lose JSON, XML, HTML, Markdown, SQL and code - they are **compressed** (still valid) instead of stripped; **tool calls and tool results are never removed or altered** (OpenAI-compatible, Anthropic, Bedrock Converse, Gemini, Cohere and text formats of Qwen, DeepSeek, Mistral, Llama, GLM); new `ToStrictAlternation()` and `ToConverseMessagesJson()` for APIs with strict message rules (Amazon Bedrock Converse, Nova); XML content type; token counting for Gemini, Qwen, DeepSeek, Grok, GLM, Spark, Mistral, Nova, Kimi, Ernie and Cohere Command. **Now targets .NET 10.**
+* **Caveman.PrivacyGuard 1.5.0** - far fewer false positives (negative context: a number next to "invoice", "order" or "article code" is no longer a phone number) and new detections: printed IBAN, IP addresses, URLs, monetary amounts, dates of birth, document protocol numbers; fixed the Italian VAT checksum. **Targets .NET 10** (and netstandard2.0).
+* **Caveman.SemanticKernel 1.5.0 / Caveman.Mcp 1.5.0** - `CavemanSemanticCachePlugin`, MCP `semantic_cache_*` tools, and `compact_messages` for chats with tool calls.
 * **Caveman 1.4.6** - an inline JSON example embedded in prose (e.g. "answer with an object shaped like `{"foo":"bar"}`") now survives every compression level: the brace span is isolated as a protected token before the word filters, the same way a URL or IP address already was. 482 tests.
 * **Caveman 1.4.5** - structured values survive every compression level (IPs, URLs, versions, dates, e-mails); Chinese/Japanese output no longer longer than the input; Python/Ruby/shell detected as code; comment stripping never cuts inside strings; JSON/code/SQL/HTML routed to their own compressors and YAML returned untouched. 449 tests.
 * **CavemanML 1.0.0** - new package: SynthelionML (learned prompt compression) and PrivacyGuardML (learned PII confirmation) in pure C#, verified against the PyTorch reference, with local model management (download, SHA-256 verify, update check, remove) and the `caveman-ml` tool.
@@ -131,6 +134,8 @@ dotnet tool install -g Caveman.Mcp            # + MCP server for Claude Code / C
 ```
 
 That's it — all language data ships inside the package. There are **no models to install**.
+
+Caveman 1.5.0 and the packages of the family target **.NET 10**.
 
 > 📖 **Looking for a usage example of a specific method?** See
 > [`docs/EXAMPLES.md`](docs/EXAMPLES.md) — a runnable snippet for every public API.
@@ -303,6 +308,11 @@ correctly keeping unrelated documents (weather, baking) out of the results.
 | **Syntactic** | Rule-based pruning: same content-word filtering as Aggressive, but a function word survives when it's grammatical glue directly touching a surviving word (e.g. a determiner in front of its noun), so the result reads as a terse but grammatical sentence | ~25–55% |
 
 Numbers (amounts, dates, IDs, room/gate numbers) are preserved verbatim at **every** level — they are never treated as removable noise.
+
+> **What "Semantic" does.** It keeps content words and drops punctuation and function words, then lemmatizes. The result is
+> compact keyword text, not grammatical prose: ideal for retrieval and for models that read it well, but not meant to be shown
+> to people. For text that must stay readable use **Light**. Structured content (JSON, code, SQL, XML, HTML) is never run
+> through these word filters - it goes to the structure-aware compressors.
 
 ---
 
@@ -483,10 +493,10 @@ var options = new ChatSummarizeOptions
 string condensed = textRank.RankAndSummarizeChat(conversation, options);
 ```
 
-Markdown, JSON and HTML are stripped to plain text by
-`CavemanConversationToText.ExtractTextFromMarkdown` (HTML **inner text is kept**,
-entities decoded); call it yourself and pass `AlreadyClean = true` if your input
-is already clean.
+Structured content inside a chat is **compressed, not removed** (`CompressStructured`, on by default - see
+*Structured content and tool calls in chats* below). Markdown syntax in the prose is cleaned by
+`CavemanConversationToText.ExtractTextFromMarkdown`; call it yourself and pass `AlreadyClean = true` if your
+input is already clean. Set `CompressStructured = false` for the older behaviour that strips JSON, code and HTML.
 
 ### Role/turn-aware conversations (multi-format)
 
@@ -503,7 +513,7 @@ var options = new ChatSummarizeOptions
     KeepSystemVerbatim    = true,  // never summarize the system prompt
     Deduplicate           = true,  // drop a system prompt repeated every turn
     RespectSafety         = true,  // keep security-critical turns verbatim
-    KeepCode              = true,  // keep fenced code blocks (coding chats)
+    KeepCode              = true,  // keep source code in fences verbatim (JSON/XML/HTML are still compacted)
     MaxTokens             = 4000,  // hard budget: shrink → compress → drop oldest
     TokenModel            = LlmModel.Gpt4
 };
@@ -521,6 +531,148 @@ string messagesJson = result.Conversation.ToMessagesJson(indented: true);
 compacted `CavemanConversation` (re-serializable with `ToMessagesJson()` /
 `ToTranscript()`). When the budget can't be met by compression alone, the oldest
 turns are dropped and replaced with a compact `[…]` marker.
+
+### Structured content and tool calls in chats
+
+Real chats carry more than prose. Caveman treats each kind of content for what it is:
+
+| Content in a message | What compression does |
+| :--- | :--- |
+| Prose | Summarized / compressed as before |
+| JSON (fenced or standalone) | Minified: stays valid JSON, numbers copied verbatim |
+| XML (fenced or standalone) | Comments and indentation removed: stays well-formed |
+| HTML | Comments and whitespace between tags removed; `<pre>`, `<script>`, `<style>` untouched |
+| Markdown | Tables and blank lines compacted, fences kept |
+| Source code, SQL | Comments and blank lines removed by the code / SQL compressors |
+| YAML, TOML, INI | Trailing spaces and blank-line runs only (indentation is significant) |
+| diff, CSV | Left as they are |
+| **Tool calls and tool results** | **Never removed, never altered** |
+
+**Tool calls are protected.** In an agentic chat a message may carry a tool call or a tool result. Caveman keeps
+those messages whole - summarizing, budget trimming and de-duplication skip them - and gives them back
+exactly as they came in (same ids, same blocks, same payload), because dropping one half of a call/result pair
+makes the next request invalid. These shapes are recognized:
+
+| Provider family | Shape kept intact |
+| :--- | :--- |
+| OpenAI, DeepSeek, Qwen, Grok, GLM / Z.ai, Spark, Mistral, Kimi, Ernie (OpenAI-compatible) | `tool_calls`, `function_call`, `role: tool` with `tool_call_id` |
+| Claude (Anthropic) | `tool_use` / `tool_result` content blocks |
+| Amazon Bedrock Converse (Nova, Claude, Llama, Mistral...) | `toolUse` / `toolResult` blocks |
+| Google Gemini | `contents` / `parts` with `functionCall` / `functionResponse` |
+| Cohere Command | `chat_history` with `tool_calls` / `tool_results` |
+| Text formats | `<tool_call>` (Qwen, Hermes), `<function_calls>` (Claude XML), `[TOOL_CALLS]` (Mistral), DeepSeek tool tokens, `<|python_tag|>` (Llama 3.1), `<|observation|>` (GLM), `✿FUNCTION✿` (Qwen-Agent) |
+
+```csharp
+var options = new ChatSummarizeOptions { ParseConversation = true, KeepLastTurnsVerbatim = 4, MaxTokens = 4000 };
+var result  = textRank.RankAndSummarizeChatDetailed(messagesJson, options);
+
+// Every tool message of the input is still in result.Conversation, byte for byte.
+string messages = result.Conversation.ToMessagesJson();
+```
+
+### Sending a compacted chat to a provider API
+
+`ToMessagesJson()` returns the OpenAI-compatible shape. Some APIs are stricter, and a request that breaks their
+rules is rejected - so Caveman can produce a payload that satisfies them:
+
+| API | What it requires | Use |
+| :--- | :--- | :--- |
+| OpenAI-compatible (OpenAI, DeepSeek, Qwen, Grok, GLM, Spark, Mistral, Kimi) | `system` / `user` / `assistant` / `tool` roles | `ToMessagesJson()` |
+| Anthropic | System prompt separate, `user` / `assistant` only, first turn `user` | `ToStrictAlternation(out var system)` |
+| Amazon Bedrock Converse (Nova, Claude, Llama...) | System prompt in its own field, strict `user` / `assistant` alternation, first turn `user`, no empty text, `toolUse` / `toolResult` blocks | `ToConverseMessagesJson(out var system)` |
+| Gemini | `contents` with `parts`, roles `user` / `model` | keep the Gemini JSON as parsed (tool parts are preserved) |
+
+```csharp
+var result = textRank.RankAndSummarizeChatDetailed(messagesJson, new ChatSummarizeOptions { ParseConversation = true });
+
+// Amazon Bedrock Converse (Nova, Claude on Bedrock...):
+string converseMessages = result.Conversation.ToConverseMessagesJson(out string? system);
+// -> pass `system` in the request's system field and `converseMessages` as the messages.
+```
+
+`ToStrictAlternation` and `ToConverseMessagesJson` take the system prompt out of the list, keep only `user` /
+`assistant`, merge consecutive turns of the same role (parallel tool results become one user turn), put a user turn
+first when the list would start with the assistant, and never leave a turn empty. OpenAI-style tool messages become
+`toolUse` / `toolResult` with the same ids.
+
+**Good practice for chatbots**
+
+- Compress the *content* of user and assistant turns; never roles, the system prompt or tool payloads.
+- Keep the last turns verbatim (`KeepLastTurnsVerbatim`) and the system prompt (`KeepSystemVerbatim`).
+- For chat turns prefer the **Light** or **Semantic** level with `CompressKeptText`: the **Semantic** output is
+  telegraphic keywords, not grammatical prose - it removes punctuation and function words and lemmatizes. Models
+  follow it well, but a very short message made only of function words can become empty if you call
+  `CompressAsync` on it directly. Inside the chat pipeline an empty result falls back to the original text.
+- When the token budget cannot be met by compression alone, the oldest droppable turns are removed; tool messages
+  and recent turns are not.
+
+| Symptom from the provider | Likely cause | Fix |
+| :--- | :--- | :--- |
+| "first message must be a user message" | Compaction dropped the first turn | `ToStrictAlternation()` / `ToConverseMessagesJson()` |
+| "roles must alternate" | Two turns of the same role in a row | same helpers (they merge them) |
+| "text content is empty" / "blank text" | A turn compressed to nothing | same helpers; use `Light` for very short turns |
+| "unknown role: system" / "tool" in messages | System or tool role sent as a normal message | take the system prompt out (`out var system`); use the Converse shape |
+| "toolResult without matching toolUse" | A tool message was removed | tool messages are never removed - make sure the input array is complete |
+
+---
+
+## 🗄️ SemanticCache - pay once for a question asked in many ways
+
+Coding agents ask the model nearly identical things over and over: *"how do I create a new config file for the
+database?"* and *"how to create database configuration file?"* are the same request, but a normal cache sees two
+different strings and pays twice. `CavemanSemanticCache` recognizes the paraphrase and returns the earlier answer.
+
+It is **algorithmic**: no embeddings, no model, no network. It reuses the Caveman word data, so it works in every
+language Caveman supports (function words and lemmas for 50+ languages, Chinese through the built-in segmenter).
+
+```csharp
+var cache = new CavemanSemanticCache();
+
+cache.Set("Come posso creare un nuovo file di configurazione per il database?", "Usa il comando init.");
+
+if (cache.TryGet("Come creare un nuovo file configurazione database?", out var hit))
+    Console.WriteLine($"{hit.Response}  (similarity {hit.Similarity:F2}, language {hit.Language})");
+else
+    /* call the model, then cache.Set(query, answer) */;
+
+Console.WriteLine(cache.Stats.HitRate);   // hits / lookups
+```
+
+How a query is compared:
+
+1. The language is detected (or forced with `Language`).
+2. The text is lowercased, punctuation is dropped, function words are removed and words are reduced to their lemma.
+3. The two token sets are compared with the **Jaccard index** (shared tokens / all tokens); a hit needs a similarity of at
+   least `SimilarityThreshold` (0.65 by default).
+
+**Safe for code and agents.** Numbers, file names, paths, identifiers (`snake_case`, `camelCase`), quoted strings and
+backtick spans are *protected tokens*: they must be **identical** for a hit. "Delete `Program.cs`" never matches
+"Delete `Startup.cs`", and "retry 3 times" never matches "retry 5 times". JSON, code and Markdown inside a query are
+tokenized, not thrown away.
+
+| Option | Default | Meaning |
+| :--- | :--- | :--- |
+| `SimilarityThreshold` | 0.65 | Minimum Jaccard similarity for a hit |
+| `MaxEntries` | 1000 | Entries kept; the least recently used one is evicted |
+| `Ttl` | none | Entries older than this expire |
+| `Language` | auto | Force a language (ISO 639-1 or 639-3) |
+| `UseLemmas` | true | Collapse inflected forms ("creare", "creato", "crea") |
+| `MinTokenLength` | 3 | Shorter plain words are ignored |
+| `TimeProvider` | system | Clock, for tests |
+
+| Member | Purpose |
+| :--- | :--- |
+| `Set(query, response)` | Store an answer (same normalized query overwrites) |
+| `TryGet(query, out hit)` / `Get(query)` | Look a query up |
+| `Count`, `Clear()` | Size and reset |
+| `Stats` | `Hits`, `Misses`, `HitRate`, `CharsSaved` |
+
+It is thread-safe. A short paraphrase can be detected in a different language than the stored question, so the
+lookup also tries the languages of the entries already cached. Raise the threshold (0.8) for stricter matching, lower
+it (0.5) to catch looser rewordings.
+
+Ready-made integrations: the **MCP server** exposes `semantic_cache_get`, `semantic_cache_set`, `semantic_cache_stats`
+and `semantic_cache_clear`; **Caveman.SemanticKernel** adds `CavemanSemanticCachePlugin` with the same four functions.
 
 ---
 
@@ -636,6 +788,8 @@ var result = await kernel.InvokeAsync<CompressionResult>("TokenOptimizer", "Opti
 - **`TokenOptimizerPlugin`** — prompt compression as a kernel function.
 - **`CavemanWikiPlugin`** — on-demand, token-optimized project documentation (`generate_project_wiki`, `get_project_summary`, `detect_project_type`).
 - **`CavemanServicesPlugin`** — exposes the developer services below.
+- **`CavemanSemanticCachePlugin`** *(1.5.0)* — `semantic_cache_get`, `semantic_cache_set`, `semantic_cache_stats`, `semantic_cache_clear`.
+- **`CavemanConversationPlugin.compact_messages`** *(1.5.0)* — compacts a messages array, keeps tool calls intact, optional `converse` output for Amazon Bedrock.
 
 ---
 

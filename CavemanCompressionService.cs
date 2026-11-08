@@ -394,7 +394,7 @@ namespace caveman.core
             catch { return null; }   // detection must never break compression
 
             var handled = type is ContentType.JsonObject or ContentType.JsonArray or ContentType.Code or ContentType.Sql
-                or ContentType.Html or ContentType.GitDiff or ContentType.Tabular;
+                or ContentType.Html or ContentType.GitDiff or ContentType.Tabular or ContentType.Xml;
             if (!handled && !LooksLikeYaml(input)) return null;
 
             if (handled)

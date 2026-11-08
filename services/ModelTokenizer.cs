@@ -18,7 +18,29 @@ public enum LlmModel
     Gpt3_5Turbo,
     Llama3,
     Gemma3,
-    Claude3
+    Claude3,
+    /// <summary>Google Gemini family.</summary>
+    Gemini,
+    /// <summary>Alibaba Qwen family.</summary>
+    Qwen,
+    /// <summary>DeepSeek family (V3, R1, ...).</summary>
+    DeepSeek,
+    /// <summary>xAI Grok family.</summary>
+    Grok,
+    /// <summary>Zhipu / Z.ai GLM family.</summary>
+    Glm,
+    /// <summary>iFlytek Spark family.</summary>
+    Spark,
+    /// <summary>Mistral AI family (Mistral, Mixtral, Codestral).</summary>
+    Mistral,
+    /// <summary>Amazon Nova family (Bedrock).</summary>
+    Nova,
+    /// <summary>Moonshot Kimi family.</summary>
+    Kimi,
+    /// <summary>Baidu Ernie family.</summary>
+    Ernie,
+    /// <summary>Cohere Command family.</summary>
+    Command
 }
 
 /// <summary>
@@ -39,7 +61,18 @@ public class ModelTokenizer : ITokenCounter
         [LlmModel.Gpt3_5Turbo] = "gpt-3.5",
         [LlmModel.Llama3] = "llama-3",
         [LlmModel.Gemma3] = "gemma-3",
-        [LlmModel.Claude3] = "claude-3"
+        [LlmModel.Claude3] = "claude-3",
+        [LlmModel.Gemini] = "gemini",
+        [LlmModel.Qwen] = "qwen",
+        [LlmModel.DeepSeek] = "deepseek",
+        [LlmModel.Grok] = "grok",
+        [LlmModel.Glm] = "glm",
+        [LlmModel.Spark] = "spark",
+        [LlmModel.Mistral] = "mistral",
+        [LlmModel.Nova] = "nova",
+        [LlmModel.Kimi] = "kimi",
+        [LlmModel.Ernie] = "ernie",
+        [LlmModel.Command] = "command"
     };
 
     private static readonly HashSet<string> ShortTokens = new(StringComparer.OrdinalIgnoreCase)
@@ -67,6 +100,18 @@ public class ModelTokenizer : ITokenCounter
             LlmModel.Llama3 => (int)(baseTokens * 1.05),
             LlmModel.Gemma3 => (int)(baseTokens * 1.02),
             LlmModel.Claude3 => (int)(baseTokens * 0.98),
+            // Heuristic factors (no model-specific vocabulary is bundled): plug in a real ITokenCounter for exact counts.
+            LlmModel.Gemini => baseTokens,
+            LlmModel.Qwen => (int)(baseTokens * 0.96),
+            LlmModel.DeepSeek => (int)(baseTokens * 0.97),
+            LlmModel.Grok => baseTokens,
+            LlmModel.Glm => (int)(baseTokens * 0.97),
+            LlmModel.Spark => baseTokens,
+            LlmModel.Mistral => (int)(baseTokens * 1.04),
+            LlmModel.Nova => baseTokens,
+            LlmModel.Kimi => (int)(baseTokens * 0.97),
+            LlmModel.Ernie => baseTokens,
+            LlmModel.Command => (int)(baseTokens * 1.02),
             _ => baseTokens
         };
     }

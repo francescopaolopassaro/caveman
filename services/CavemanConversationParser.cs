@@ -97,6 +97,18 @@ public sealed class CavemanConversationParser : IConversationParser
             {
                 array = msgs;
             }
+            else if (root.ValueKind == JsonValueKind.Object &&
+                     root.TryGetProperty("contents", out var contents) &&
+                     contents.ValueKind == JsonValueKind.Array)
+            {
+                array = contents; // Google Gemini: { "contents": [ { "role", "parts": [...] } ] }
+            }
+            else if (root.ValueKind == JsonValueKind.Object &&
+                     root.TryGetProperty("chat_history", out var history) &&
+                     history.ValueKind == JsonValueKind.Array)
+            {
+                array = history; // Cohere Command: { "chat_history": [ { "role": "USER", "message": "..." } ] }
+            }
             else
             {
                 return false;
@@ -118,10 +130,18 @@ public sealed class CavemanConversationParser : IConversationParser
                 if (toolNote.Length > 0)
                     content = string.IsNullOrWhiteSpace(content) ? toolNote : content.Trim() + "\n" + toolNote;
 
+                bool toolData = HasToolData(item, rawRole);
                 if (string.IsNullOrWhiteSpace(content))
-                    continue;
+                {
+                    if (!toolData) continue;
+                    content = "[tool]"; // a tool message is never dropped, even without a text part
+                }
 
-                conversation.Messages.Add(new CavemanMessage(MapRole(rawRole), content.Trim(), rawRole));
+                conversation.Messages.Add(new CavemanMessage(MapRole(rawRole), content.Trim(), rawRole)
+                {
+                    // Keep the original object: tool ids, blocks and payloads must come out untouched.
+                    RawJson = toolData ? item.GetRawText() : null
+                });
             }
 
             return conversation.Messages.Count > 0;
@@ -132,14 +152,76 @@ public sealed class CavemanConversationParser : IConversationParser
         }
     }
 
+    /// <summary>
+    /// True when the message takes part in an agentic tool exchange: OpenAI <c>tool_calls</c>/<c>function_call</c>/<c>tool_call_id</c>,
+    /// role <c>tool</c>/<c>function</c>, Anthropic <c>tool_use</c>/<c>tool_result</c> blocks, Bedrock Converse <c>toolUse</c>/<c>toolResult</c>.
+    /// </summary>
+    private static bool HasToolData(JsonElement message, string? rawRole)
+    {
+        if (rawRole != null && (rawRole.Equals("tool", StringComparison.OrdinalIgnoreCase) ||
+                                rawRole.Equals("function", StringComparison.OrdinalIgnoreCase) ||
+                                rawRole.Equals("observation", StringComparison.OrdinalIgnoreCase) ||   // GLM
+                                rawRole.Equals("ipython", StringComparison.OrdinalIgnoreCase) ||       // Llama 3.1
+                                rawRole.Equals("environment", StringComparison.OrdinalIgnoreCase)))
+            return true;
+        // Gemini: functionCall / functionResponse parts. Cohere: tool_calls / tool_results.
+        if (message.TryGetProperty("tool_results", out _) || message.TryGetProperty("functionCall", out _) ||
+            message.TryGetProperty("functionResponse", out _))
+            return true;
+        if (message.TryGetProperty("parts", out var gparts) && gparts.ValueKind == JsonValueKind.Array)
+            foreach (var part in gparts.EnumerateArray())
+                if (part.ValueKind == JsonValueKind.Object &&
+                    (part.TryGetProperty("functionCall", out _) || part.TryGetProperty("functionResponse", out _)))
+                    return true;
+        if (message.TryGetProperty("tool_calls", out _) || message.TryGetProperty("function_call", out _) ||
+            message.TryGetProperty("tool_call_id", out _) || message.TryGetProperty("toolUse", out _) ||
+            message.TryGetProperty("toolResult", out _))
+            return true;
+
+        if (message.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var block in content.EnumerateArray())
+            {
+                if (block.ValueKind != JsonValueKind.Object) continue;
+                if (block.TryGetProperty("toolUse", out _) || block.TryGetProperty("toolResult", out _)) return true;
+                if (block.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String)
+                {
+                    var t = type.GetString() ?? string.Empty;
+                    if (t.Contains("tool", StringComparison.OrdinalIgnoreCase) ||
+                        t.Contains("function", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /// <summary>Reads the "content" of a message, supporting both a string and an array of content blocks.</summary>
     private static string ExtractJsonContent(JsonElement message)
     {
         if (!message.TryGetProperty("content", out var content))
         {
-            // Some tool messages use "text" or "output".
+            // Some tool messages use "text" or "output"; Cohere uses "message".
             if (message.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
                 return t.GetString() ?? string.Empty;
+            if (message.TryGetProperty("message", out var cm) && cm.ValueKind == JsonValueKind.String)
+                return cm.GetString() ?? string.Empty;
+
+            // Google Gemini: "parts" is an array of { "text" } / { "functionCall" } / { "functionResponse" } / { "inlineData" }.
+            if (message.TryGetProperty("parts", out var parts) && parts.ValueKind == JsonValueKind.Array)
+            {
+                var sbp = new StringBuilder();
+                foreach (var part in parts.EnumerateArray())
+                {
+                    if (part.ValueKind != JsonValueKind.Object) continue;
+                    if (part.TryGetProperty("text", out var pt) && pt.ValueKind == JsonValueKind.String)
+                        sbp.Append(pt.GetString()).Append('\n');
+                    else if (part.TryGetProperty("functionCall", out _)) sbp.Append("[functionCall]\n");
+                    else if (part.TryGetProperty("functionResponse", out _)) sbp.Append("[functionResponse]\n");
+                    else sbp.Append("[part]\n");
+                }
+                return sbp.ToString().Trim();
+            }
             return string.Empty;
         }
 
@@ -353,8 +435,8 @@ public sealed class CavemanConversationParser : IConversationParser
         {
             "system" or "sistema" or "developer" => CavemanRole.System,
             "user" or "utente" or "human" or "umano" => CavemanRole.User,
-            "assistant" or "assistente" or "ai" or "bot" or "model" or "modello" or "gpt" => CavemanRole.Assistant,
-            "tool" or "strumento" or "function" or "funzione" => CavemanRole.Tool,
+            "assistant" or "assistente" or "ai" or "bot" or "model" or "modello" or "gpt" or "chatbot" => CavemanRole.Assistant,
+            "tool" or "strumento" or "function" or "funzione" or "observation" or "ipython" or "environment" => CavemanRole.Tool,
             _ => CavemanRole.Unknown
         };
     }

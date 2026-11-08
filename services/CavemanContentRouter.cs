@@ -148,6 +148,7 @@ public sealed class CavemanContentRouter
                 ContentType.JsonObject      => await RouteProseAsync(content, detection.Type, before, ct, light: true),
                 ContentType.Code            => RouteCode(content, before),
                 ContentType.Tabular         => RouteTabular(content, query, before),
+                ContentType.Xml             => RouteXml(content, before),
                 _                           => Passthrough(content, detection.Type)
             };
 
@@ -298,6 +299,22 @@ public sealed class CavemanContentRouter
             Compressed = r.CompressedText, Original = content,
             DetectedType = type,
             StrategyUsed = light ? "LightNlp" : "NlpCompression",
+            TokensBefore = tokensBefore, TokensAfter = tokensAfter
+        };
+    }
+
+    private readonly CavemanStructuredCompressor _structured = new();
+
+    private RoutedCompressionResult RouteXml(string content, int tokensBefore)
+    {
+        var compact = _structured.Compress(content, "xml");
+        bool changed = compact != content;
+        int tokensAfter = changed ? _tokenCounter.CountTokens(compact, LlmModel.Gpt4) : tokensBefore;
+        return new RoutedCompressionResult
+        {
+            Compressed = compact, Original = content,
+            DetectedType = ContentType.Xml,
+            StrategyUsed = changed ? "XmlCompression" : "Passthrough",
             TokensBefore = tokensBefore, TokensAfter = tokensAfter
         };
     }
