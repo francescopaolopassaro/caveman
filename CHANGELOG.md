@@ -2,6 +2,15 @@
 
 All notable changes to **Caveman** are documented in this file.
 
+## [1.6.0](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.6.0) - 2026-11-09
+
+### Added
+- **`CavemanDocumentCompressor`** - compresses a whole markdown document (agent instruction files, memories injected into a model context) in one call. Fenced blocks are minified without loss (JSON, XML, HTML, SQL, code), markdown decoration is stripped, comments and blank lines are removed, and prose lines go through the chosen NLP level.
+- **`CavemanDocumentOptions`** - `CheckDestructiveCommands` (default `true`; set it to `false` to compress documents that merely name commands such as `rm -rf`), `Level`, `StripMarkdownDecoration`, `KeepLinkUrls`, `StripInlineCodeDelimiters`, `MinifyEmbeddedStructures`, `StripComments`, `RemoveBlankLines`, `CompressProse`, `PreserveOperatorsAndIdentifiers`, `MinProseChars`.
+- **Presets** - `CavemanDocumentOptions.Maximum` (Aggressive level, destructive-command check off, everything else on) and `CavemanDocumentOptions.Safe`.
+- **`CavemanCompressionService.WithCodeProtection(bool)`** - keeps comparison operators (`>0`, `!=`, `>=`), backtick spans, hyphenated ids (`RF-M1-01`), paths, file names, camelCase identifiers and acronyms verbatim at every level. Off by default: existing output is unchanged.
+- **`DocumentCompressionResult`** - text, characters and tokens before/after, blocks minified, prose lines compressed and the safety verdict.
+
 ## [1.5.1](https://github.com/francescopaolopassaro/caveman/releases/tag/v1.5.1) - 2026-11-08
 
 ### Added

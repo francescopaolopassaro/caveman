@@ -4,7 +4,7 @@ NLP prompt compressor for LLMs. It reduces the tokens of prompts, chats and tool
 a network call and without embeddings: it uses language data (function words, lemmas, proper nouns) that ships
 inside the package, for 50+ languages.
 
-Version 1.5.1 targets .NET 10.
+Version 1.6.0 targets .NET 10.
 
 ## Install
 
@@ -32,6 +32,19 @@ Version 1.5.1 targets .NET 10.
 Numbers, dates, identifiers, IP addresses, versions and similar values are kept verbatim at every level.
 JSON, code, SQL, XML, HTML and YAML never go through the word filters: they are routed to structure-aware
 compressors.
+
+## What is new in 1.6.0
+
+- **`CavemanDocumentCompressor`** compresses a whole markdown document in one call, for instruction files and memories that are injected into a model context.
+- **`CheckDestructiveCommands`** (default `true`) can be set to `false` to compress documents that name destructive commands only to forbid them.
+- **`CavemanDocumentOptions.Maximum`** applies the strongest settings: Aggressive level, markdown decoration stripped, JSON/XML/HTML/SQL/code blocks minified without loss, comments and blank lines removed. **`CavemanDocumentOptions.Safe`** is the prudent preset.
+- **`WithCodeProtection(true)`** keeps comparison operators, backtick spans, hyphenated ids, paths, file names and identifiers verbatim at every level.
+
+```csharp
+var result = new CavemanDocumentCompressor()
+    .Compress(markdown, CavemanDocumentOptions.Maximum);
+string text = result.Text;
+```
 
 ## What is new in 1.5.1
 

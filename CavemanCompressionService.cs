@@ -362,6 +362,29 @@ namespace caveman.core
             };
         }
 
+        // Opt-in (WithCodeProtection): what the standard ProtectedToken deliberately does not isolate because prose never needs it, but a document that mixes
+        // rules and code does. Without it every level above Light drops comparison operators (">0" became "0", "!=" disappeared, which inverts a rule),
+        // backtick spans, hyphenated ids ("RF-M1-01" was split into RF M 1 01), dotted/slashed paths and file names, camelCase identifiers and acronyms.
+        // The base patterns come first so URLs, dates, versions and numbers keep the exact behaviour they have today.
+        private static readonly Regex ProtectedTokenCode = new(
+            @"`[^`\r\n]+`|" +
+            @"(?<![\p{L}\p{N}<])[<>]=?[0-9][0-9.,]*|" +
+            @"(?:>=|<=|!=|==|=>|->|<>)|" +
+            @"(?<![\p{L}\p{N}<])[<>](?=\s?[\p{L}\p{N}""'(\-+])|" +
+            @"\b[A-Za-z][A-Za-z0-9]*(?:[\-_./\\][A-Za-z0-9]+)+\b|" +
+            @"\b[a-z]+(?:[A-Z][a-z0-9]+)+\b|\b(?:[A-Z][a-z0-9]+){2,}\b|" +
+            @"\b[A-Z]{2,}[A-Z0-9]*\b|\b[A-Za-z]+[0-9]+[A-Za-z0-9]*\b|" +
+            ProtectedToken.ToString(),
+            RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+
+        private bool _protectCode;
+
+        /// <summary>
+        /// Opt-in (default off, so every existing level keeps byte-identical output): keeps comparison operators, backtick spans, hyphenated ids, paths,
+        /// file names, camelCase identifiers and acronyms verbatim at every level. Intended for documents that mix rules and code (agent instruction files).
+        /// </summary>
+        public CavemanCompressionService WithCodeProtection(bool enabled) { _protectCode = enabled; return this; }
+
         [ThreadStatic] private static bool _structuredGuardBypass;
         private static readonly CavemanContentDetector StructuredDetector = new();
         private static readonly Regex YamlKeyLine = new(@"^[ 	]*[\w.\-]+:(?:[ 	]|$)", RegexOptions.Compiled);
@@ -433,7 +456,7 @@ namespace caveman.core
             var tokens = new List<WordToken>();
             var cursor = 0;
 
-            foreach (Match m in ProtectedToken.Matches(input))
+            foreach (Match m in (_protectCode ? ProtectedTokenCode : ProtectedToken).Matches(input))
             {
                 if (m.Index > cursor) AppendNormal(tokens, input.Substring(cursor, m.Index - cursor));
                 var value = m.Value;
